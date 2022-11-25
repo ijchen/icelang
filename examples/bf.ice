@@ -1,8 +1,8 @@
 // A brainfuck interpreter, written in ice
 // https://en.wikipedia.org/wiki/Brainfuck
 
-// Interprets a brainfuck program
-fn interpret(program) {
+// Executes a brainfuck program
+fn execute(program) {
     // Initialize the program state
     let data = [];
     for _ in range(30000) {
@@ -11,6 +11,7 @@ fn interpret(program) {
     let data_ptr = 0;
     let instruction_ptr = 0;
     let bracket_stack = [];
+    let stdin_buff = [];
 
     // Execute the program
     while instruction_ptr < len(program) {
@@ -32,8 +33,31 @@ fn interpret(program) {
             },
             "+" => { data[data_ptr] += 8d1 },
             "-" => { data[data_ptr] -= 8d1 },
-            "." => { todo() },
-            "," => { todo() },
+            "." => { print(from_codepoint(data[data_ptr])) },
+            "," => {
+                if stdin_buff != null && len(stdin_buff) == 0 {
+                    let next_line = input();
+                    if next_line == null {
+                        stdin = null;
+                    }
+                    else {
+                        for character in next_line {
+                            push(stdin_buff, character);
+                        }
+                        push(stdin_buff, "\n");
+                    }
+                }
+                // If we've reached the end of stdin, leave the data unchanged
+                if stdin_buff != null {
+                    let next_char = to_codepoint(pop_start(stdin_buff));
+                    if next_char > 255 {
+                        println();
+                        println("Something went wrong: non-ASCII input character");
+                        return;
+                    }
+                    data[data_ptr] = byte(next_char);
+                }
+            },
             "[" => {
                 if data[data_ptr] == 8b0 {
                     // Advance to the matching "]"
@@ -58,9 +82,6 @@ fn interpret(program) {
                             },
                         }
                     }
-
-                    // Advance past the matching "]"
-                    instruction_ptr += 1;
                 }
                 else {
                     push(bracket_stack, instruction_ptr);
@@ -90,6 +111,11 @@ fn interpret(program) {
                         // the other end did the zero check, and it's never
                         // happening. Oops!
                         instruction_ptr = start_bracket_ptr;
+
+                        // Let's add a continue to skip incrementing the
+                        // instruction_ptr (that way, we'll jump back exactly to
+                        // the "[" and not the next instruction after it)
+                        continue;
                     },
                 }
             },
@@ -106,13 +132,23 @@ fn interpret(program) {
     }
 }
 
-// Read in lines from stdin until no more are available
-let program = "";
-let line = input();
-while line != null {
-    program += line;
-    program += "\n";
-}
+fn main() {
+    // Ask the user for a brainfuck source file
+    print("Enter the path to a brainfuck source file: ");
+    let file_path = input();
+    if file_path == null {
+        println("Failed to read file path from stdin");
+        return;
+    }
 
-// Interpret the brainfuck program
-interpret(program);
+    // Read the brainfuck source file into a string
+    let code = read_file(file_path);
+    if code == null {
+        println("Failed to read file: " + file_path);
+        return;
+    }
+
+    // Interpret the brainfuck code
+    execute(code);
+}
+main();
