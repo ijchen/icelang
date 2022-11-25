@@ -8,7 +8,7 @@ use repl::enter_repl;
 
 fn interpret_file(file_path: &str, show_debug_info: bool) {
     let Ok(source_code) = fs::read_to_string(file_path) else {
-        eprintln!("Failed to read file at path: {file_path}");
+        eprintln!("Couldn't read file \"{file_path}\"");
         return;
     };
 
