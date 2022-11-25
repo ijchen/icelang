@@ -2,7 +2,14 @@
 name = "icelang"
 version = "0.1.0"
 authors = ["Isaac Chen"]
-edition = "2021"
+description = "A simple and high-level programming language created for the purpose of learning about programming language design and implementation."
 license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/ijchen/icelang"
+documentation = "https://docs.rs/icelang"
+edition = "2021"
+include = ["src/", "Cargo.toml", "README.md", "LICENSE-*"]
 
 [dependencies]
+
+[dev-dependencies]
