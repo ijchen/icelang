@@ -2,7 +2,7 @@
  * Complete EBNF grammar for icelang (without regard for whitespace and comments)
  *)
 
-program = statements;
+program = [statements];
 
 (* Statements and code blocks *)
 code_block = lbrace , [statements] , rbrace;
