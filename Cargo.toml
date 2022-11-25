@@ -12,5 +12,6 @@ include = ["src/", "Cargo.toml", "README.md", "LICENSE-*"]
 publish = false
 
 [dependencies]
+clap = { version = "4.0", features = ["derive"] }
 
 [dev-dependencies]
