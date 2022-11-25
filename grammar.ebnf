@@ -6,7 +6,7 @@ program = statements;
 
 (* Statements and code blocks *)
 code_block = lbrace , [statements] , rbrace;
-statements = statement {semicolon , statement};
+statements = statement , {semicolon , statement} , [semicolon];
 statement = expression
           | if_else_statement
           | loop
