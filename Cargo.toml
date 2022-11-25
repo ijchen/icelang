@@ -9,6 +9,7 @@ repository = "https://github.com/ijchen/icelang"
 documentation = "https://docs.rs/icelang"
 edition = "2021"
 include = ["src/", "Cargo.toml", "README.md", "LICENSE-*"]
+publish = false
 
 [dependencies]
 
