@@ -1,0 +1,132 @@
+(*
+ * Complete EBNF grammar for icelang (without regard for whitespace and comments)
+ *)
+
+program = statements;
+
+(* Statements and code blocks *)
+code_block = lbrace , [statements] , rbrace;
+statements = statement {semicolon , statement};
+statement = expression
+          | if_else_statement
+          | loop
+          | jump_statement
+          | declaration;
+
+(* If statements and related *)
+if_else_statement = if_statement , {else_if_statement} , [else_statement];
+if_statement = kw_if , expression , code_block;
+else_if_statement = kw_else , kw_if , expression , code_block;
+else_statement = kw_else , code_block;
+
+(* Loops *)
+loop = simple_loop | while_loop | for_loop;
+simple_loop = kw_loop , [expression] , code_block;
+while_loop = kw_while , expression , code_block;
+for_loop = kw_for , identifier , kw_in , expression , code_block;
+
+(* Jump statements (break, continue) *)
+jump_statement = break_statement | continue_statement;
+break_statement = kw_break;
+continue_statement = kw_continue;
+
+(* Declarations *)
+declaration = fn_declaration | var_declaration;
+fn_declaration = kw_fn , identifier , lparen , fn_params , rparen , code_block;
+fn_params = empty
+        | identifier , {comma , identifier} , [comma]
+        | lbracket , identifier , rbracket;
+var_declaration = kw_let , single_var_declaration , {comma , single_var_declaration} , [comma];
+single_var_declaration = identifier , [equals , expression];
+
+(* Expressions *)
+expression = ? TODO ?;
+
+(* Literals *)
+literal = int_literal | byte_literal | float_literal | bool_literal
+        | string_literal | list_literal | dict_literal | null_literal;
+int_literal = int_literal_dec | int_literal_bin | int_literal_hex | int_literal_oct;
+int_literal_dec = dec_digit , {dec_digit};
+int_literal_bin = "0b" , bin_digit , {bin_digit};
+int_literal_hex = "0x" , hex_digit , {hex_digit};
+int_literal_oct = "0o" , oct_digit , {oct_digit};
+byte_literal = byte_literal_dec | byte_literal_bin | byte_literal_hex | byte_literal_oct;
+byte_literal_dec = "8d" , dec_digit , {dec_digit};
+byte_literal_bin = "8b" , bin_digit , {bin_digit};
+byte_literal_hex = "8x" , hex_digit , {hex_digit};
+byte_literal_oct = "8o" , oct_digit , {oct_digit};
+float_literal = ? TODO ?;
+bool_literal = kw_true | kw_false;
+string_literal = normal_string_literal | raw_string_literal;
+normal_string_literal = double_quote , {normal_string_literal_char} , double_quote;
+normal_string_literal_char = ? Any Unicode scalar value, except a double quote
+                               or backslash. Additionally, escape sequences may
+                               be used, which are detailed in the string literal
+                               section of the README ?;
+raw_string_literal = "r" , raw_string_literal_contents;
+raw_string_literal_contents = double_quote , {raw_string_literal_char} , double_quote
+                            | hash , raw_string_literal_contents , hash;
+raw_string_literal_char = ? Any Unicode scalar value, except a double quote
+                            followed by the same number of hash characters as
+                            was used to start this raw string literal ?;
+list_literal = lbracket , list_contents , rbracket;
+list_contents = empty | (expression , {comma , expression} , [comma]);
+dict_literal = lbrace , dict_contents , rbrace;
+dict_contents = empty | (dict_entry , {comma , dict_entry} , [comma]);
+dict_entry = expression , colon , expression;
+null_literal = kw_null;
+
+(* Operators *)
+(* TODO *)
+
+(* Keywords *)
+kw_if = "if";
+kw_else = "else";
+kw_loop = "loop";
+kw_while = "while";
+kw_for = "for";
+kw_in = "in";
+kw_break = "break";
+kw_continue = "continue";
+kw_fn = "fn";
+kw_let = "let";
+kw_true = "true";
+kw_false = "false";
+kw_null = "null";
+
+(* Identifiers *)
+identifier = ident_start , {ident_continue};
+ident_start = alpha | underscore;
+ident_continue = alphanumeric | underscore;
+
+(* Characters and character sets *)
+alphanumeric = alpha | dec_digit;
+alpha = alpha_lower | alpha_upper;
+alpha_lower = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h"
+            | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p"
+            | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x"
+            | "y" | "z";
+alpha_upper = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H"
+            | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P"
+            | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X"
+            | "Y" | "Z";
+hex_digit = dec_digit
+          | "a" | "b" | "c" | "d" | "e" | "f"
+          | "A" | "B" | "C" | "D" | "E" | "F";
+dec_digit = oct_digit | "8" | "9";
+oct_digit = bin_digit | "2" | "3" | "4" | "5" | "6" | "7";
+bin_digit = "0" | "1";
+semicolon = ";";
+colon = ":";
+comma = ",";
+double_quote = '"';
+hash = "#";
+lparen = "(";
+rparen = ")";
+lbrace = "{";
+rbrace = "}";
+lbracket = "[";
+rbracket = "]";
+equals = "=";
+underscore = "_";
+empty = ""; (* The empty string - nothing *)
