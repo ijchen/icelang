@@ -1,3 +1,4 @@
+use icelang::lexer;
 use rustyline::{error::ReadlineError, Editor};
 use typed_arena::Arena;
 
@@ -102,6 +103,16 @@ pub fn enter_repl(mut show_debug_info: bool) {
             print_source_info("<stdin>", source_code);
             println!();
         }
+
+        let tokens = match lexer::tokenize(source_code, "<stdin>") {
+            Ok(tokens) => tokens,
+            Err(err) => {
+                println!("Lexer error: {err}");
+                continue;
+            }
+        };
+
+        println!("Tokens: {tokens:?}");
 
         // TODO
         todo!();
