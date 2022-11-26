@@ -13,5 +13,8 @@ publish = false
 
 [dependencies]
 clap = { version = "4.0", features = ["derive"] }
+rustyline = "10.0"
+typed-arena = "2.0"
+clearscreen = "1.0.10"
 
 [dev-dependencies]
