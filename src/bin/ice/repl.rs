@@ -112,7 +112,7 @@ pub fn enter_repl(mut show_debug_info: bool) {
             }
         };
 
-        println!("Tokens: {tokens:?}");
+        println!("Tokens: {tokens:#?}");
 
         // TODO
         todo!();

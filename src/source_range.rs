@@ -34,7 +34,7 @@ impl Debug for SourceRange<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "SourceRange {{ in {} from {} to {}: \"{:?}\" }}",
+            "SourceRange {{ in {} from {} to {}: {:?} }}",
             self.source_file_name,
             self.start_index,
             self.end_index,

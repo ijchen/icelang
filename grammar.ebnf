@@ -46,7 +46,7 @@ expression = ? TODO ?;
 literal = int_literal | byte_literal | float_literal | bool_literal
         | string_literal | list_literal | dict_literal | null_literal;
 int_literal = int_literal_dec | int_literal_bin | int_literal_hex | int_literal_oct;
-int_literal_dec = dec_digit , {dec_digit};
+int_literal_dec = ["0d"] , dec_digit , {dec_digit};
 int_literal_bin = "0b" , bin_digit , {bin_digit};
 int_literal_hex = "0x" , hex_digit , {hex_digit};
 int_literal_oct = "0o" , oct_digit , {oct_digit};
@@ -55,7 +55,9 @@ byte_literal_dec = "8d" , dec_digit , {dec_digit};
 byte_literal_bin = "8b" , bin_digit , {bin_digit};
 byte_literal_hex = "8x" , hex_digit , {hex_digit};
 byte_literal_oct = "8o" , oct_digit , {oct_digit};
-float_literal = ? TODO ?;
+float_literal = dec_digit , {dec_digit} , dot , dec_digit , {dec_digit} , ["e" , ["+" | "-"] , dec_digit , {dec_digit}]
+              | kw_infinity
+              | kw_nan;
 bool_literal = kw_true | kw_false;
 string_literal = normal_string_literal | raw_string_literal;
 normal_string_literal = double_quote , {normal_string_literal_char} , double_quote;
@@ -93,6 +95,8 @@ kw_let = "let";
 kw_true = "true";
 kw_false = "false";
 kw_null = "null";
+kw_infinity = "Infinity";
+kw_nan = "NaN";
 
 (* Identifiers *)
 identifier = ident_start , {ident_continue};
@@ -119,6 +123,7 @@ bin_digit = "0" | "1";
 semicolon = ";";
 colon = ":";
 comma = ",";
+dot = ".";
 double_quote = '"';
 hash = "#";
 lparen = "(";
