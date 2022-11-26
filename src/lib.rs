@@ -2,4 +2,5 @@
 
 #![warn(missing_docs)]
 
+mod source_range;
 pub mod token;
