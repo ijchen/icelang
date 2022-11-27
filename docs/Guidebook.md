@@ -252,7 +252,7 @@ Additionally, although the following types do not actually exist in icelang, The
 	- A value which may be either of type `type_a` or `type_b`
 - `list[type]`
 	- A `list` containing elements which are all of type `type`
-- `dict[type_a, type_b]`
+- `dict[type_a: type_b]`
 	- A `dict` containing only keys of type `type_a` and only values of type `type_b`
 
 # Basic syntax
