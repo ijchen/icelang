@@ -5,6 +5,7 @@ TODO
 All values in icelang are one of the following primitive types: `int`, `byte`, `float`, `bool`, `string`, `list`, `dict`, `null`
 
 TODO reformat with headers
+
 Here is more detailed information on each type:
 - `int`
 	- A signed, arbitrary precision integer

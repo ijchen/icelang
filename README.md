@@ -24,7 +24,10 @@ The design of icelang takes inspiration from many languages, primarily
 # Getting Started
 
 For a full guide on setting up the icelang interpreter and writing your first
-program, check out the [Getting Started](/docs/Getting%20Started.md) guide.
+program, check out the [Getting Started](/docs/Getting%20Started.md) guide. For
+a general overview of the syntax and features of icelang, check out
+[The icelang Guidebook](/docs/Guidebook.md). You can also check out the
+[examples](/examples/) folder to see some example icelang programs.
 
 Here's a simple "hello world" program, written in icelang:
 ```
@@ -49,7 +52,8 @@ loop 10 {
 
 # To-do
 
-icelang is still in development, and has a number of incomplete or missing features:
+icelang is still in development, and has a number of incomplete or missing
+features:
 - [ ] Make a cool logo
 - [ ] Guidebook
 - [ ] Formalize grammar
@@ -92,7 +96,8 @@ icelang is still in development, and has a number of incomplete or missing featu
     - [ ] Fuzzing (where applicable)
 - [ ] Flesh out examples
 - [ ] Future considerations
-  - [ ] Format string literals (like python's `f"{2 + 2}"` or JavaScript's `` `${2 + 2}` ``)
+  - [ ] Format string literals (like python's `f"{2 + 2}"` or JavaScript's
+`` `${2 + 2}` ``)
   - [ ] First-class function support
   - [ ] User-defined types
   - [ ] Compilation, JIT-compilation, transpilation, and static code analysis
