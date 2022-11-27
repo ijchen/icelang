@@ -149,7 +149,7 @@ pub fn tokenize<'source>(
             use Base::*;
             #[derive(PartialEq)]
             enum NumericLiteralKind {
-                BasedInt(Base),
+                BasedInt(Base, bool),
                 BasedByte(Base),
                 IntOrFloat,
                 Int,
@@ -160,10 +160,10 @@ pub fn tokenize<'source>(
             // Identify what kind of numeric literal we're building
             let mut kind: NumericLiteralKind = match (chars[index], chars.get(index + 1)) {
                 // Int literal with base
-                ('0', Some('d')) => BasedInt(Decimal),
-                ('0', Some('b')) => BasedInt(Binary),
-                ('0', Some('x')) => BasedInt(Hex),
-                ('0', Some('o')) => BasedInt(Octal),
+                ('0', Some('d')) => BasedInt(Decimal, false),
+                ('0', Some('b')) => BasedInt(Binary, false),
+                ('0', Some('x')) => BasedInt(Hex, false),
+                ('0', Some('o')) => BasedInt(Octal, false),
 
                 // Byte literal with base
                 ('8', Some('d')) => BasedByte(Decimal),
@@ -179,7 +179,7 @@ pub fn tokenize<'source>(
             let mut literal_has_enough_chars = false;
 
             // Append the prefix characters, if they exist
-            if matches!(kind, BasedByte(_) | BasedInt(_)) {
+            if matches!(kind, BasedByte(_) | BasedInt(_, _)) {
                 for _ in 0..2 {
                     literal.push(chars[index]);
                     index += 1;
@@ -188,7 +188,7 @@ pub fn tokenize<'source>(
             // Read successive characters until the literal is complete
             while index < chars.len() {
                 match kind {
-                    BasedInt(base) | BasedByte(base) => {
+                    BasedInt(base, _) | BasedByte(base) => {
                         // Ensure the character is valid for the base
                         if match base {
                             Decimal => chars[index].is_ascii_digit(),
@@ -200,6 +200,11 @@ pub fn tokenize<'source>(
                             index += 1;
                             literal_has_enough_chars = true;
                         } else if chars[index] == '_' {
+                            literal.push(chars[index]);
+                            index += 1;
+                        } else if matches!(kind, BasedInt(Decimal, false)) && chars[index] == 'e' {
+                            kind = BasedInt(Decimal, true);
+                            literal_has_enough_chars = false;
                             literal.push(chars[index]);
                             index += 1;
                         } else {
@@ -318,7 +323,7 @@ pub fn tokenize<'source>(
 
             // Add the new int literal to tokens
             let literal_type = match kind {
-                BasedInt(_) | Int => IceType::Int,
+                BasedInt(_, _) | Int => IceType::Int,
                 BasedByte(_) => IceType::Byte,
                 Float => IceType::Float,
                 IntOrFloat => unreachable!(),
