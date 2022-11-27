@@ -47,16 +47,16 @@ expression = ? TODO ?;
 literal = int_literal | byte_literal | float_literal | bool_literal
         | string_literal | list_literal | dict_literal | null_literal;
 int_literal = int_literal_dec | int_literal_bin | int_literal_hex | int_literal_oct;
-int_literal_dec = ["0d"] , dec_digit , {dec_digit} , ["e" , dec_digit , {dec_digit}];
-int_literal_bin = "0b" , bin_digit , {bin_digit};
-int_literal_hex = "0x" , hex_digit , {hex_digit};
-int_literal_oct = "0o" , oct_digit , {oct_digit};
+int_literal_dec = ["0d" , {underscore}] , dec_digit , {dec_digit | underscore} , ["e" , {underscore} , dec_digit , {dec_digit | underscore}];
+int_literal_bin = "0b" , {underscore} , bin_digit , {bin_digit | underscore};
+int_literal_hex = "0x" , {underscore} , hex_digit , {hex_digit | underscore};
+int_literal_oct = "0o" , {underscore} , oct_digit , {oct_digit | underscore};
 byte_literal = byte_literal_dec | byte_literal_bin | byte_literal_hex | byte_literal_oct;
-byte_literal_dec = "8d" , dec_digit , {dec_digit};
-byte_literal_bin = "8b" , bin_digit , {bin_digit};
-byte_literal_hex = "8x" , hex_digit , {hex_digit};
-byte_literal_oct = "8o" , oct_digit , {oct_digit};
-float_literal = dec_digit , {dec_digit} , dot , dec_digit , {dec_digit} , ["e" , ["+" | "-"] , dec_digit , {dec_digit}]
+byte_literal_dec = "8d" , {underscore} , dec_digit , {dec_digit | underscore};
+byte_literal_bin = "8b" , {underscore} , bin_digit , {bin_digit | underscore};
+byte_literal_hex = "8x" , {underscore} , hex_digit , {hex_digit | underscore};
+byte_literal_oct = "8o" , {underscore} , oct_digit , {oct_digit | underscore};
+float_literal = dec_digit , {dec_digit | underscore} , dot , {underscore} , dec_digit , {dec_digit | underscore} , ["e" , ["+" | "-"] , {underscore} , dec_digit , {dec_digit | underscore}]
               | kw_infinity
               | kw_nan;
 bool_literal = kw_true | kw_false;

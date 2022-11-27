@@ -199,6 +199,9 @@ pub fn tokenize<'source>(
                             literal.push(chars[index]);
                             index += 1;
                             literal_has_enough_chars = true;
+                        } else if chars[index] == '_' {
+                            literal.push(chars[index]);
+                            index += 1;
                         } else {
                             break;
                         }
@@ -208,6 +211,10 @@ pub fn tokenize<'source>(
                             literal.push(chars[index]);
                             index += 1;
                             literal_has_enough_chars = true;
+                        }
+                        '_' => {
+                            literal.push(chars[index]);
+                            index += 1;
                         }
                         '.' => {
                             // We know now this literal is a float literal
@@ -232,6 +239,10 @@ pub fn tokenize<'source>(
                             literal.push(chars[index]);
                             index += 1;
                             literal_has_enough_chars = true;
+                        }
+                        '_' => {
+                            literal.push(chars[index]);
+                            index += 1;
                         }
                         'e' => {
                             // If the literal doesn't currently have enough
@@ -259,10 +270,17 @@ pub fn tokenize<'source>(
                             }
 
                             // Read the exponent
-                            while index < chars.len() && chars[index].is_ascii_digit() {
-                                literal.push(chars[index]);
-                                index += 1;
-                                literal_has_enough_chars = true;
+                            while index < chars.len() {
+                                if chars[index].is_ascii_digit() {
+                                    literal.push(chars[index]);
+                                    index += 1;
+                                    literal_has_enough_chars = true;
+                                } else if chars[index] == '_' {
+                                    literal.push(chars[index]);
+                                    index += 1;
+                                } else {
+                                    break;
+                                }
                             }
                         }
                         _ => {
@@ -274,6 +292,10 @@ pub fn tokenize<'source>(
                             literal.push(chars[index]);
                             index += 1;
                             literal_has_enough_chars = true;
+                        }
+                        '_' => {
+                            literal.push(chars[index]);
+                            index += 1;
                         }
                         _ => {
                             break;
