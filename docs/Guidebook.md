@@ -36,6 +36,7 @@ All values in icelang are one of the following primitive types: `int`, `byte`,
 `float`, `bool`, `string`, `list`, `dict`, `null`
 
 Here is more detailed information on each type:
+
 ## `int`
 An `int` is a [signed](https://en.wikipedia.org/wiki/Signedness),
 [arbitrary precision](https://en.wikipedia.org/wiki/Arbitrary-precision_arithmetic)
