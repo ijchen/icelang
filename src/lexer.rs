@@ -357,8 +357,52 @@ pub fn tokenize<'source>(
         }
 
         // Punctuators
-        if false {
-            todo!();
+        match (chars[index], chars.get(index + 1), chars.get(index + 2)) {
+            ('*', Some('*'), Some('=')) => {
+                let start_index = index;
+                let mut punctuator = String::with_capacity(3);
+                for _ in 0..3 {
+                    punctuator.push(chars[index]);
+                    index += 1;
+                }
+                tokens.push(Token::new_punctuator(
+                    punctuator,
+                    SourceRange::new(source_code, source_file_name, start_index, index - 1),
+                ));
+                continue;
+            }
+            ('*', Some('*'), _) | ('+' | '-' | '*' | '/' | '%', Some('='), _) => {
+                let start_index = index;
+                let mut punctuator = String::with_capacity(2);
+                for _ in 0..2 {
+                    punctuator.push(chars[index]);
+                    index += 1;
+                }
+                tokens.push(Token::new_punctuator(
+                    punctuator,
+                    SourceRange::new(source_code, source_file_name, start_index, index - 1),
+                ));
+                continue;
+            }
+            (
+                ';' | ':' | ',' | '.' | '"' | '#' | '(' | ')' | '{' | '}' | '[' | ']' | '=' | '_'
+                | '+' | '-' | '*' | '/' | '%',
+                _,
+                _,
+            ) => {
+                let start_index = index;
+                let mut punctuator = String::with_capacity(1);
+                for _ in 0..1 {
+                    punctuator.push(chars[index]);
+                    index += 1;
+                }
+                tokens.push(Token::new_punctuator(
+                    punctuator,
+                    SourceRange::new(source_code, source_file_name, start_index, index - 1),
+                ));
+                continue;
+            }
+            _ => { /* Not a punctuator, carry on */ }
         }
 
         // Invalid characters

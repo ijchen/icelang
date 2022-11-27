@@ -12,6 +12,8 @@ pub enum Token<'source> {
     Literal(TokenLiteral<'source>),
     /// A keyword token
     Keyword(TokenKeyword<'source>),
+    /// A punctuator (separator or operator) token
+    Punctuator(TokenPunctuator<'source>),
 }
 
 impl<'source> Token<'source> {
@@ -28,6 +30,11 @@ impl<'source> Token<'source> {
     /// Constructs a new Keyword Token
     pub fn new_keyword(keyword: String, pos: SourceRange<'source>) -> Self {
         Self::Keyword(TokenKeyword { keyword, pos })
+    }
+
+    /// Constructs a new Punctuator Token
+    pub fn new_punctuator(punctuator: String, pos: SourceRange<'source>) -> Self {
+        Self::Punctuator(TokenPunctuator { punctuator, pos })
     }
 }
 
@@ -89,6 +96,25 @@ impl<'source> TokenKeyword<'source> {
     }
 
     /// Returns the position in the source code of this keyword
+    pub fn pos(&self) -> &SourceRange<'source> {
+        &self.pos
+    }
+}
+
+/// A punctuator token
+#[derive(Debug)]
+pub struct TokenPunctuator<'source> {
+    punctuator: String,
+    pos: SourceRange<'source>,
+}
+
+impl<'source> TokenPunctuator<'source> {
+    /// Returns the punctuator as a string
+    pub fn punctuator(&self) -> &str {
+        &self.punctuator
+    }
+
+    /// Returns the position in the source code of this punctuator
     pub fn pos(&self) -> &SourceRange<'source> {
         &self.pos
     }
