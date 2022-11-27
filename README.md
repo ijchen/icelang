@@ -21,10 +21,57 @@ The design of icelang takes inspiration from many languages, primarily
 [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript),
 [Python](https://www.python.org), and [Rust](https://www.rust-lang.org).
 
-# TODO
+# To-do
 
 icelang is still in development, and has a number of incomplete or missing features:
-- [ ] Make to-do list (lol)
+- [ ] Make a cool logo
+- [ ] Formalize grammar
+  - [x] Full program
+  - [x] Statements
+  - [x] Literals
+  - [x] Identifiers
+  - [x] Variables
+    - [ ] TODO expand
+  - [x] Functions
+  - [ ] Expressions
+    - [ ] TODO expand
+  - [ ] Control flow
+    - [x] If/else
+    - [x] Loops
+      - [x] Simple loops
+      - [x] `while` loops
+      - [x] `for` loops
+    - [ ] Match
+      - [ ] TODO expand
+  - [ ] TODO is there more I'm forgetting?
+- [ ] Document semantics
+  - [ ] Documentation of language features
+  - [ ] Documentation of standard library features
+- [ ] Implementation
+  - [ ] ice (binary)
+    - [ ] TODO expand
+  - [ ] lexer
+    - [ ] TODO expand
+  - [ ] parser
+    - [ ] TODO expand
+  - [ ] interpreter
+    - [ ] TODO expand
+- [ ] Testing
+  - [ ] Unit tests
+    - [ ] General unit tests
+    - [ ] Property-based tests (where applicable)
+  - [ ] Integration tests
+    - [ ] General integration tests
+    - [ ] Fuzzing (where applicable)
+- [ ] Flesh out examples
+- [ ] Future considerations
+  - [ ] Format string literals (like python's `f"{2 + 2}"` or JavaScript's `` `${2 + 2}` ``)
+  - [ ] First-class function support
+  - [ ] User-defined types
+  - [ ] Compilation, JIT-compilation, transpilation, and static code analysis
+  - [ ] Preprocessor and macros
+  - [ ] Namespaces and including
+- [ ] TODO is there more I'm forgetting?
 
 # License
 

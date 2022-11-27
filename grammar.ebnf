@@ -26,9 +26,10 @@ while_loop = kw_while , expression , code_block;
 for_loop = kw_for , identifier , kw_in , expression , code_block;
 
 (* Jump statements (break, continue) *)
-jump_statement = break_statement | continue_statement;
+jump_statement = break_statement | continue_statement | return_statement;
 break_statement = kw_break;
 continue_statement = kw_continue;
+return_statement = kw_return;
 
 (* Declarations *)
 declaration = fn_declaration | var_declaration;
@@ -90,6 +91,7 @@ kw_for = "for";
 kw_in = "in";
 kw_break = "break";
 kw_continue = "continue";
+kw_return = "return";
 kw_fn = "fn";
 kw_let = "let";
 kw_true = "true";
