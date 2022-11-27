@@ -216,6 +216,13 @@ pub fn tokenize<'source>(
                             literal.push(chars[index]);
                             index += 1;
                         }
+                        'e' => {
+                            // We know now this literal is an int literal
+                            kind = Int;
+                            literal_has_enough_chars = false;
+                            literal.push(chars[index]);
+                            index += 1;
+                        }
                         _ => {
                             break;
                         }
@@ -262,7 +269,16 @@ pub fn tokenize<'source>(
                             break;
                         }
                     },
-                    Int => unreachable!(),
+                    Int => match chars[index] {
+                        c if c.is_ascii_digit() => {
+                            literal.push(chars[index]);
+                            index += 1;
+                            literal_has_enough_chars = true;
+                        }
+                        _ => {
+                            break;
+                        }
+                    },
                 };
             }
             if kind == IntOrFloat {

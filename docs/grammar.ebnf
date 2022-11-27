@@ -47,7 +47,7 @@ expression = ? TODO ?;
 literal = int_literal | byte_literal | float_literal | bool_literal
         | string_literal | list_literal | dict_literal | null_literal;
 int_literal = int_literal_dec | int_literal_bin | int_literal_hex | int_literal_oct;
-int_literal_dec = ["0d"] , dec_digit , {dec_digit};
+int_literal_dec = ["0d"] , dec_digit , {dec_digit} , ["e" , dec_digit , {dec_digit}];
 int_literal_bin = "0b" , bin_digit , {bin_digit};
 int_literal_hex = "0x" , hex_digit , {hex_digit};
 int_literal_oct = "0o" , oct_digit , {oct_digit};

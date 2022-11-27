@@ -260,7 +260,7 @@ Additionally, although the following types do not actually exist in icelang, The
 
 ## Literals
 - int
-	- TODO (`69`, `0b01000101`, `0x45`, `0o105`)
+	- TODO (`69`, `0b01000101`, `0x45`, `0o105`, `52e6`)
 - byte
 	- TODO (`8b01000101`, `8x45`, `8d69`, `8o105`)
 - float
