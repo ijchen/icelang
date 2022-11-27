@@ -18,14 +18,15 @@ folder to see some example icelang programs.
 # Table of Contents
 1. [Introduction](#the-icelang-guidebook)
 2. [Types](#types)
-   1. [int](#int)
-   2. [byte](#byte)
-   3. [float](#float)
-   4. [bool](#bool)
-   5. [string](#string)
-   6. [list](#list)
-   7. [dict](#dict)
-   8. [null](#null)
+	1. [int](#int)
+	2. [byte](#byte)
+	3. [float](#float)
+	4. [bool](#bool)
+	5. [string](#string)
+	6. [list](#list)
+	7. [dict](#dict)
+	8. [null](#null)
+	9. [Special type-like syntax used in The icelang Guidebook](#special-type-like-syntax)
 3. TODO
 
 # Types
@@ -34,8 +35,6 @@ runtime.
 
 All values in icelang are one of the following primitive types: `int`, `byte`,
 `float`, `bool`, `string`, `list`, `dict`, `null`
-
-Here is more detailed information on each type:
 
 ## `int`
 An `int` is a [signed](https://en.wikipedia.org/wiki/Signedness),
@@ -241,8 +240,9 @@ it is almost certainly a good idea to include additional information about
 
 There is only one valid `null` value: `null`
 
-## TODO
-Additionally, although the following types do not actually exist in icelang, The icelang Guidebook uses the following syntax for special types:
+## Special type-like syntax
+Although the following types do not actually exist in icelang, The icelang
+Guidebook uses the following syntax to refer to special "types":
 - `any`
 	- A value that may be of any type
 - `never`
@@ -256,7 +256,7 @@ Additionally, although the following types do not actually exist in icelang, The
 - `dict[type_a: type_b]`
 	- A `dict` containing only keys of type `type_a` and only values of type `type_b`
 
-# Basic syntax
+# TODO
 
 ## Literals
 - int
