@@ -3,7 +3,7 @@
 let a = 0;
 let b = 1;
 
-for _ in range(10) {
+loop 10 {
     println(a);
 
     let c = a;
