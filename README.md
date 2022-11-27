@@ -21,10 +21,37 @@ The design of icelang takes inspiration from many languages, primarily
 [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript),
 [Python](https://www.python.org), and [Rust](https://www.rust-lang.org).
 
+# Getting Started
+
+For a full guide on setting up the icelang interpreter and writing your first
+program, check out the [Getting Started](/docs/Getting%20Started.md) guide.
+
+Here's a simple "hello world" program, written in icelang:
+```
+println("Hello, world");
+```
+
+And a program to print the first 10 Fibonacci numbers:
+```
+// A simple program to print the first 10 Fibonacci humbers
+
+let a = 0;
+let b = 1;
+
+for _ in range(10) {
+    println(a);
+
+    let c = a;
+    a = b;
+    b += c;
+}
+```
+
 # To-do
 
 icelang is still in development, and has a number of incomplete or missing features:
 - [ ] Make a cool logo
+- [ ] Guidebook
 - [ ] Formalize grammar
   - [x] Full program
   - [x] Statements

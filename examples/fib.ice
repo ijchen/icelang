@@ -1,4 +1,4 @@
-// A simple program to print the first 10 fibonacci humbers
+// A simple program to print the first 10 Fibonacci humbers
 
 let a = 0;
 let b = 1;
