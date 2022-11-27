@@ -1,40 +1,246 @@
 # The icelang Guidebook
-TODO
+Welcome to The icelang Guidebook! The icelang Guidebook is intended as a
+reference and general overview of the syntax and features of icelang. It assumes
+some familiarity with basic programming concepts - you may find it difficult to
+read if you do not already have experience with another programming language.
+
+If you do not already have experience with another programming language, icelang
+probably isn't a great choice to learn programming with. If you're interested in
+learning to code, I'd recommend you start with a language like
+[Python](https://www.python.org/) or
+[JavaScript](https://developer.mozilla.org/en-US/docs/Learn/JavaScript).
+
+If you do already have experience with another programming language, check out
+the icelang [Guidebook](/docs/Guidebook.md) for a general overview of the syntax
+and features of icelang. You can also check out the [examples](/examples/)
+folder to see some example icelang programs.
+
+# Table of Contents
+1. [Introduction](#the-icelang-guidebook)
+2. [Types](#types)
+   1. [int](#int)
+   2. [byte](#byte)
+   3. [float](#float)
+   4. [bool](#bool)
+   5. [string](#string)
+   6. [list](#list)
+   7. [dict](#dict)
+   8. [null](#null)
+3. TODO
 
 # Types
-All values in icelang are one of the following primitive types: `int`, `byte`, `float`, `bool`, `string`, `list`, `dict`, `null`
+icelang is a dynamically-typed language, meaning all type-checking is done at
+runtime.
 
-TODO reformat with headers
+All values in icelang are one of the following primitive types: `int`, `byte`,
+`float`, `bool`, `string`, `list`, `dict`, `null`
 
 Here is more detailed information on each type:
-- `int`
-	- A signed, arbitrary precision integer
-	- Will always be a finite (but unbounded) positive, negative, or zero integer
-- `byte`
-	- A single byte (8 bit value) interpreted as an unsigned integer in the range 0 to 255 (both inclusive)
-- `float`
-	- A floating point number with 64 bits of precision
-		- Specifically, the "binary64" type defined in IEEE 754-2008
-	- Floats can represent:
-		- Positive and negative real numbers (although only a finite subset of them)
-		- Positive and negative zero
-		- Positive and negative infinity
-		- NaN
-- `bool`
-	- A true or false value
-- `string`
-	- A resizable UTF-8 encoded string
-- `list`
-	- A resizable collection of values
-	- `list`s may hold values of different types
-	- Unlike most primitives, `list`s are passed by reference and not copied
-- `dict`
-	- A resizable dictionary mapping keys to values
-	- The both keys and values in a `dict` may be any combination of types
-	- Unlike most primitives, `dict`s are passed by reference and not copied
-- `null`
-	- A "nothing" value, representing the absence of a value
+## `int`
+An `int` is a [signed](https://en.wikipedia.org/wiki/Signedness),
+[arbitrary precision](https://en.wikipedia.org/wiki/Arbitrary-precision_arithmetic)
+[integer](https://en.wikipedia.org/wiki/Integer). An `int` value will always be
+a finite (but unbounded) positive, negative, or zero integer.
 
+Operations on `int`s in icelang cannot overflow, since `int`s in icelang are
+[arbitrary precision](https://en.wikipedia.org/wiki/Arbitrary-precision_arithmetic).
+
+Some examples of valid `int`s include: `42`, `69`, `-13`, `0`,
+`99999999999999999999`
+
+Some examples of things which are *not* valid `int`s include: `3.14`, `Infinity`,
+`NaN`
+
+## `byte`
+A `byte` is a single byte (8-bit value) interpreted as an unsigned integer in
+the range 0 to 255 (both ends inclusive)
+
+Operations on `byte`s in icelang are
+[wrapping modulo 256](https://en.wikipedia.org/wiki/Modular_arithmetic).
+
+Some examples of valid `byte`s include: `0`, `3`, `64`, `100`, `198`, `255`
+
+Some examples of things which are *not* valid `byte`s include: `-1`, `256`,
+`2.71828`, `5000`
+
+## `float`
+A `float` is a
+[floating-point](https://en.wikipedia.org/wiki/Floating-point_arithmetic) number
+with 64 bits of precision. Specifically, `float` is the "binary64" type defined
+in [IEEE 754-2008](https://standards.ieee.org/ieee/754/4211/). See Wikipedia for
+more information on
+[floating-point arithmetic](https://en.wikipedia.org/wiki/Floating-point_arithmetic)
+in general and
+[64-bit floats](https://en.wikipedia.org/wiki/Double-precision_floating-point_format)
+specifically.
+
+**Warning: becaues `float`s cannot exactly represent most real numbers, care
+must be taken not to rely on the *exact* values of `float`s**. In most cases, 64
+bits of precision is more than enough, but there are
+[some situations](https://en.wikipedia.org/wiki/Round-off_error) where the
+inaccuracy of floating-point arithmetic can cause problems, including:
+- When comparing `float` equality (ex: `0.1 + 0.2 != 0.3`)
+- When small differences can compound and "snowball" into a big difference (ex:
+simulations of [chaotic systems](https://en.wikipedia.org/wiki/Chaos_theory))
+- When a high level of precision is required (ex: serious financial applications
+(which, for the record, is a use case that icelang is ***absolutely not***
+suited to))
+
+`float`s can represent:
+- Positive and negative real numbers (although only a finite subset of them)
+- Positive and negative zero
+- Positive and negative infinity
+- NaN (not a number)
+
+Some examples of \*valid `float`s include: `1.0`, `0.0`, `3.14159`, `-0.618`,
+`-0.0`, `1234.56789`, `Infinity`, `-Infinity`, `NaN`
+
+\**Technically, some of these `float` values might not be exactly representable
+in the binary64 format, and so the nearest representable number will be stored
+instead*
+
+Some examples of things which are *not* valid `float`s include:
+[complex numbers](https://en.wikipedia.org/wiki/Complex_number),
+[hypercomplex numbers](https://en.wikipedia.org/wiki/Hypercomplex_number)
+
+## `bool`
+A `bool` is a [boolean](https://en.wikipedia.org/wiki/Boolean_data_type) `true`
+or `false` value.
+
+There are two valid `bool` values: `true` and `false`
+
+## `string`
+A `string` is a resizable collection of
+[UTF-8](https://en.wikipedia.org/wiki/UTF-8) encoded characters (In icelang, the
+term "character" refers to a
+[Unicode scalar value](https://www.unicode.org/glossary/#unicode_scalar_value))
+
+Some examples of valid `string`s include: `"Hello, world!"`, `""` (an empty
+string), `"foaiu39pauhp"`, `"🦀 <3"` (the "Crab" emoji followed by an ASCII
+heart, representing
+[my love for the Rust programming language](https://rustacean.net/))
+
+## `list`
+A `list` is a resizable collection of values. A `list` may hold any number of
+values (called "elements"), and will adjust its size automatically when elements
+are added or removed. Additionally, elements in a `list` do not need to be the
+same type.
+
+There are many parts of the [icelang standard library](TODO) designed to help
+work with `list`s.
+
+Unlike most types in icelang, `list`s are passed and assigned as
+[shared references](https://en.wikipedia.org/wiki/Evaluation_strategy#Call_by_sharing).
+This means that when passing a `list` to a function, the `list` in the function
+and the `list` that was passed to the function are *the same object in memory* -
+modifications made to one will effect the other. Similarly, multiple variables
+may refer to the same `list`, which means modifications to any one of those
+variables will effect all of those variables:
+```
+// Create a new list, called my_list
+let my_list = ["sharing"];
+
+// This function will add elements to a list, *modifying the original list*
+fn add_to_list(the_list) {
+	push(the_list, "the");
+	push(the_list, "references");
+}
+
+// Here, `my_list` is passed *as a shared reference* to `add_to_list(...)`
+add_to_list(my_list);
+assert(my_list == ["sharing", "the", "references"]);
+
+// Let's make another variable called `same_list`, and assign it to `my_list`
+// Note: this new variable refers to the same list that is stored in `my_list`
+let same_list = my_list;
+assert(same_list == ["sharing", "the", "references"]);
+
+// Modifications made to `my_list` effect `same_list`
+my_list[2] = "caring";
+assert(same_list == ["sharing", "the", "caring"]);
+
+// And vice-versa
+same_list[1] = "is";
+assert(my_list == ["sharing", "is", "caring"]);
+```
+To make a separate, independent copy of a `list`, use the built-in
+[copy(...)](TODO) function.
+
+Some examples of valid `list`s include: `[1, 2, 3]`, `["hi"]`, `[]` (an empty
+list), `[5, null, "A string!", false, 8, 2.71828, false, true, -49]`,
+`["Howdy", ["A string, in a list, in a list!", 3], [[["Deeply nested"]]], 95]`
+
+## `dict`
+A `dict` is a resizable dictionary mapping keys to values. A `dict` may hold any
+number of key-value pairs (called "entries"), and will adjust its size
+automatically when entries are added or removed. Additionally, there are no
+special restrictions on the types of keys or values in a `dict` - it is
+perfectly valid to have a `dict` containing multiple keys of different types,
+each corresponding to values also of various different types.
+
+There are many parts of the [icelang standard library](TODO) designed to help
+work with `dict`s.
+
+It's worth noting that the relative order of entries in a `dict` **does not
+matter**, and is **not specified** - it may not be the same order as entries
+were added, may not be the same as it was last time you ran the same code, and
+*even may not be the same as it was last time you checked that same exact dict*.
+Do not rely on the relative order of entries in a `dict` in your program.
+
+Unlike most types in icelang, `dict`s are passed and assigned as
+[shared references](https://en.wikipedia.org/wiki/Evaluation_strategy#Call_by_sharing).
+This means that when passing a `dict` to a function, the `dict` in the function
+and the `dict` that was passed to the function are *the same object in memory* -
+modifications made to one will effect the other. Similarly, multiple variables
+may refer to the same `dict`, which means modifications to any one of those
+variables will effect all of those variables:
+```
+// Create a new dict, called my_dict
+let my_dict = {"age": 21};
+
+// This function will add an entry to a dict, *modifying the original dict*
+fn add_to_dict(the_dict) {
+	the_dict["is_hungry"] = false;
+}
+
+// Here, `my_dict` is passed *as a shared reference* to `add_to_dict(...)`
+add_to_dict(my_dict);
+assert(my_dict == {"age": 21, "is_hungry": false});
+
+// Let's make another variable called `same_dict`, and assign it to `my_dict`
+// Note: this new variable refers to the same dict that is stored in `my_dict`
+let same_dict = my_dict;
+assert(same_dict == {"age": 21, "is_hungry": false});
+
+// Modifications made to `my_dict` effect `same_dict`
+my_dict["is_hungry"] = true;
+assert(same_dict == {"age": 21, "is_hungry": true});
+
+// And vice-versa
+same_dict["age"] = 25;
+assert(my_dict == {"age": 25, "is_hungry": true});
+```
+To make a separate, independent copy of a `dict`, use the built-in
+[copy(...)](TODO) function.
+
+Some examples of valid `dict`s include:
+`{"Alice": 97, "Bob": 79, "Charlie": 84}`, `{false: "N"}`, `{}` (an empty dict),
+`{"weird dict": true, 4: -2, 9: null, -10: "negative ten", null: {"what is this?": ["confusion", "chaos"]}, 8b4: "not -2"}`
+
+## `null`
+A `null` value represents a "nothing" value, or the absence of a value. All
+values of type `null` are the same - `null` is just `null`. There is no such
+thing as "two different `null`s".
+
+A `null` value represents the absence of a value, but doesn't provide any
+additional information about *why* a value is absent, or what might have been
+expected instead. If you are providing an interface which may work with `null`,
+it is almost certainly a good idea to include additional information about
+`null` means in your context.
+
+There is only one valid `null` value: `null`
+
+## TODO
 Additionally, although the following types do not actually exist in icelang, The icelang Guidebook uses the following syntax for special types:
 - `any`
 	- A value that may be of any type
@@ -145,7 +351,7 @@ assert(baz == null);
 ```
 
 ## Functions
-### Defining a function
+### Defining and calling a function
 Functions are defined with the `fn` keyword:
 ```
 fn greet(name) {
@@ -157,6 +363,8 @@ and called as such:
 ```
 greet("Ferris");
 ```
+
+TODO Add information about pass-by-value and pass-by-sharing
 
 ### Returning a value from a function
 Functions may return values back to the caller with the `return` keyword:
