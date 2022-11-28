@@ -28,7 +28,15 @@ folder to see some example icelang programs.
 	7. [dict](#dict)
 	8. [null](#null)
 	9. [Special type-like syntax used in The icelang Guidebook](#special-type-like-syntax)
-4. [Expressions](#expressions)
+4. [Literals](#literals)
+	1. [int](#int-1)
+	2. [byte](#byte-1)
+	3. [float](#float-1)
+	4. [bool](#bool-1)
+	5. [string](#string-1)
+	6. [list](#list-1)
+	7. [dict](#dict-1)
+	8. [null](#null-1)
 
 # Anatomy of an icelang program
 An icelang program consists of zero or more statements seperated by semicolons.
