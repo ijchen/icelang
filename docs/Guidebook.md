@@ -561,7 +561,7 @@ assert(my_dict == {
 ```
 
 ## null
-There is only one `null` values:
+There is only one `null` value:
 ```
 null
 ```
