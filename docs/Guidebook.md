@@ -17,7 +17,8 @@ folder to see some example icelang programs.
 
 # Table of Contents
 1. [Introduction](#the-icelang-guidebook)
-2. [Types](#types)
+2. [Anatomy of an icelang program](#anatomy-of-an-icelang-program)
+3. [Types](#types)
 	1. [int](#int)
 	2. [byte](#byte)
 	3. [float](#float)
@@ -27,7 +28,61 @@ folder to see some example icelang programs.
 	7. [dict](#dict)
 	8. [null](#null)
 	9. [Special type-like syntax used in The icelang Guidebook](#special-type-like-syntax)
-3. TODO
+4. [Expressions](#expressions)
+
+# Anatomy of an icelang program
+An icelang program consists of zero or more statements seperated by semicolons.
+A statement is a single instruction, but may consist of multiple parts. There
+are 3 different types of statements:
+1. Expressions
+2. Control-flow statements
+3. Declarations
+
+[Expressions](https://en.wikipedia.org/wiki/Expression_(computer_science)) are
+evaluated to perform general computations, and always evaluate to a value.
+[Control-flow](https://en.wikipedia.org/wiki/Control_flow) statements are used
+to manipulate the order in which other statements are executed.
+[Declarations](https://en.wikipedia.org/wiki/Declaration_(computer_programming))
+establish the existence of a new variable or function. You will learn more about
+these different kinds of statements as you progress through this guidebook.
+
+As an example, here's a simple icelang program that has multiple different
+expressions, control-flow statements, and declarations:
+```
+// Function declaration
+fn get_greeting_phrase(name) {
+	// Variable declaration with a string literal expression
+	let greeting = "Hi there";
+
+	// Return control-flow statement with expression(s)
+	return greeting + ", " + name;
+}
+
+// Variable declaration with expression(s)
+let names = ["Alice", "Bob", "Charlie", "Isaac"];
+
+// For loop control-flow statement with a variable
+// access expression (names)
+for name in names {
+	// Variable declaration
+	let message;
+
+	// If-else control-flow statement, comparison expression
+	if name == "Isaac" {
+		// Assignment expression
+		message = "Oh look, it's me!";
+	}
+	else {
+		// Assignment expression containing a function call
+		// expression containing a variable access expression
+		message = get_greeting_phrase(name);
+	}
+
+	// Function call expression containing a variable access
+	// expression
+	println(message);
+}
+```
 
 # Types
 icelang is a dynamically-typed language, meaning all type-checking is done at
@@ -256,25 +311,254 @@ Guidebook uses the following syntax to refer to special "types":
 - `dict[type_a: type_b]`
 	- A `dict` containing only keys of type `type_a` and only values of type `type_b`
 
-# TODO
+# Literals
+The simplest way to obtain a value in icelang is with a literal. A literal is an
+expression you can write in your source code that evaluates to a fixed value.
+There is literal syntax for every type in icelang.
 
-## Literals
-- int
-	- TODO (`69`, `0b01000101`, `0x45`, `0o105`, `52e6`)
-- byte
-	- TODO (`8b01000101`, `8x45`, `8d69`, `8o105`)
-- float
-	- TODO (`1.0`, `0.0`, `4.2e2`, `6.674e-11`, `3.14`, `Infinity`, `NaN`)
-- bool
-	- `true` or `false`
-- string
-	- TODO (`"Hello, world!"`, `f"2 + 2 = {2 + 2}"`, `"He said \"hi\" then left."`, `r"raw \ backslash and newline [NEWLINE] in this string"`, escape codes, maybe more)
-- list
-	- TODO `[val1, val2, val3, ...]`
-- dict
-	- TODO `{key1: val1, key2: val2, ...}`
-- null
-	- `null`
+## Int
+icelang supports many types of `int` literals. The most common form you'll see
+is a normal decimal `int` literal:
+```
+42
+```
+
+You can also specify a radix with base-prefixed literals:
+```
+// 0d prefix for decimal
+assert(0d42 == 42);
+
+// 0b prefix for binary
+assert(0b101010 == 42);
+
+// 0d prefix for hexadecimal
+assert(0x2A == 42);
+
+// 0o prefix for octal
+assert(0o52 == 42);
+```
+
+`int` literals may be expressed in scientific notation, although this is only
+allowed for base-10 literals:
+```
+assert(34e6 == 34000000);
+assert(0d34e6 == 34000000);
+
+// Non-base-10 literals cannot be written in scientific notation
+// 0b101010e6 <-- Invalid literal
+
+// A signed exponent is not allowed
+// 34e+6 <-- Invalid literal
+```
+
+Underscores are permitted as a visual seperator in any of the above `int`
+literals:
+```
+assert(1_234_567 == 1234567);
+assert(0b1011_0000_0000_1011 == 0b1011000000001011);
+assert(0x52_75_73_74_20_3C_33 == 0x52757374203C33);
+assert(3__4_e_6_ == 34000000); // Don't do this
+```
+
+## byte
+`byte` literals in icelang are very similar to `int` literals. In order to
+distinguish between them, all `byte` literals in icelang *must* be
+base-prefixed, but with an `8` where `0` was in base-prefixed `int` literals:
+```
+let my_byte_value = 8d42;
+
+assert(typeof(my_byte_value) == "byte");
+
+assert(my_byte_value == byte(42));
+```
+
+Like `int` literals, You can also specify a radix with `byte` literals:
+```
+// 8b prefix for binary
+assert(8b101010 == 8d42);
+
+// 8d prefix for hexadecimal
+assert(8x2A == 8d42);
+
+// 8o prefix for octal
+assert(8o52 == 8d42);
+```
+
+`byte` literals may not be expressed in scientific notation
+```
+// byte literals cannot be written in scientific notation
+// 8d1e2 <-- Invalid literal
+```
+
+Like `int` literals, underscores are permitted as a visual seperator in `byte`
+literals:
+```
+assert(8d1_2_8 == 8d128);
+assert(8b0110_1001 == 8b01101001);
+assert(0xF_E == 0xFE);
+assert(8o3_7_1 == 8d249);
+```
+
+## float
+`float` literals in icelang are composed of an integer part, a decimal point,
+a fractional part, and an optional exponent:
+```
+// A few examples of float literals
+76.54321;
+3.14159265358979323;
+0.0;
+1.0;
+0.25;
+
+// Examples of float literals in exponential notation
+6.67430e-11;
+0.0000314e+5;
+0.0000314e5;
+
+// Scientific notation usually only has one digit in the integer part, but this
+// isn't a requirement
+123.456e3;
+
+// Neither the integer part nor the fractional part are optional
+// .25 <- Invalid literal
+// 1. <- Invalid literal
+```
+
+`float` literals can also be `Infinity` or `NaN`:
+```
+// Not a number
+NaN;
+
+// Infinity
+Infinity;
+```
+
+## bool
+There are only two `bool` values, and icelang has a literal for each:
+```
+// True
+true;
+
+// False
+false;
+```
+
+## string
+TODO (`"Hello, world!"`, `f"2 + 2 = {2 + 2}"`, `"He said \"hi\" then left."`,
+`r"raw \ backslash and newline [NEWLINE] in this string"`, escape codes, maybe
+more)
+
+## list
+The syntax for a `list` literal in icelang is as follows:
+```
+[value1, value2, value3, ...]
+```
+
+where each value is an arbitrary expression.
+
+A `list` literal may have any number of elements:
+```
+// This list is empty:
+[];
+
+// This list has lots of elements (well, 11, but you get the idea):
+[
+	"Hello", "Hola", "Bonjour", "Привет",
+	"Namaste", "你好", "안녕하십니까", "Mrhban",
+	"Hallå", "Habari", "Olá", // <- trailing comma is just ignored
+];
+```
+
+The elements in a `list` literal can be arbitrary expressions, which will be
+evaluated in the order they appear in the literal:
+```
+let my_var = "Hello";
+
+let count = 0;
+fn add_count(n) {
+	count += 1;
+	return n + count;
+}
+
+let my_list = [
+	2 + 2,
+	add_count(17),
+	add_count(1 + 2),
+	null,
+	add_count(5),
+	my_var,
+	add_count(3),
+];
+
+assert(count == 4);
+assert(my_list == [4, 18, 5, null, 8, "Hello", 7]);
+```
+
+## dict
+The syntax for a `dict` literal in icelang is as follows:
+```
+{key1: value1, key2: value2, ...}
+```
+
+where each key and value is an arbitrary expression.
+
+A `dict` literal may have any number of entries:
+```
+// This dict has no entries:
+{};
+
+// This dict has lots of entries (well, 11, but you get the idea):
+{
+	"EN": "Hello",
+	"ES": "Hola",
+	"FR": "Bonjour",
+	"RU": "Привет",
+	"HI": "Namaste",
+	"ZH": "你好",
+	"KO": "안녕하십니까",
+	"AR": "Mrhban",
+	"SV": "Hallå",
+	"SW": "Habari",
+	"PT": "Olá", // <- trailing comma is just ignored
+};
+```
+
+Both the keys and the values in a `dict` literal can be arbitrary expressions,
+which will be evaluated in the order they appear in the literal:
+```
+let my_var = "Hello";
+
+let count = 0;
+fn add_count(n) {
+	count += 1;
+	return n + count;
+}
+
+let my_dict = {
+	2 + 2: add_count(17),
+	add_count(1 + 2): add_count(4),
+	null: add_count(5),
+	my_var: "hi",
+	add_count(3): false,
+};
+
+assert(count == 5);
+assert(my_dict == {
+	4: 18,
+	5: 7,
+	null: 9,
+	"hello": "hi"
+	8: false
+});
+```
+
+## null
+There is only one `null` values:
+```
+null
+```
+
+# TODO
 
 ## Identifiers
 TODO
@@ -775,6 +1059,54 @@ The `typeof` function returns a string representing the type of the argument. He
 
 Function prototypes:
 - `typeof(val: any) -> string` (core)
+
+### repr
+The `repr` function returns a string representing the argument. What exactly
+this is varies by type, but it is generally similar to a literal that would be
+equal to the passed value.
+
+TODO Specify the output format *exactly*
+
+For some types, the exact output might be slightly different than you'd expect.
+
+`strings` may be escaped as necessary:
+```
+
+// If printed, my_string would look like: my "quote"	here
+let my_string = "my \"quote\"\there";
+
+// If printed, my_string_repr would look like: "my \"quote\"\there"
+let my_string_repr = repr(my_string);
+assert(my_string_repr == "\"my \\\"quote\\\"\\there\"");
+```
+
+`float`s may be truncated somewhat arbitrarily:
+```
+let my_float = 0.200000000000000011102230246251565404236316680908203125;
+assert(repr(my_float) == "0.2")
+```
+
+Recursive `list`s and `dict`s may have all or parts replaced:
+```
+let my_list = [3, 4, 5];
+
+my_list[1] = my_list;
+
+assert(repr(my_list) == "[3, [<recursive>], 5]");
+
+let my_dict = {"rec_list": my_list, "rec_dict": {}};
+
+my_dict["rec_dict"]["self"] = my_dict;
+
+// TODO this relies on relative entry order in a dict, which is unspecified
+assert(
+	repr(my_list) ==
+	"{\"rec_list\": [3, [<recursive>], 5], \"rec_dict\": {\"self\": {<recursive up 1>}}}"
+);
+```
+
+Function prototypes:
+- `repr(val: any) -> string` (core)
 
 ### copy
 The `copy` function creates a deep copy of the passed value. This is only useful for `list`s and `dict`s, as all other types are always automatically copied

@@ -8,10 +8,9 @@ program = [statements];
 code_block = lbrace , [statements] , rbrace;
 statements = statement , {semicolon , statement} , [semicolon];
 statement = expression
-          | if_else_statement
-          | loop
-          | jump_statement
+          | control_flow_statement
           | declaration;
+control_flow_statement = if_else_statement | loop | jump_statement;
 
 (* If statements and related *)
 if_else_statement = if_statement , {else_if_statement} , [else_statement];
@@ -25,7 +24,7 @@ simple_loop = kw_loop , [expression] , code_block;
 while_loop = kw_while , expression , code_block;
 for_loop = kw_for , identifier , kw_in , expression , code_block;
 
-(* Jump statements (break, continue) *)
+(* Jump statements (break, continue, return) *)
 jump_statement = break_statement | continue_statement | return_statement;
 break_statement = kw_break;
 continue_statement = kw_continue;
