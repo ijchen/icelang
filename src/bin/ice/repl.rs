@@ -112,9 +112,12 @@ pub fn enter_repl(mut show_debug_info: bool) {
             }
         };
 
-        println!("Tokens: {tokens:#?}");
-
-        // TODO
-        todo!();
+        if show_debug_info {
+            println!("Tokens:");
+            for token in tokens {
+                println!("\t{token}");
+            }
+            println!();
+        }
     }
 }

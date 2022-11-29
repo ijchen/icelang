@@ -1,6 +1,8 @@
 //! Contains code related to tokens (the smallest meaningful individual unit of
 //! code)
 
+use std::fmt::Display;
+
 use crate::{ice_type::IceType, source_range::SourceRange};
 
 /// A generic token of any type
@@ -38,6 +40,17 @@ impl<'source> Token<'source> {
     }
 }
 
+impl Display for Token<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Ident(token) => write!(f, "{token}"),
+            Self::Keyword(token) => write!(f, "{token}"),
+            Self::Literal(token) => write!(f, "{token}"),
+            Self::Punctuator(token) => write!(f, "{token}"),
+        }
+    }
+}
+
 /// An identifier token
 #[derive(Debug)]
 pub struct TokenIdent<'source> {
@@ -54,6 +67,12 @@ impl<'source> TokenIdent<'source> {
     /// Returns the position in the source code of this identifier
     pub fn pos(&self) -> &SourceRange<'source> {
         &self.pos
+    }
+}
+
+impl Display for TokenIdent<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[Token] Identifier: {}", self.ident)
     }
 }
 
@@ -82,6 +101,12 @@ impl<'source> TokenLiteral<'source> {
     }
 }
 
+impl Display for TokenLiteral<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[Token] Literal ({}): {}", self.ice_type, self.raw)
+    }
+}
+
 /// A keyword token
 #[derive(Debug)]
 pub struct TokenKeyword<'source> {
@@ -101,6 +126,12 @@ impl<'source> TokenKeyword<'source> {
     }
 }
 
+impl Display for TokenKeyword<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[Token] Keyword: {}", self.keyword)
+    }
+}
+
 /// A punctuator token
 #[derive(Debug)]
 pub struct TokenPunctuator<'source> {
@@ -117,5 +148,11 @@ impl<'source> TokenPunctuator<'source> {
     /// Returns the position in the source code of this punctuator
     pub fn pos(&self) -> &SourceRange<'source> {
         &self.pos
+    }
+}
+
+impl Display for TokenPunctuator<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[Token] Punctuator: {}", self.punctuator)
     }
 }
