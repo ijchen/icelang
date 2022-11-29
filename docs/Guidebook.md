@@ -63,7 +63,7 @@ fn get_greeting_phrase(name) {
 	let greeting = "Hi there";
 
 	// Return control-flow statement with expression(s)
-	return greeting + ", " + name;
+	return f"{greeting}, {name}";
 }
 
 // Variable declaration with expression(s)
@@ -452,7 +452,7 @@ false;
 ```
 
 ## string
-There are two forms of `string` literals in icelang. The simplest is a normal
+There are three forms of `string` literals in icelang. The simplest is a normal
 `string` literal, composed of two double quotes (`"`) surrounding the characters
 in the `string`:
 ```
@@ -485,17 +485,21 @@ What if you want to include a double quote or a backslash in your `string`
 literal? Escape sequences to the rescue! Escape sequences begin with a backslash
 (this is why they aren't normally allowed in `string` literals) and are followed
 by some information about what character the escape sequence represents. Here is
-a table of all the valid escape sequences in icelang:
-| Escape code  | Character          |
-| ------------ | ------------------ |
-| `\"`         | double-quote (`"`) |
-| `\\`         | backslash (`\`)    |
-| `\t`         | tab                |
-| `\n`         | newline            |
-| `\r`         | carriage return    |
-| `\0`         | null character     |
-| `\x##`       | ASCII character    |
-| `\u{######}` | Unicode character  |
+a table of all the valid escape sequences in icelang, the character it
+corresponds to, and which types of string literals it can be used in:
+| Escape code  | Character           | Normal |  Raw  | Format |
+| ------------ | ------------------- | :----: | :---: | :----: |
+| `\"`         | double quote        |   ✓    |   ✗   |   ✓    |
+| `\\`         | backslash           |   ✓    |   ✗   |   ✓    |
+| `\t`         | tab                 |   ✓    |   ✗   |   ✓    |
+| `\n`         | newline             |   ✓    |   ✗   |   ✓    |
+| `\r`         | carriage return     |   ✓    |   ✗   |   ✓    |
+| `\0`         | null character      |   ✓    |   ✗   |   ✓    |
+| `{{`         | opening curly brace |   ✗    |   ✗   |   ✓    |
+| `}}`         | closing curly brace |   ✗    |   ✗   |   ✓    |
+| `\<newline>` | Nothing - ignored   |   ✓    |   ✗   |   ✓    |
+| `\x##`       | ASCII character     |   ✓    |   ✗   |   ✓    |
+| `\u{######}` | Unicode character   |   ✓    |   ✗   |   ✓    |
 
 There are two special escape sequences: the ASCII character escape and the
 Unicode character escape.
@@ -555,6 +559,38 @@ there are the same number of octothorpes on each side:
 ```
 let my_string = r###"I don't know why "## anyone would ever need this"###;
 assert(my_string == "I don't know why \"## anyone would ever need this");
+```
+
+The last type of `string` literal in icelang is a format `string` literal.
+Format `string` literals are like normal string literals, but allow embedding
+arbitrary expression in replacement fields within the `string`. Format `string`
+literals begin with a lowercase f (`f`), then look like a normal `string`
+literal. Replacement fields are enclosed in curly braces (`{` and `}`), and the
+expression inside is evaluated, converted to a `string` if necessary, and
+inserted into the `string`:
+```
+let name = "Isaac";
+assert(f"Hello, {name}!" == "Hello, Isaac!");
+
+// Replacement fields may contain arbitrary expressions:
+assert(f"2 + 2 = {2 + 2}" == "2 + 2 = 4");
+
+// Any number of replacement fields are allowed:
+let how_many = "any number of";
+let my_str = f"Format string literals can have {how_many} \
+{"replacement fields"}! This one has {1 + 1 + 1}.";
+assert(my_str == "Format string literals can have any number \
+of replacement fields! This one has 3.");
+```
+
+Because curly braces mark the beginning and end of a replacement field in format
+`string` literals, they must be escaped as `{{` and `}}` if you want the actual
+curly brace characters in your string:
+```
+let what_are_they = "pretty cool";
+let my_str = f"Curly braces look like this: {{ }} and are {what_are_they}!";
+
+assert(my_str == "Curly braces look like this: { } and are pretty cool!");
 ```
 
 ## list
@@ -749,7 +785,7 @@ assert(baz == null);
 Functions are defined with the `fn` keyword:
 ```
 fn greet(name) {
-	println("It's nice to meet you, " + name + "!");
+	println(f"It's nice to meet you, {name}!");
 }
 ```
 

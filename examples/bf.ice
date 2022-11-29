@@ -144,7 +144,7 @@ fn main() {
     // Read the brainfuck source file into a string
     let code = read_file(file_path);
     if code == null {
-        println("Failed to read file: " + file_path);
+        println(f"Failed to read file: {file_path}");
         return;
     }
 

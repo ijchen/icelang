@@ -59,7 +59,7 @@ float_literal = dec_digit , {dec_digit | underscore} , dot , {underscore} , dec_
               | kw_infinity
               | kw_nan;
 bool_literal = kw_true | kw_false;
-string_literal = normal_string_literal | raw_string_literal;
+string_literal = normal_string_literal | raw_string_literal | format_string_literal;
 normal_string_literal = double_quote , {normal_string_literal_char} , double_quote;
 normal_string_literal_char = ? Any Unicode scalar value, except a double quote
                                or backslash. Additionally, escape sequences may
@@ -71,6 +71,13 @@ raw_string_literal_contents = double_quote , {raw_string_literal_char} , double_
 raw_string_literal_char = ? Any Unicode scalar value, except a double quote
                             followed by the same number of hash characters as
                             was used to start this raw string literal ?;
+format_string_literal = "f" , double_quote , {format_string_literal_char | replacement_field} , double_quote;
+format_string_literal_char = ? Any Unicode scalar value, except a double quote,
+                               backslash, opening curly brace, or closing curly
+                               brace. Additionally, escape sequences may
+                               be used, which are detailed in the string literal
+                               section of the README ?;
+replacement_field = lbrace , expression , rbrace;
 list_literal = lbracket , list_contents , rbracket;
 list_contents = empty | (expression , {comma , expression} , [comma]);
 dict_literal = lbrace , dict_contents , rbrace;

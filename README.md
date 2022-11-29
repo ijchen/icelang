@@ -96,14 +96,12 @@ features:
     - [ ] Fuzzing (where applicable)
 - [ ] Flesh out examples
 - [ ] Future considerations
-  - [ ] Format string literals (like python's `f"{2 + 2}"` or JavaScript's
-`` `${2 + 2}` ``)
+  - [ ] Format string literal replacement field format specifiers
   - [ ] First-class function support
   - [ ] User-defined types
   - [ ] Compilation, JIT-compilation, transpilation, and static code analysis
   - [ ] Preprocessor and macros
   - [ ] Namespaces and including
-- [ ] TODO is there more I'm forgetting?
 
 # License
 
