@@ -452,9 +452,110 @@ false;
 ```
 
 ## string
-TODO (`"Hello, world!"`, `f"2 + 2 = {2 + 2}"`, `"He said \"hi\" then left."`,
-`r"raw \ backslash and newline [NEWLINE] in this string"`, escape codes, maybe
-more)
+There are two forms of `string` literals in icelang. The simplest is a normal
+`string` literal, composed of two double quotes (`"`) surrounding the characters
+in the `string`:
+```
+"Hello world!"
+```
+
+Note that single quotes are not permitted for creating `string` literals:
+```
+// Invalid literal
+// 'This is not allowed in icelang'
+```
+
+`string` literals may contain any [valid character](#string) except for double
+quote (`"`) and backslash (`\`)
+```
+// String literals can contain non-ASCII characters too
+"This string has lots of non-ASCII characters like 你好 and 🦀";
+
+// They can also contain newlines
+"This string contains a newline...
+see, new line!";
+
+// They cannot, however, have double quotes or backslashes - both of these are
+// Invalid:
+// "String literals cannot have double quotes -> " <- like that one"
+// "String literals cannot have backslashes -> \ <- like that one"
+```
+
+What if you want to include a double quote or a backslash in your `string`
+literal? Escape sequences to the rescue! Escape sequences begin with a backslash
+(this is why they aren't normally allowed in `string` literals) and are followed
+by some information about what character the escape sequence represents. Here is
+a table of all the valid escape sequences in icelang:
+| Escape code  | Character          |
+| ------------ | ------------------ |
+| `\"`         | double-quote (`"`) |
+| `\\`         | backslash (`\`)    |
+| `\t`         | tab                |
+| `\n`         | newline            |
+| `\r`         | carriage return    |
+| `\0`         | null character     |
+| `\x##`       | ASCII character    |
+| `\u{######}` | Unicode character  |
+
+There are two special escape sequences: the ASCII character escape and the
+Unicode character escape.
+
+The ASCII character escape sequence encodes an ASCII character, and begins with
+a backslash (`\`), followed immediately by a lowercase x (`x`), then exactly two
+hex digits. The value of the hex digits must be `0x7F` or lower, and corresponds
+to the [ASCII value](https://en.wikipedia.org/wiki/ASCII#Character_set) of the
+character represented by the escape sequence.
+
+The Unicode character escape sequence encodes a Unicode character, and begins
+with a backslash (`\`), followed immediately by a lowercase u (`u`), an opening
+curly brace (`{`), one to six hex digits, and finally a closing curly brace
+(`}`). The value of the hex digits must be a [valid character](#string) in
+Unicode, and corresponds to the character represented by the escape sequence.
+
+Here are some examples of using escape sequences in `string` literals:
+```
+// This will become: He said "Wow!" then left.
+"He said \"Wow!\" then left.";
+
+// This string will contain a newline character
+"What's your name?\nMy name is Isaac.";
+
+// This string contains a *single* backslash (escaped as \\)
+"A forward slash is /, and a backslash is \\";
+
+// This string uses ASCII and Unicode escape sequences
+let my_string = "Boy, I sure do love \x52\x75st! \u{1F980}\u{1F980}\u{1F980}";
+assert(my_string == "Boy, I sure do love Rust! 🦀🦀🦀");
+```
+
+Sometimes, a `string` may contain many characters that need to be escaped, and
+using escape codes would be tedious. In situations like these, you can use a raw
+`string` literal, which does not allow escape sequences, interpreting characters
+exactly as they appear. Raw `string` literals are just like normal `string`
+literals, except they have a lowercase r (`r`) before the first double quote:
+```
+let my_string = r"I'm a raw string with a backslash \ inside!";
+assert(my_string == "I'm a raw string with a backslash \\ inside!");
+
+let my_other_str = r"This isn't an escape sequence: \x69";
+assert(my_string == "This isn't an escape sequence: \\x69")
+```
+
+If you want to include a double quote in a raw `string` literal, surround the
+outer double quotes in [octothorpes](## "Some people would get mad if I called it a 'hashtag', some people would get mad if I call it a 'pound sign'. This will hopefully upset everyone equally :)")
+(`#`):
+```
+let my_string = r#"This string has a double quote "... isn't it lovely?"#;
+assert(my_string == "This string has a double quote \"... isn't it lovely?");
+```
+
+If you, for some reason, need to have `"#` in your raw `string` literal, or
+`"##`, or `"#######`, you can add as many octothorpes as you need - just ensure
+there are the same number of octothorpes on each side:
+```
+let my_string = r###"I don't know why "## anyone would ever need this"###;
+assert(my_string == "I don't know why \"## anyone would ever need this");
+```
 
 ## list
 The syntax for a `list` literal in icelang is as follows:
