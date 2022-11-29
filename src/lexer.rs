@@ -29,6 +29,11 @@ pub enum LexerError<'source> {
         /// The position of the invalid literal
         pos: SourceRange<'source>,
     },
+    /// An invalid escape sequence was encountered in a string literal
+    InvalidEscapeSequence {
+        /// The position of the invalid escape sequence
+        pos: SourceRange<'source>,
+    },
 }
 
 impl<'source> LexerError<'source> {
@@ -45,6 +50,11 @@ impl<'source> LexerError<'source> {
     /// Constructs a new InvalidLiteral LexerError
     pub fn new_invalid_literal(pos: SourceRange<'source>) -> Self {
         Self::InvalidLiteral { pos }
+    }
+
+    /// Constructs a new InvalidEscapeSequence LexerError
+    pub fn new_invalid_escape_sequence(pos: SourceRange<'source>) -> Self {
+        Self::InvalidEscapeSequence { pos }
     }
 }
 
@@ -63,6 +73,9 @@ impl Display for LexerError<'_> {
             }
             LexerError::InvalidLiteral { pos: _ } => {
                 write!(f, "invalid literal")
+            }
+            LexerError::InvalidEscapeSequence { pos: _ } => {
+                write!(f, "invalid escape sequence in string literal")
             }
         }
     }
@@ -333,6 +346,210 @@ pub fn tokenize<'source>(
             tokens.push(Token::new_literal(literal, literal_type, literal_pos));
 
             continue;
+        }
+
+        // String literals
+        match (chars[index], chars.get(index + 1)) {
+            // Normal string literal
+            ('"', _) => {
+                // Store the starting index of the string literal
+                let start_index = index;
+
+                // Read characters into the string literal until we reach the
+                // end of it
+                let mut string_literal_is_complete = false;
+                let mut raw = String::new();
+                raw.push(chars[index]);
+                index += 1;
+                while !string_literal_is_complete && index < chars.len() {
+                    match chars[index] {
+                        '"' => {
+                            // Add the closing quote to the string literal
+                            raw.push(chars[index]);
+                            index += 1;
+
+                            // The string literal is now complete
+                            string_literal_is_complete = true;
+                        }
+                        '\\' => {
+                            // Store the starting index of the escape sequence
+                            let escape_sequence_start_index = index;
+
+                            // Add the backslash to the string literal
+                            raw.push(chars[index]);
+                            index += 1;
+
+                            // If we reached EOF, this literal is invalid
+                            if index < chars.len() {
+                                break;
+                            }
+
+                            match chars[index] {
+                                '"' => {
+                                    raw.push('"');
+                                    index += 1;
+                                }
+                                '\\' => {
+                                    raw.push('\\');
+                                    index += 1;
+                                }
+                                't' => {
+                                    raw.push('\t');
+                                    index += 1;
+                                }
+                                'n' => {
+                                    raw.push('\n');
+                                    index += 1;
+                                }
+                                'r' => {
+                                    raw.push('\r');
+                                    index += 1;
+                                }
+                                '0' => {
+                                    raw.push('\0');
+                                    index += 1;
+                                }
+                                '\n' => {
+                                    // The newline was escaped, ignore it
+                                    index += 1;
+                                }
+                                // ASCII escape sequence
+                                'x' => {
+                                    todo!();
+                                }
+                                // Unicode escape sequence
+                                'u' => {
+                                    todo!();
+                                }
+                                _ => {
+                                    return Err(LexerError::new_invalid_escape_sequence(
+                                        SourceRange::new(
+                                            source_code,
+                                            source_file_name,
+                                            escape_sequence_start_index,
+                                            index,
+                                        ),
+                                    ));
+                                }
+                            };
+                        }
+                        c => {
+                            // Add the character to the string literal
+                            raw.push(c);
+                            index += 1;
+                        }
+                    };
+                }
+
+                // If we reached EOF without completing the string literal,
+                // return an error
+                if !string_literal_is_complete {
+                    return Err(LexerError::new_invalid_literal(SourceRange::new(
+                        source_code,
+                        source_file_name,
+                        start_index,
+                        index - 1,
+                    )));
+                }
+
+                // Add the new string literal to tokens
+                tokens.push(Token::new_literal(
+                    raw,
+                    IceType::String,
+                    SourceRange::new(source_code, source_file_name, start_index, index - 1),
+                ));
+
+                continue;
+            }
+            // Raw string literal
+            ('r', Some('#' | '"')) => {
+                // Store the starting index of the string literal
+                let start_index = index;
+
+                // Add the 'r' to the string literal
+                let mut raw = String::new();
+                raw.push(chars[index]);
+                index += 1;
+
+                // Count the number of hashtags for this raw string literal
+                let mut hash_count = 0;
+                while index < chars.len() && chars[index] == '#' {
+                    raw.push(chars[index]);
+                    hash_count += 1;
+                    index += 1;
+                }
+                if index < chars.len() && chars[index] == '"' {
+                    raw.push(chars[index]);
+                    index += 1;
+                } else {
+                    return Err(LexerError::new_invalid_literal(SourceRange::new(
+                        source_code,
+                        source_file_name,
+                        start_index,
+                        index - 1,
+                    )));
+                }
+
+                // Read characters into the string literal until we reach the
+                // end of it
+                let mut string_literal_is_complete = false;
+                while !string_literal_is_complete && index < chars.len() {
+                    match chars[index] {
+                        '"' => {
+                            // Add the closing quote to the string literal
+                            raw.push(chars[index]);
+                            index += 1;
+
+                            // Check to see if this is the end of the raw string
+                            // literal
+                            let mut closing_hashes_needed = hash_count;
+                            while closing_hashes_needed > 0
+                                && index < chars.len()
+                                && chars[index] == '#'
+                            {
+                                raw.push(chars[index]);
+                                closing_hashes_needed -= 1;
+                                index += 1;
+                            }
+                            if closing_hashes_needed == 0 {
+                                string_literal_is_complete = true;
+                            }
+                        }
+                        c => {
+                            // Add the character to the string literal
+                            raw.push(c);
+                            index += 1;
+                        }
+                    };
+                }
+
+                // If we reached EOF without completing the string literal,
+                // return an error
+                if !string_literal_is_complete {
+                    return Err(LexerError::new_invalid_literal(SourceRange::new(
+                        source_code,
+                        source_file_name,
+                        start_index,
+                        index - 1,
+                    )));
+                }
+
+                // Add the new string literal to tokens
+                tokens.push(Token::new_literal(
+                    raw,
+                    IceType::String,
+                    SourceRange::new(source_code, source_file_name, start_index, index - 1),
+                ));
+
+                continue;
+            }
+            // Format string literal
+            ('f', Some('"')) => {
+                todo!();
+
+                // continue;
+            }
+            _ => { /* Not a string literal, carry on */ }
         }
 
         // Identifiers, keywords, and keyword literals
