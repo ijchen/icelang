@@ -104,6 +104,7 @@ pub fn enter_repl(mut show_debug_info: bool) {
             println!();
         }
 
+        // Lexer
         let tokens = match lexer::tokenize(source_code, "<stdin>") {
             Ok(tokens) => tokens,
             Err(err) => {
@@ -112,6 +113,7 @@ pub fn enter_repl(mut show_debug_info: bool) {
             }
         };
 
+        // If debug info is enabled, print token information
         if show_debug_info {
             println!("Tokens:");
             for token in tokens {

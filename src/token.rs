@@ -38,6 +38,16 @@ impl<'source> Token<'source> {
     pub fn new_punctuator(punctuator: String, pos: SourceRange<'source>) -> Self {
         Self::Punctuator(TokenPunctuator { punctuator, pos })
     }
+
+    /// Returns the position in the source code of this token
+    pub fn pos(&self) -> &SourceRange<'source> {
+        match self {
+            Self::Ident(token) => token.pos(),
+            Self::Keyword(token) => token.pos(),
+            Self::Literal(token) => token.pos(),
+            Self::Punctuator(token) => token.pos(),
+        }
+    }
 }
 
 impl Display for Token<'_> {
