@@ -19,7 +19,7 @@ impl<'source> StackTrace<'source> {
         }
     }
 
-    pub fn add_top(&mut self, scope_name: String, pos: SourceRange<'source>) {
+    pub fn add_bottom(&mut self, scope_name: String, pos: SourceRange<'source>) {
         self.sources.push((scope_name, pos));
     }
 }
@@ -28,7 +28,7 @@ impl Display for StackTrace<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Stack trace:")?;
 
-        for source in self.sources.iter().rev() {
+        for source in self.sources.iter() {
             writeln!(f, "^ {} {}", source.0, source.1)?;
         }
 
