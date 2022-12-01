@@ -16,5 +16,6 @@ clap = { version = "4.0", features = ["derive"] }
 rustyline = "10.0"
 typed-arena = "2.0"
 clearscreen = "1.0.10"
+static_assertions = "1.1.0"
 
 [dev-dependencies]

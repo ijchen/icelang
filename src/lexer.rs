@@ -2,7 +2,12 @@
 
 use std::{error::Error, fmt::Display};
 
-use crate::{ice_type::IceType, source_range::SourceRange, token::Token};
+use crate::{
+    ice_error::{self, IceErrorType},
+    ice_type::IceType,
+    source_range::SourceRange,
+    token::Token,
+};
 
 /// Represents an error that occurred during lexing
 #[derive(Debug)]
@@ -56,28 +61,38 @@ impl<'source> LexerError<'source> {
     pub fn new_invalid_escape_sequence(pos: SourceRange<'source>) -> Self {
         Self::InvalidEscapeSequence { pos }
     }
+
+    /// Returns the SourceRange corresponding to this error
+    pub fn pos(&self) -> &SourceRange<'source> {
+        match self {
+            Self::IllegalChar { character: _, pos } => pos,
+            Self::InvalidEscapeSequence { pos } => pos,
+            Self::InvalidLiteral { pos } => pos,
+            Self::UnexpectedEOF { why: _, pos } => pos,
+        }
+    }
 }
 
 impl Display for LexerError<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
+        let description = match self {
             LexerError::IllegalChar {
                 character: c,
                 pos: _,
             } => match *c {
-                ' '..='~' => write!(f, "unexpected character '{c}'"),
-                c => write!(f, "unexpected character '{c}' (0x{:0X})", c as u32),
+                ' '..='~' => format!("unexpected character '{c}'"),
+                c => format!("unexpected character '{c}' (0x{:0X})", c as u32),
             },
             LexerError::UnexpectedEOF { why, pos: _ } => {
-                write!(f, "unexpected end-of-file ({why})")
+                format!("unexpected end-of-file ({why})")
             }
-            LexerError::InvalidLiteral { pos: _ } => {
-                write!(f, "invalid literal")
-            }
+            LexerError::InvalidLiteral { pos: _ } => "invalid literal".to_string(),
             LexerError::InvalidEscapeSequence { pos: _ } => {
-                write!(f, "invalid escape sequence in string literal")
+                "invalid escape sequence in string literal".to_string()
             }
-        }
+        };
+
+        ice_error::display(f, IceErrorType::Syntax, &description, self.pos(), None)
     }
 }
 
@@ -380,7 +395,7 @@ pub fn tokenize<'source>(
                             index += 1;
 
                             // If we reached EOF, this literal is invalid
-                            if index < chars.len() {
+                            if index >= chars.len() {
                                 break;
                             }
 
