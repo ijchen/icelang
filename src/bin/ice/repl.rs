@@ -108,7 +108,7 @@ pub fn enter_repl(mut show_debug_info: bool) {
         let tokens = match lexer::tokenize(source_code, "<stdin>") {
             Ok(tokens) => tokens,
             Err(err) => {
-                println!("Lexer error: {err}");
+                println!("{err}");
                 continue;
             }
         };

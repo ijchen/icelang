@@ -27,6 +27,11 @@ impl<'source> SourceRange<'source> {
         }
     }
 
+    /// Returns the entire source that this error occurred in
+    pub fn entire_source(&self) -> &'source str {
+        self.entire_source
+    }
+
     /// Returns the slice from the entire source corresponding to this range
     pub fn read(&self) -> &'source str {
         &self.entire_source[self.start_index..self.end_index + 1]
