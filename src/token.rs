@@ -125,10 +125,10 @@ pub struct TokenKeyword<'source> {
 }
 
 impl<'source> TokenKeyword<'source> {
-    // Taking this out temporarily to see if clippy CI is working
-    // /// Returns the keyword as a string
+    /// Returns the keyword as a string
     pub fn keyword(&self) -> &str {
-        &self.keyword
+        // TODO oops, I broke things real bad
+        &self.keywrod
     }
 
     /// Returns the position in the source code of this keyword
