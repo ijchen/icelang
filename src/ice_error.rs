@@ -7,32 +7,18 @@ use crate::source_range::SourceRange;
 #[derive(Clone, Copy)]
 pub enum IceErrorType {
     Syntax,
-    Runtime,
 }
 
 impl Display for IceErrorType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Syntax => write!(f, "Syntax"),
-            Self::Runtime => write!(f, "Runtime"),
         }
     }
 }
 
 pub struct StackTrace<'source> {
     sources: Vec<(String, SourceRange<'source>)>,
-}
-
-impl<'source> StackTrace<'source> {
-    pub fn new() -> Self {
-        Self {
-            sources: Vec::new(),
-        }
-    }
-
-    pub fn add_bottom(&mut self, scope_name: String, pos: SourceRange<'source>) {
-        self.sources.push((scope_name, pos));
-    }
 }
 
 impl Display for StackTrace<'_> {
