@@ -1,6 +1,6 @@
 # icelang
 
-[![Test Status](https://github.com/ijchen/icelang/actions/workflows/test.yml/badge.svg)](https://github.com/ijchen/icelang/actions)
+[![Test Status](https://github.com/ijchen/icelang/actions/workflows/tests.yml/badge.svg)](https://github.com/ijchen/icelang/actions/workflows/tests.yml)
 
 Icelang (stylized "icelang") is a simple and high-level programming language
 created for the purpose of learning about programming language design and
