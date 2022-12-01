@@ -127,8 +127,7 @@ pub struct TokenKeyword<'source> {
 impl<'source> TokenKeyword<'source> {
     /// Returns the keyword as a string
     pub fn keyword(&self) -> &str {
-        // TODO oops, I broke things real bad
-        &self.keywrod
+        &self.keyword
     }
 
     /// Returns the position in the source code of this keyword
