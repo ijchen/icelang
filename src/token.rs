@@ -166,3 +166,88 @@ impl Display for TokenPunctuator<'_> {
         write!(f, "[Token] Punctuator: {}", self.punctuator)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ident_display() {
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+
+        let idents = [
+            "foo",
+            "bar",
+            "snake_case",
+            "camelCase",
+            "flatcase",
+            "UPPERCASE",
+            "PascalCase",
+            "SCREAMING_SNAKE_CASE",
+            "camel_Snake_Case",
+            "Pascal_Snake_Case",
+            "ujfai83yuafishvf89amhj39vfa87y398asy3vfans3fyfpavws3m78yfams9837vy\
+            fhap89ws3y7fma8374hfmva8s7y3fn0vlaifjsp98ufa9ps3j8ufmvioaj8mu38fav9\
+            83yua98v3uynf9as8yn398vasyum9faa8s7",
+        ];
+
+        for ident in idents {
+            let tok = Token::new_ident(ident.to_string(), nowhere.clone());
+
+            assert_eq!(tok.to_string(), format!("[Token] Identifier: {ident}"));
+        }
+    }
+
+    #[test]
+    fn test_literal_display() {
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+
+        let lits = [
+            ("true", IceType::Bool),
+            ("false", IceType::Bool),
+            ("8bFF", IceType::Byte),
+            ("8b00", IceType::Byte),
+            ("Merriam-Webster", IceType::Dict),
+            ("3.14", IceType::Float),
+            ("1330", IceType::Int),
+            (":thinking:", IceType::List),
+            ("null", IceType::Null),
+            ("\"Strange thing this is\"", IceType::String),
+        ];
+
+        for (lit, ty) in lits {
+            let tok = Token::new_literal(lit.to_string(), ty, nowhere.clone());
+
+            assert_eq!(
+                tok.to_string(),
+                format!("[Token] Literal ({}): {}", ty, lit)
+            );
+        }
+    }
+
+    #[test]
+    fn test_keyword_display() {
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+
+        let kws = ["for", "while", "if", "return", "NaN", "true", "null"];
+
+        for kw in kws {
+            let tok = Token::new_keyword(kw.to_string(), nowhere.clone());
+
+            assert_eq!(tok.to_string(), format!("[Token] Keyword: {kw}"));
+        }
+    }
+
+    #[test]
+    fn test_punctuator_display() {
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+
+        let puncs = ["(", ")", "{", "*", "+", "]", "==", "**=", ","];
+
+        for punc in puncs {
+            let tok = Token::new_punctuator(punc.to_string(), nowhere.clone());
+
+            assert_eq!(tok.to_string(), format!("[Token] Punctuator: {punc}"));
+        }
+    }
+}

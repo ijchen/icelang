@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Display};
 
 /// Represents a contiguous range of characters in some ice source code
+#[derive(Clone)]
 pub struct SourceRange<'source> {
     entire_source: &'source str,
     source_file_name: &'source str,
