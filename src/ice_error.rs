@@ -50,11 +50,11 @@ fn display_header(
     let mut index = 0;
     let chars: Vec<char> = description.chars().collect();
     while index < chars.len() {
+        if chars[index] == '\r' && chars.get(index + 1) == Some(&'\n') {
+            index += 1;
+        }
         if chars[index] == '\n' {
             index += 1;
-            if chars.get(index) == Some(&'\r') {
-                index += 1;
-            }
             multiline_header = true;
             writeln!(f, "{header_buff}")?;
             header_buff.clear();

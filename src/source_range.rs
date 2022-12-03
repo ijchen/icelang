@@ -66,9 +66,6 @@ impl<'source> SourceRange<'source> {
         let mut curr_index = 0;
         while curr_index < index {
             if self.entire_source.chars().nth(curr_index).unwrap() == '\n' {
-                if self.entire_source.chars().nth(curr_index + 1) == Some('\r') {
-                    curr_index += 1;
-                }
                 col = 1;
             } else {
                 col += 1;
@@ -120,6 +117,242 @@ impl Display for SourceRange<'_> {
                 "{} line {}, col {} to line {}, col {}",
                 self.source_file_name, start_line, start_col, end_line, end_col
             ),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        SourceRange::new("print(\"Hello, world!\");\n", "hello.ice", 6, 20);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_new_start_after_end() {
+        SourceRange::new("print(\"Hello, world!\");\n", "hello.ice", 20, 6);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_new_end_after_source() {
+        SourceRange::new("print(\"Hello, world!\");\n", "hello.ice", 14, 24);
+    }
+
+    #[test]
+    fn test_read() {
+        let srs = [
+            (("a", "a.ice", 0, 0), "a"),
+            (("abcdefgh", "alphabet.ice", 2, 6), "cdefg"),
+            (
+                ("print(\"Hello, world!\");\n", "hello.ice", 6, 20),
+                "\"Hello, world!\"",
+            ),
+            (
+                (
+                    r#"// A simple program to print the first 10 Fibonacci numbers
+
+let a = 0;
+let b = 1;
+
+loop 10 {
+    println(a);
+
+    let c = a;
+    a = b;
+    b += c;
+}
+"#,
+                    "fib.ice",
+                    98,
+                    104,
+                ),
+                "println",
+            ),
+        ];
+
+        for ((code, file, s, e), val) in srs {
+            let sr = SourceRange::new(code, file, s, e);
+
+            assert_eq!(sr.read(), val);
+        }
+    }
+
+    #[test]
+    fn test_lines() {
+        let srs = [
+            (("a", "a.ice", 0, 0), (1, 1)),
+            (
+                (
+                    "abc\nd\refghij\r\nkl\nm\nno\n\r\n\r\npqr\nstuvw\nxyz\n",
+                    "alphabet.ice",
+                    15,
+                    20,
+                ),
+                (3, 5),
+            ),
+            (
+                (
+                    r#"// A simple program to print the first 10 Fibonacci numbers
+
+let a = 0;
+let b = 1;
+
+loop 10 {
+    println(a);
+
+    let c = a;
+    a = b;
+    b += c;
+}
+"#,
+                    "fib.ice",
+                    98,
+                    104,
+                ),
+                (7, 7),
+            ),
+        ];
+
+        for ((code, file, s, e), val) in srs {
+            let sr = SourceRange::new(code, file, s, e);
+
+            assert_eq!((sr.start_line(), sr.end_line()), val);
+        }
+    }
+
+    #[test]
+    fn test_cols() {
+        let srs = [
+            (("a", "a.ice", 0, 0), (1, 1)),
+            (
+                (
+                    "abc\nd\refghij\r\nkl\nm\nno\n\r\n\r\npqr\nstuvw\nxyz\n",
+                    "alphabet.ice",
+                    9,
+                    15,
+                ),
+                (6, 2),
+            ),
+            (
+                (
+                    r#"// A simple program to print the first 10 Fibonacci numbers
+
+let a = 0;
+let b = 1;
+
+loop 10 {
+    println(a);
+
+    let c = a;
+    a = b;
+    b += c;
+}
+"#,
+                    "fib.ice",
+                    98,
+                    134,
+                ),
+                (5, 9),
+            ),
+        ];
+
+        for ((code, file, s, e), val) in srs {
+            let sr = SourceRange::new(code, file, s, e);
+
+            assert_eq!((sr.start_col(), sr.end_col()), val);
+        }
+    }
+
+    #[test]
+    fn test_debug() {
+        let srs = [
+            (
+                ("a", "a.ice", 0, 0),
+                "SourceRange { a.ice line 1, col 1: \"a\" }",
+            ),
+            (
+                (
+                    "abc\nd\refghij\r\nkl\nm\nno\n\r\n\r\npqr\nstuvw\nxyz\n",
+                    "alphabet.ice",
+                    9,
+                    15,
+                ),
+                "SourceRange { alphabet.ice line 2, col 6 to line 3, col 2: \"hij\\r\\nkl\" }",
+            ),
+            (
+                (
+                    r#"// A simple program to print the first 10 Fibonacci numbers
+
+let a = 0;
+let b = 1;
+
+loop 10 {
+    println(a);
+
+    let c = a;
+    a = b;
+    b += c;
+}
+"#,
+                    "fib.ice",
+                    98,
+                    104,
+                ),
+                "SourceRange { fib.ice line 7, col 5 to 11: \"println\" }",
+            ),
+        ];
+
+        for ((code, file, s, e), val) in srs {
+            let sr = SourceRange::new(code, file, s, e);
+
+            assert_eq!(format!("{sr:?}"), val);
+        }
+    }
+
+    #[test]
+    fn test_display() {
+        let srs = [
+            (("a", "a.ice", 0, 0), "a.ice line 1, col 1"),
+            (
+                (
+                    "abc\nd\refghij\r\nkl\nm\nno\n\r\n\r\npqr\nstuvw\nxyz\n",
+                    "alphabet.ice",
+                    9,
+                    15,
+                ),
+                "alphabet.ice line 2, col 6 to line 3, col 2",
+            ),
+            (
+                (
+                    r#"// A simple program to print the first 10 Fibonacci numbers
+
+let a = 0;
+let b = 1;
+
+loop 10 {
+    println(a);
+
+    let c = a;
+    a = b;
+    b += c;
+}
+"#,
+                    "fib.ice",
+                    98,
+                    104,
+                ),
+                "fib.ice line 7, col 5 to 11",
+            ),
+        ];
+
+        for ((code, file, s, e), val) in srs {
+            let sr = SourceRange::new(code, file, s, e);
+
+            assert_eq!(format!("{sr}"), val);
         }
     }
 }
