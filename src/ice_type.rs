@@ -42,3 +42,20 @@ impl Display for IceType {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_display() {
+        assert_eq!(IceType::Int.to_string(), "int");
+        assert_eq!(IceType::Byte.to_string(), "byte");
+        assert_eq!(IceType::Float.to_string(), "float");
+        assert_eq!(IceType::Bool.to_string(), "bool");
+        assert_eq!(IceType::String.to_string(), "string");
+        assert_eq!(IceType::List.to_string(), "list");
+        assert_eq!(IceType::Dict.to_string(), "dict");
+        assert_eq!(IceType::Null.to_string(), "null");
+    }
+}
