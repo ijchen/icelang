@@ -40,7 +40,7 @@ println("Hello, world");
 
 And a program to print the first 10 Fibonacci numbers:
 ```
-// A simple program to print the first 10 Fibonacci humbers
+// A simple program to print the first 10 Fibonacci numbers
 
 let a = 0;
 let b = 1;
