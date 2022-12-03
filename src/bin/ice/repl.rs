@@ -6,11 +6,13 @@ use crate::debug_info::print_source_info;
 
 const WELCOME_MESSAGE: &str = "\
 ice REPL - Welcome!
-Heads up: the ice language is still in development - expect changes as the language develops.
+Heads up: the ice language is still in development - expect changes as the \
+language develops.
 enter \"help\" for help, or \"exit\" to exit.";
 
 const HELP_MESSAGE: &str = "\
-You can type code directly into the terminal. It will be evaluated, and the resulting value will be printed out.
+You can type code directly into the terminal. It will be evaluated, and the \
+resulting value will be printed out.
 
 You can also use the following commands:
 help                Display this help message
