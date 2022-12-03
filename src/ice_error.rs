@@ -38,7 +38,7 @@ const MAX_LEN: usize = 80;
 const_assert!(PREFIX.len() < MAX_LEN);
 
 fn display_header(
-    f: &mut std::fmt::Formatter<'_>,
+    f: &mut impl std::fmt::Write,
     error_type: IceErrorType,
     description: &str,
 ) -> std::fmt::Result {
@@ -86,10 +86,7 @@ fn display_header(
     Ok(())
 }
 
-fn display_source_highlight(
-    f: &mut std::fmt::Formatter<'_>,
-    pos: &SourceRange,
-) -> std::fmt::Result {
+fn display_source_highlight(f: &mut impl std::fmt::Write, pos: &SourceRange) -> std::fmt::Result {
     // Convenience variables
     let start_line_number = pos.start_line();
     let original_start_column = pos.start_col() - 1;
@@ -252,7 +249,7 @@ fn display_source_highlight(
 }
 
 pub fn display(
-    f: &mut std::fmt::Formatter<'_>,
+    f: &mut impl std::fmt::Write,
     error_type: IceErrorType,
     description: &str,
     pos: &SourceRange<'_>,
