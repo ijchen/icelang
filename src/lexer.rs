@@ -707,7 +707,6 @@ mod tests {
             match ch {
                 '\n' => {
                     assert!(le.to_string().contains("\\n"));
-                    println!("{}", le.to_string());
                 }
                 ' '..='~' => {
                     assert!(le.to_string().contains(ch));
