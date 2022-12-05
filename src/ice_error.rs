@@ -104,14 +104,16 @@ fn display_source_highlight(f: &mut impl std::fmt::Write, pos: &SourceRange) -> 
     // with four spaces, adjusting the start and end columns accordingly
     let adj_line = original_line.replace('\t', "    ");
     let adj_start_column = original_start_column
-        + original_line[..original_start_column]
+        + original_line
             .chars()
+            .take(original_start_column)
             .filter(|&c| c == '\t')
             .count()
             * 3;
     let adj_end_column = original_end_column
-        + original_line[..=original_end_column]
+        + original_line
             .chars()
+            .take(original_start_column + 1)
             .filter(|&c| c == '\t')
             .count()
             * 3;
@@ -156,7 +158,10 @@ fn display_source_highlight(f: &mut impl std::fmt::Write, pos: &SourceRange) -> 
     else if len_before + len_err + TRIM_CHARS.len() <= MAX_LEN_AFTER_PREFIX {
         out_line = format!(
             "{}{TRIM_CHARS}",
-            &adj_line[..MAX_LEN_AFTER_PREFIX - TRIM_CHARS.len()]
+            &adj_line
+                .chars()
+                .take(MAX_LEN_AFTER_PREFIX - TRIM_CHARS.len())
+                .collect::<String>()
         );
         out_err = format!(
             "{}{}{}{TRIM_CHARS}",
@@ -172,8 +177,14 @@ fn display_source_highlight(f: &mut impl std::fmt::Write, pos: &SourceRange) -> 
     {
         out_line = format!(
             "{}{CUTOUT_SEP}{}",
-            &adj_line[..CUTOUT_LINE_START_LEN],
-            &adj_line[len_before - CUTOUT_LEADUP_LEN..]
+            &adj_line
+                .chars()
+                .take(CUTOUT_LINE_START_LEN)
+                .collect::<String>(),
+            &adj_line
+                .chars()
+                .skip(len_before - CUTOUT_LEADUP_LEN)
+                .collect::<String>(),
         );
         out_err = format!(
             "{}{CUTOUT_SEP}{}{}",
@@ -199,8 +210,15 @@ fn display_source_highlight(f: &mut impl std::fmt::Write, pos: &SourceRange) -> 
                 + TRIM_CHARS.len());
         out_line = format!(
             "{}{CUTOUT_SEP}{}{TRIM_CHARS}",
-            &adj_line[..CUTOUT_LINE_START_LEN],
-            &adj_line[len_before - CUTOUT_LEADUP_LEN..len_before + len_err + len_shown_after_err]
+            &adj_line
+                .chars()
+                .take(CUTOUT_LINE_START_LEN)
+                .collect::<String>(),
+            &adj_line
+                .chars()
+                .skip(len_before - CUTOUT_LEADUP_LEN)
+                .take(CUTOUT_LEADUP_LEN + len_err + len_shown_after_err)
+                .collect::<String>(),
         );
         out_err = format!(
             "{}{CUTOUT_SEP}{}{}{}{TRIM_CHARS}",
@@ -215,7 +233,10 @@ fn display_source_highlight(f: &mut impl std::fmt::Write, pos: &SourceRange) -> 
     else if len_before <= CUTOUT_LINE_START_LEN + CUTOUT_SEP.len() + CUTOUT_LEADUP_LEN {
         out_line = format!(
             "{}{TRIM_CHARS}",
-            &adj_line[..MAX_LEN_AFTER_PREFIX - TRIM_CHARS.len()]
+            &adj_line
+                .chars()
+                .take(MAX_LEN_AFTER_PREFIX - TRIM_CHARS.len())
+                .collect::<String>(),
         );
         out_err = format!(
             "{}{}{}",
@@ -233,8 +254,15 @@ fn display_source_highlight(f: &mut impl std::fmt::Write, pos: &SourceRange) -> 
             - (CUTOUT_LINE_START_LEN + CUTOUT_SEP.len() + CUTOUT_LEADUP_LEN + TRIM_CHARS.len());
         out_line = format!(
             "{}{CUTOUT_SEP}{}{TRIM_CHARS}",
-            &adj_line[..CUTOUT_LINE_START_LEN],
-            &adj_line[len_before - CUTOUT_LEADUP_LEN..len_before + len_of_shown_err]
+            &adj_line
+                .chars()
+                .take(CUTOUT_LINE_START_LEN)
+                .collect::<String>(),
+            &adj_line
+                .chars()
+                .skip(len_before - CUTOUT_LEADUP_LEN)
+                .take(CUTOUT_LEADUP_LEN + len_of_shown_err)
+                .collect::<String>(),
         );
         out_err = format!(
             "{}{CUTOUT_SEP}{}{}{}",

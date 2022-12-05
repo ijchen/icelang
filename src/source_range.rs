@@ -35,7 +35,20 @@ impl<'source> SourceRange<'source> {
 
     /// Returns the slice from the entire source corresponding to this range
     pub fn read(&self) -> &'source str {
-        &self.entire_source[self.start_index..self.end_index + 1]
+        let start_byte_index = self
+            .entire_source
+            .char_indices()
+            .nth(self.start_index)
+            .unwrap()
+            .0;
+        let end_byte_index = self
+            .entire_source
+            .char_indices()
+            .map(|(byte_index, _)| byte_index)
+            .nth(self.end_index + 1)
+            .unwrap_or(self.entire_source.len())
+            - 1;
+        &self.entire_source[start_byte_index..=end_byte_index]
     }
 
     /// Returns the (1-indexed) line number that a character (by index) is on
@@ -147,6 +160,8 @@ mod tests {
         let srs = [
             (("a", "a.ice", 0, 0), "a"),
             (("abcdefgh", "alphabet.ice", 2, 6), "cdefg"),
+            (("a★bc★efgh", "alphabet.ice", 3, 7), "c★efg"),
+            (("a★bc★", "alphabet.ice", 1, 4), "★bc★"),
             (
                 ("print(\"Hello, world!\");\n", "hello.ice", 6, 20),
                 "\"Hello, world!\"",

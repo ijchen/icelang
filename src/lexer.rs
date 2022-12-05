@@ -80,6 +80,7 @@ impl Display for LexerError<'_> {
                 character: c,
                 pos: _,
             } => match *c {
+                '\n' => "unexpected character '\\n'".to_string(),
                 ' '..='~' => format!("unexpected character '{c}'"),
                 c => format!("unexpected character '{c}' (0x{:0X})", c as u32),
             },
@@ -123,7 +124,7 @@ pub fn tokenize<'source>(
             let start_index = index;
 
             // Advance until we find a matching "*/"
-            while index < chars.len() && chars[index] != '\n' {
+            while index < chars.len() {
                 match (chars[index], chars.get(index + 1)) {
                     // End of comment
                     ('*', Some('/')) => {
@@ -688,4 +689,73 @@ pub fn tokenize<'source>(
     }
 
     Ok(tokens)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_lexer_err_display() {
+        let chars = "abcdSOE*IUJFU(S#*(!)'(A_++ \\\"\t\nⱳ⛩⭥⻈⎃⟨⬒▰⌈⤶⺀⁼€ⷨ⫵⤈⛐⮯Ⅷ\
+        ⳾⻌♙ℕ⦲∆⠄⤽⢾⫋⼼⽧⠻⿐⏵⺾⁬⩩ℾ✫⣐⡞⺽⮸⾫⤮⸏Ⅻ⤅ⓤ⽑⤑⛐₂⣵ⴀ⁢⟵⛨⡪ⱘ⭉▯↪∰⨡⿊⿈"
+            .chars();
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+
+        for ch in chars {
+            let le = LexerError::new_illegal_char(ch, nowhere.clone());
+            match ch {
+                '\n' => {
+                    assert!(le.to_string().contains("\\n"));
+                    println!("{}", le.to_string());
+                }
+                ' '..='~' => {
+                    assert!(le.to_string().contains(ch));
+                }
+                ch => {
+                    assert!(le.to_string().contains(ch));
+                    assert!(le.to_string().contains(&format!("0x{:0X}", ch as u32)));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_tokenize_empty() {
+        let source_code = "";
+        let source_file_name = "empty.ice";
+        let tokens: Vec<Token> = tokenize(source_code, source_file_name).unwrap();
+
+        assert!(tokens.is_empty());
+    }
+
+    #[test]
+    fn test_tokenize() {
+        let source_code = "\
+// Ignored comment (hopefully?)
+/*
+ * $ Multiline ★ comment $
+ */
+
+    \t21 \t  
+  \t
+   
+
+foo/* Something */bar";
+        let source_file_name = "tokens.ice";
+        let tokens: Vec<Token> = tokenize(source_code, source_file_name).unwrap();
+
+        let tokens: Vec<String> = tokens.into_iter().map(|token| token.to_string()).collect();
+
+        assert_eq!(
+            tokens,
+            vec![
+                "[Token] Literal (int): 21",
+                "[Token] Identifier: foo",
+                "[Token] Identifier: bar",
+            ]
+        );
+
+        // TODO continue work on this
+    }
 }
