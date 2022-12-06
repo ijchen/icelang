@@ -613,8 +613,8 @@ pub fn tokenize<'source>(
 
             // Check if the string we've built matches a keyword
             match raw.as_str() {
-                "if" | "else" | "loop" | "while" | "for" | "in" | "break" | "continue" | "fn"
-                | "let" => {
+                "if" | "else" | "loop" | "while" | "for" | "in" | "break" | "continue"
+                | "return" | "fn" | "let" => {
                     tokens.push(Token::new_keyword(
                         raw,
                         SourceRange::new(source_code, source_file_name, start_index, index - 1),
@@ -696,8 +696,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_lexer_err_display() {
-        let chars = "abcdSOE*IUJFU(S#*(!)'(A_++ \\\"\t\nⱳ⛩⭥⻈⎃⟨⬒▰⌈⤶⺀⁼€ⷨ⫵⤈⛐⮯Ⅷ\
+    fn test_lexer_err_illegal_char_display() {
+        let chars = "abcdSOE*IUJFU(S#*(!)'(A_~++ \\\"\t\nⱳ⛩⭥⻈⎃⟨⬒▰⌈⤶⺀⁼€ⷨ⫵⤈⛐⮯Ⅷ\
         ⳾⻌♙ℕ⦲∆⠄⤽⢾⫋⼼⽧⠻⿐⏵⺾⁬⩩ℾ✫⣐⡞⺽⮸⾫⤮⸏Ⅻ⤅ⓤ⽑⤑⛐₂⣵ⴀ⁢⟵⛨⡪ⱘ⭉▯↪∰⨡⿊⿈"
             .chars();
         let nowhere = SourceRange::new(" ", "", 0, 0);
@@ -716,6 +716,23 @@ mod tests {
                     assert!(le.to_string().contains(&format!("0x{:0X}", ch as u32)));
                 }
             }
+        }
+    }
+
+    #[test]
+    fn test_lexer_err_unexpected_eof_display() {
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+
+        let reasons = [
+            "Some reason",
+            "oashjifn aiuhs4h3 fiasune fikau3hf is",
+            "something went wrong",
+        ];
+
+        for reason in reasons {
+            let le = LexerError::new_unexpected_eof(reason.to_string(), nowhere.clone());
+
+            assert!(le.to_string().contains(reason));
         }
     }
 
@@ -740,20 +757,75 @@ mod tests {
   \t
    
 
-foo/* Something */bar";
+foo/* Something */bar
+if null true while loop false break NaN return return _ _hi ___hey ___
+0 3185415982 0d42 0b101010 0x2A 0xbAD_c0FFeE 0o52 34e6 0d34e6 1_234_567 \
+0b1011_0000_0000_1011 0x52_75_73_74_20_3C_33 3__4_e_6_ 0d___3__4_e_6_
+8d42 8b101010 8x2A 8o52 8d1_2_8 8b0110_1001 8xF_E 8o3_7_1 8o___3_7_1_____
+76.54321 3.14159265358979323 0.0 1.0 0.25 6.67430e-11 0.0000314e+5 0.0000314e5 \
+123.456e3 NaN Infinity";
         let source_file_name = "tokens.ice";
         let tokens: Vec<Token> = tokenize(source_code, source_file_name).unwrap();
 
         let tokens: Vec<String> = tokens.into_iter().map(|token| token.to_string()).collect();
 
-        assert_eq!(
-            tokens,
-            vec![
-                "[Token] Literal (int): 21",
-                "[Token] Identifier: foo",
-                "[Token] Identifier: bar",
-            ]
-        );
+        let expected = [
+            "[Token] Literal (int): 21",
+            "[Token] Identifier: foo",
+            "[Token] Identifier: bar",
+            "[Token] Keyword: if",
+            "[Token] Literal (null): null",
+            "[Token] Literal (bool): true",
+            "[Token] Keyword: while",
+            "[Token] Keyword: loop",
+            "[Token] Literal (bool): false",
+            "[Token] Keyword: break",
+            "[Token] Literal (float): NaN",
+            "[Token] Keyword: return",
+            "[Token] Keyword: return",
+            "[Token] Identifier: _",
+            "[Token] Identifier: _hi",
+            "[Token] Identifier: ___hey",
+            "[Token] Identifier: ___",
+            "[Token] Literal (int): 0",
+            "[Token] Literal (int): 3185415982",
+            "[Token] Literal (int): 0d42",
+            "[Token] Literal (int): 0b101010",
+            "[Token] Literal (int): 0x2A",
+            "[Token] Literal (int): 0xbAD_c0FFeE",
+            "[Token] Literal (int): 0o52",
+            "[Token] Literal (int): 34e6",
+            "[Token] Literal (int): 0d34e6",
+            "[Token] Literal (int): 1_234_567",
+            "[Token] Literal (int): 0b1011_0000_0000_1011",
+            "[Token] Literal (int): 0x52_75_73_74_20_3C_33",
+            "[Token] Literal (int): 3__4_e_6_",
+            "[Token] Literal (int): 0d___3__4_e_6_",
+            "[Token] Literal (byte): 8d42",
+            "[Token] Literal (byte): 8b101010",
+            "[Token] Literal (byte): 8x2A",
+            "[Token] Literal (byte): 8o52",
+            "[Token] Literal (byte): 8d1_2_8",
+            "[Token] Literal (byte): 8b0110_1001",
+            "[Token] Literal (byte): 8xF_E",
+            "[Token] Literal (byte): 8o3_7_1",
+            "[Token] Literal (byte): 8o___3_7_1_____",
+            "[Token] Literal (float): 76.54321",
+            "[Token] Literal (float): 3.14159265358979323",
+            "[Token] Literal (float): 0.0",
+            "[Token] Literal (float): 1.0",
+            "[Token] Literal (float): 0.25",
+            "[Token] Literal (float): 6.67430e-11",
+            "[Token] Literal (float): 0.0000314e+5",
+            "[Token] Literal (float): 0.0000314e5",
+            "[Token] Literal (float): 123.456e3",
+            "[Token] Literal (float): NaN",
+            "[Token] Literal (float): Infinity",
+        ];
+
+        for (token, expected) in tokens.into_iter().zip(expected) {
+            assert_eq!(token, expected);
+        }
 
         // TODO continue work on this
     }

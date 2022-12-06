@@ -403,7 +403,7 @@ literals:
 ```
 assert(8d1_2_8 == 8d128);
 assert(8b0110_1001 == 8b01101001);
-assert(0xF_E == 0xFE);
+assert(8xF_E == 8xFE);
 assert(8o3_7_1 == 8d249);
 ```
 
