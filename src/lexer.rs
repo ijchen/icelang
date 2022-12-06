@@ -823,7 +823,7 @@ if null true while loop false break NaN return return _ _hi ___hey ___
             "[Token] Literal (float): Infinity",
         ];
 
-        for (token, expected) in tokens.into_iter().zip(expected) {
+        for (token, expected) in tokens.zip(expected) {
             assert_eq!(token, expected);
         }
 
