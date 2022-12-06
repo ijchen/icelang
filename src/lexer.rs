@@ -767,7 +767,7 @@ if null true while loop false break NaN return return _ _hi ___hey ___
         let source_file_name = "tokens.ice";
         let tokens: Vec<Token> = tokenize(source_code, source_file_name).unwrap();
 
-        let tokens: Vec<String> = tokens.into_iter().map(|token| token.to_string()).collect();
+        let tokens = tokens.into_iter().map(|token| token.to_string());
 
         let expected = [
             "[Token] Literal (int): 21",
