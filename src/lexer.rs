@@ -694,13 +694,19 @@ pub fn tokenize<'source>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand::{Rng, SeedableRng};
+
+    const RAND_SEED: u64 = 123;
+    const RAND_ITERATIONS: usize = 1000;
 
     #[test]
     fn test_lexer_err_illegal_char_display() {
-        let chars = "abcdSOE*IUJFU(S#*(!)'(A_~++ \\\"\t\nⱳ⛩⭥⻈⎃⟨⬒▰⌈⤶⺀⁼€ⷨ⫵⤈⛐⮯Ⅷ\
-        ⳾⻌♙ℕ⦲∆⠄⤽⢾⫋⼼⽧⠻⿐⏵⺾⁬⩩ℾ✫⣐⡞⺽⮸⾫⤮⸏Ⅻ⤅ⓤ⽑⤑⛐₂⣵ⴀ⁢⟵⛨⡪ⱘ⭉▯↪∰⨡⿊⿈"
-            .chars();
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(RAND_SEED);
         let nowhere = SourceRange::new(" ", "", 0, 0);
+
+        let chars = (' '..='~')
+            .chain("\t\r\n\0ⱳ⛩⎃Ⅷℕ✫⽑▯∰⨡⿊".chars())
+            .chain(std::iter::repeat_with(|| rng.gen::<char>()).take(RAND_ITERATIONS));
 
         for ch in chars {
             let le = LexerError::new_illegal_char(ch, nowhere.clone());
