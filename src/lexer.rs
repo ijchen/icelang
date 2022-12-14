@@ -771,6 +771,7 @@ if null true while loop false break NaN return return _ _hi ___hey ___
 76.54321 3.14159265358979323 0.0 1.0 0.25 6.67430e-11 0.0000314e+5 0.0000314e5 \
 123.456e3 NaN Infinity
 true false null
+; : , . ( ) { } [ ] =
 ";
         let source_file_name = "tokens.ice";
         let tokens: Vec<Token> = tokenize(source_code, source_file_name).unwrap();
@@ -832,6 +833,17 @@ true false null
             "[Token] Literal (bool): true",
             "[Token] Literal (bool): false",
             "[Token] Literal (null): null",
+            "[Token] Punctuator: ;",
+            "[Token] Punctuator: :",
+            "[Token] Punctuator: ,",
+            "[Token] Punctuator: .",
+            "[Token] Punctuator: (",
+            "[Token] Punctuator: )",
+            "[Token] Punctuator: {",
+            "[Token] Punctuator: }",
+            "[Token] Punctuator: [",
+            "[Token] Punctuator: ]",
+            "[Token] Punctuator: =",
         ];
 
         for (token, expected) in tokens.zip(expected) {
