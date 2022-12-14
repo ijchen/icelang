@@ -699,6 +699,10 @@ mod tests {
     const RAND_SEED: u64 = 123;
     const RAND_ITERATIONS: usize = 1000;
 
+    fn gen_rand_char(rng: &mut impl Rng) -> char {
+        rng.gen::<char>()
+    }
+
     #[test]
     fn test_lexer_err_illegal_char_display() {
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(RAND_SEED);
@@ -706,7 +710,7 @@ mod tests {
 
         let chars = (' '..='~')
             .chain("\t\r\n\0ⱳ⛩⎃Ⅷℕ✫⽑▯∰⨡⿊".chars())
-            .chain(std::iter::repeat_with(|| rng.gen::<char>()).take(RAND_ITERATIONS));
+            .chain(std::iter::repeat_with(|| gen_rand_char(&mut rng)).take(RAND_ITERATIONS));
 
         for ch in chars {
             let le = LexerError::new_illegal_char(ch, nowhere.clone());
@@ -752,7 +756,7 @@ mod tests {
     }
 
     #[test]
-    fn test_tokenize() {
+    fn test_tokenize_hardcoded() {
         let source_code = "\
 // Ignored comment (hopefully?)
 /*
@@ -851,5 +855,136 @@ true false null
         }
 
         // TODO continue work on this
+    }
+
+    mod test_tokenize_randomized {
+        use rand::seq::IteratorRandom;
+
+        use super::*;
+
+        struct TokenSample {
+            raw: String,
+            expected: String,
+        }
+
+        /// Generates a random sequence of whitespace-like (whitespace or
+        /// separating comment) characters
+        fn gen_whitespace(rng: &mut impl Rng) -> String {
+            let part_count = if rng.gen_bool(0.75) {
+                1
+            } else {
+                rng.gen_range(1..=10)
+            };
+            let mut raw = String::new();
+
+            for _ in 0..part_count {
+                let part = match rng.gen_range(0..4) {
+                    0 => " ".to_string(),
+                    1 => "\t".to_string(),
+                    2 => match rng.gen_bool(0.5) {
+                        true => "\n".to_string(),
+                        false => "\r\n".to_string(),
+                    },
+                    3 => {
+                        let comment_len = rng.gen_range(0..=50);
+                        match rng.gen_bool(0.5) {
+                            true => {
+                                let mut comment = String::with_capacity(comment_len + 2);
+
+                                comment.push_str("//");
+                                for _ in 0..comment_len {
+                                    let mut c = gen_rand_char(rng);
+                                    while c == '\n' {
+                                        c = gen_rand_char(rng);
+                                    }
+                                    comment.push(c);
+                                }
+                                if rng.gen_bool(0.5) {
+                                    comment.push('\r');
+                                }
+                                comment.push('\n');
+
+                                comment
+                            }
+                            false => {
+                                let mut comment = String::with_capacity(comment_len + 4);
+
+                                comment.push_str("/*");
+                                for _ in 0..comment_len {
+                                    let mut c = gen_rand_char(rng);
+                                    while c == '\n' {
+                                        c = gen_rand_char(rng);
+                                    }
+                                    comment.push(c);
+                                }
+                                comment.push_str("*/");
+                                if rng.gen_bool(0.5) {
+                                    comment.push('\r');
+                                }
+                                comment.push('\n');
+
+                                comment
+                            }
+                        }
+                    }
+                    _ => unreachable!(),
+                };
+
+                raw.push_str(&part);
+            }
+
+            raw
+        }
+
+        fn gen_ident_token_sample(rng: &mut impl Rng) -> TokenSample {
+            let len = rng.gen_range(1..10);
+            let mut ident = String::with_capacity(len);
+            for i in 0..len {
+                let ident_start = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                let ident_cont = &(ident_start.to_string() + "0123456789");
+                let c = if i == 0 { ident_start } else { ident_cont }
+                    .chars()
+                    .choose(rng)
+                    .unwrap();
+                ident.push(c);
+            }
+
+            let expected = format!("[Token] Identifier: {ident}");
+            let raw = ident;
+            TokenSample { raw, expected }
+        }
+
+        fn gen_token_sample(rng: &mut impl Rng) -> TokenSample {
+            // TODO add all token types
+            match rng.gen_range(0..1) {
+                0 => gen_ident_token_sample(rng),
+                _ => unreachable!(),
+            }
+        }
+
+        #[test]
+        fn test_tokenize_randomized() {
+            let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(RAND_SEED);
+
+            let token_count = rng.gen_range(0..=1000);
+            let mut generated_source = String::new();
+            let mut expected: Vec<String> = Vec::with_capacity(token_count);
+
+            // Construct the source code
+            for i in 0..token_count {
+                if i > 0 {
+                    generated_source.push_str(&gen_whitespace(&mut rng));
+                }
+                let token_sample = gen_token_sample(&mut rng);
+                generated_source.push_str(&token_sample.raw);
+                expected.push(token_sample.expected);
+            }
+
+            let tokens = tokenize(&generated_source, "<test generated source>").unwrap();
+            assert_eq!(expected.len(), tokens.len());
+            for (token, expected) in tokens.into_iter().zip(expected) {
+                assert_eq!(token.to_string(), expected);
+            }
+        }
     }
 }
