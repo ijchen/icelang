@@ -941,7 +941,7 @@ true false null
         fn gen_ident_token_sample(rng: &mut impl Rng) -> TokenSample {
             let len = rng.gen_range(1..4);
             let mut ident = String::with_capacity(len);
-            while ident == ""
+            while ident.is_empty()
                 || enum_iterator::all::<Keyword>().any(|keyword| keyword.to_string() == ident)
                 || enum_iterator::all::<KeywordLiteral>()
                     .any(|keyword_literal| keyword_literal.to_string() == ident)
