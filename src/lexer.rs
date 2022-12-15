@@ -883,13 +883,10 @@ true false null
                 let part = match rng.gen_range(0..4) {
                     0 => " ".to_string(),
                     1 => "\t".to_string(),
-                    2 => match rng.gen_bool(0.5) {
-                        true => "\n".to_string(),
-                        false => "\r\n".to_string(),
-                    },
+                    2 => if rng.gen() { "\n" } else { "\r\n" }.to_string(),
                     3 => {
                         let comment_len = rng.gen_range(0..=50);
-                        match rng.gen_bool(0.5) {
+                        match rng.gen() {
                             true => {
                                 let mut comment = String::with_capacity(comment_len + 2);
 
@@ -901,7 +898,7 @@ true false null
                                     }
                                     comment.push(c);
                                 }
-                                if rng.gen_bool(0.5) {
+                                if rng.gen() {
                                     comment.push('\r');
                                 }
                                 comment.push('\n');
@@ -920,7 +917,7 @@ true false null
                                     comment.push(c);
                                 }
                                 comment.push_str("*/");
-                                if rng.gen_bool(0.5) {
+                                if rng.gen() {
                                     comment.push('\r');
                                 }
                                 comment.push('\n');
@@ -936,6 +933,687 @@ true false null
             }
 
             raw
+        }
+
+        fn gen_int_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
+            let raw: String = match rng.gen_range(0..=3) {
+                // Decimal literal
+                0 => {
+                    let has_base_prefix = rng.gen::<bool>();
+                    let pre_first_digit_len = if has_base_prefix && rng.gen() {
+                        rng.gen_range(1..=5)
+                    } else {
+                        0
+                    };
+                    let post_first_digit_len = rng.gen_range(0..=10);
+                    let has_exp_suffix = rng.gen::<bool>();
+                    let suffix_pre_first_digit_len = if has_exp_suffix && rng.gen() {
+                        rng.gen_range(1..=5)
+                    } else {
+                        0
+                    };
+                    let suffix_post_first_digit_len = if has_exp_suffix && rng.gen() {
+                        rng.gen_range(1..=5)
+                    } else {
+                        0
+                    };
+                    let mut raw = String::with_capacity(
+                        if has_base_prefix { "0d".len() } else { 0 }
+                            + pre_first_digit_len
+                            + 1
+                            + post_first_digit_len
+                            + if has_exp_suffix {
+                                "e".len()
+                                    + suffix_pre_first_digit_len
+                                    + 1
+                                    + suffix_post_first_digit_len
+                            } else {
+                                0
+                            },
+                    );
+
+                    // Base prefix
+                    if has_base_prefix {
+                        raw.push_str("0d");
+                    }
+
+                    // Contents of literal
+                    for _ in 0..pre_first_digit_len {
+                        raw.push('_');
+                    }
+                    raw.push(rng.gen_range('0'..='9'));
+                    for _ in 0..post_first_digit_len {
+                        raw.push(match rng.gen_range(0..=10) {
+                            0 => '0',
+                            1 => '1',
+                            2 => '2',
+                            3 => '3',
+                            4 => '4',
+                            5 => '5',
+                            6 => '6',
+                            7 => '7',
+                            8 => '8',
+                            9 => '9',
+                            10 => '_',
+                            _ => unreachable!(),
+                        });
+                    }
+
+                    // Exponential (scientific notation) suffix
+                    if has_exp_suffix {
+                        raw.push('e');
+                        for _ in 0..suffix_pre_first_digit_len {
+                            raw.push('_');
+                        }
+                        raw.push(rng.gen_range('0'..='9'));
+                        for _ in 0..suffix_post_first_digit_len {
+                            raw.push(match rng.gen_range(0..=10) {
+                                0 => '0',
+                                1 => '1',
+                                2 => '2',
+                                3 => '3',
+                                4 => '4',
+                                5 => '5',
+                                6 => '6',
+                                7 => '7',
+                                8 => '8',
+                                9 => '9',
+                                10 => '_',
+                                _ => unreachable!(),
+                            });
+                        }
+                    }
+
+                    raw
+                }
+                // Binary literal
+                1 => {
+                    let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
+                    let post_first_digit_len = rng.gen_range(0..=10);
+                    let mut raw = String::with_capacity(
+                        "0b".len() + pre_first_digit_len + 1 + post_first_digit_len,
+                    );
+
+                    // Base prefix
+                    raw.push_str("0b");
+
+                    // Contents of literal
+                    for _ in 0..pre_first_digit_len {
+                        raw.push('_');
+                    }
+                    raw.push(rng.gen_range('0'..='1'));
+                    for _ in 0..post_first_digit_len {
+                        raw.push(match rng.gen_range(0..=2) {
+                            0 => '0',
+                            1 => '1',
+                            2 => '_',
+                            _ => unreachable!(),
+                        });
+                    }
+
+                    raw
+                }
+                // Hexadecimal literal
+                2 => {
+                    let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
+                    let post_first_digit_len = rng.gen_range(0..=10);
+                    let mut raw = String::with_capacity(
+                        "0x".len() + pre_first_digit_len + 1 + post_first_digit_len,
+                    );
+
+                    // Base prefix
+                    raw.push_str("0x");
+
+                    // Contents of literal
+                    for _ in 0..pre_first_digit_len {
+                        raw.push('_');
+                    }
+                    raw.push(match rng.gen_range(0..=15) {
+                        0 => '0',
+                        1 => '1',
+                        2 => '2',
+                        3 => '3',
+                        4 => '4',
+                        5 => '5',
+                        6 => '6',
+                        7 => '7',
+                        8 => '8',
+                        9 => '9',
+                        10 => {
+                            if rng.gen() {
+                                'a'
+                            } else {
+                                'A'
+                            }
+                        }
+                        11 => {
+                            if rng.gen() {
+                                'b'
+                            } else {
+                                'B'
+                            }
+                        }
+                        12 => {
+                            if rng.gen() {
+                                'c'
+                            } else {
+                                'C'
+                            }
+                        }
+                        13 => {
+                            if rng.gen() {
+                                'd'
+                            } else {
+                                'D'
+                            }
+                        }
+                        14 => {
+                            if rng.gen() {
+                                'e'
+                            } else {
+                                'E'
+                            }
+                        }
+                        15 => {
+                            if rng.gen() {
+                                'f'
+                            } else {
+                                'F'
+                            }
+                        }
+                        _ => unreachable!(),
+                    });
+                    for _ in 0..post_first_digit_len {
+                        raw.push(match rng.gen_range(0..=16) {
+                            0 => '0',
+                            1 => '1',
+                            2 => '2',
+                            3 => '3',
+                            4 => '4',
+                            5 => '5',
+                            6 => '6',
+                            7 => '7',
+                            8 => '8',
+                            9 => '9',
+                            10 => {
+                                if rng.gen() {
+                                    'a'
+                                } else {
+                                    'A'
+                                }
+                            }
+                            11 => {
+                                if rng.gen() {
+                                    'b'
+                                } else {
+                                    'B'
+                                }
+                            }
+                            12 => {
+                                if rng.gen() {
+                                    'c'
+                                } else {
+                                    'C'
+                                }
+                            }
+                            13 => {
+                                if rng.gen() {
+                                    'd'
+                                } else {
+                                    'D'
+                                }
+                            }
+                            14 => {
+                                if rng.gen() {
+                                    'e'
+                                } else {
+                                    'E'
+                                }
+                            }
+                            15 => {
+                                if rng.gen() {
+                                    'f'
+                                } else {
+                                    'F'
+                                }
+                            }
+                            16 => '_',
+                            _ => unreachable!(),
+                        });
+                    }
+
+                    raw
+                }
+                // Octal literal
+                3 => {
+                    let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
+                    let post_first_digit_len = rng.gen_range(0..=10);
+                    let mut raw = String::with_capacity(
+                        "0o".len() + pre_first_digit_len + 1 + post_first_digit_len,
+                    );
+
+                    // Base prefix
+                    raw.push_str("0o");
+
+                    // Contents of literal
+                    for _ in 0..pre_first_digit_len {
+                        raw.push('_');
+                    }
+                    raw.push(rng.gen_range('0'..='7'));
+                    for _ in 0..post_first_digit_len {
+                        raw.push(match rng.gen_range(0..=8) {
+                            0 => '0',
+                            1 => '1',
+                            2 => '2',
+                            3 => '3',
+                            4 => '4',
+                            5 => '5',
+                            6 => '6',
+                            7 => '7',
+                            8 => '_',
+                            _ => unreachable!(),
+                        });
+                    }
+
+                    raw
+                }
+                _ => unreachable!(),
+            };
+
+            let expected = format!("[Token] Literal (int): {raw}");
+            TokenSample { raw, expected }
+        }
+
+        fn gen_byte_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
+            let raw: String = match rng.gen_range(0..=3) {
+                // Decimal literal
+                0 => {
+                    let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
+                    let post_first_digit_len = rng.gen_range(0..=10);
+                    let mut raw = String::with_capacity(
+                        "8d".len() + pre_first_digit_len + 1 + post_first_digit_len,
+                    );
+
+                    // Base prefix
+                    raw.push_str("8d");
+
+                    // Contents of literal
+                    for _ in 0..pre_first_digit_len {
+                        raw.push('_');
+                    }
+                    raw.push(rng.gen_range('0'..='7'));
+                    for _ in 0..post_first_digit_len {
+                        raw.push(match rng.gen_range(0..=8) {
+                            0 => '0',
+                            1 => '1',
+                            2 => '2',
+                            3 => '3',
+                            4 => '4',
+                            5 => '5',
+                            6 => '6',
+                            7 => '7',
+                            8 => '_',
+                            _ => unreachable!(),
+                        });
+                    }
+
+                    raw
+                }
+                // Binary literal
+                1 => {
+                    let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
+                    let post_first_digit_len = rng.gen_range(0..=10);
+                    let mut raw = String::with_capacity(
+                        "8b".len() + pre_first_digit_len + 1 + post_first_digit_len,
+                    );
+
+                    // Base prefix
+                    raw.push_str("8b");
+
+                    // Contents of literal
+                    for _ in 0..pre_first_digit_len {
+                        raw.push('_');
+                    }
+                    raw.push(rng.gen_range('0'..='1'));
+                    for _ in 0..post_first_digit_len {
+                        raw.push(match rng.gen_range(0..=2) {
+                            0 => '0',
+                            1 => '1',
+                            2 => '_',
+                            _ => unreachable!(),
+                        });
+                    }
+
+                    raw
+                }
+                // Hexadecimal literal
+                2 => {
+                    let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
+                    let post_first_digit_len = rng.gen_range(0..=10);
+                    let mut raw = String::with_capacity(
+                        "8x".len() + pre_first_digit_len + 1 + post_first_digit_len,
+                    );
+
+                    // Base prefix
+                    raw.push_str("8x");
+
+                    // Contents of literal
+                    for _ in 0..pre_first_digit_len {
+                        raw.push('_');
+                    }
+                    raw.push(match rng.gen_range(0..=15) {
+                        0 => '0',
+                        1 => '1',
+                        2 => '2',
+                        3 => '3',
+                        4 => '4',
+                        5 => '5',
+                        6 => '6',
+                        7 => '7',
+                        8 => '8',
+                        9 => '9',
+                        10 => {
+                            if rng.gen() {
+                                'a'
+                            } else {
+                                'A'
+                            }
+                        }
+                        11 => {
+                            if rng.gen() {
+                                'b'
+                            } else {
+                                'B'
+                            }
+                        }
+                        12 => {
+                            if rng.gen() {
+                                'c'
+                            } else {
+                                'C'
+                            }
+                        }
+                        13 => {
+                            if rng.gen() {
+                                'd'
+                            } else {
+                                'D'
+                            }
+                        }
+                        14 => {
+                            if rng.gen() {
+                                'e'
+                            } else {
+                                'E'
+                            }
+                        }
+                        15 => {
+                            if rng.gen() {
+                                'f'
+                            } else {
+                                'F'
+                            }
+                        }
+                        _ => unreachable!(),
+                    });
+                    for _ in 0..post_first_digit_len {
+                        raw.push(match rng.gen_range(0..=16) {
+                            0 => '0',
+                            1 => '1',
+                            2 => '2',
+                            3 => '3',
+                            4 => '4',
+                            5 => '5',
+                            6 => '6',
+                            7 => '7',
+                            8 => '8',
+                            9 => '9',
+                            10 => {
+                                if rng.gen() {
+                                    'a'
+                                } else {
+                                    'A'
+                                }
+                            }
+                            11 => {
+                                if rng.gen() {
+                                    'b'
+                                } else {
+                                    'B'
+                                }
+                            }
+                            12 => {
+                                if rng.gen() {
+                                    'c'
+                                } else {
+                                    'C'
+                                }
+                            }
+                            13 => {
+                                if rng.gen() {
+                                    'd'
+                                } else {
+                                    'D'
+                                }
+                            }
+                            14 => {
+                                if rng.gen() {
+                                    'e'
+                                } else {
+                                    'E'
+                                }
+                            }
+                            15 => {
+                                if rng.gen() {
+                                    'f'
+                                } else {
+                                    'F'
+                                }
+                            }
+                            16 => '_',
+                            _ => unreachable!(),
+                        });
+                    }
+
+                    raw
+                }
+                // Octal literal
+                3 => {
+                    let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
+                    let post_first_digit_len = rng.gen_range(0..=10);
+                    let mut raw = String::with_capacity(
+                        "8o".len() + pre_first_digit_len + 1 + post_first_digit_len,
+                    );
+
+                    // Base prefix
+                    raw.push_str("8o");
+
+                    // Contents of literal
+                    for _ in 0..pre_first_digit_len {
+                        raw.push('_');
+                    }
+                    raw.push(rng.gen_range('0'..='7'));
+                    for _ in 0..post_first_digit_len {
+                        raw.push(match rng.gen_range(0..=8) {
+                            0 => '0',
+                            1 => '1',
+                            2 => '2',
+                            3 => '3',
+                            4 => '4',
+                            5 => '5',
+                            6 => '6',
+                            7 => '7',
+                            8 => '_',
+                            _ => unreachable!(),
+                        });
+                    }
+
+                    raw
+                }
+                _ => unreachable!(),
+            };
+
+            let expected = format!("[Token] Literal (byte): {raw}");
+            TokenSample { raw, expected }
+        }
+
+        fn gen_float_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
+            let raw: String = if rng.gen_bool(0.1) {
+                if rng.gen() {
+                    KeywordLiteral::Infinity
+                } else {
+                    KeywordLiteral::Nan
+                }
+                .to_string()
+            } else {
+                // Float literals are complicated, and composed of many possible
+                // sections. For variable name brevity, I've assigned a letter
+                // label to each possible "section" of a float literal. Here's
+                // an example float literal with every possible section and it's
+                // label:
+                // 29_339__84.____5_20_3__21e+__1952_2__4_5_
+                // ABBBBBBBBBCDDDDEFFFFFFFFFGHIIJKKKKKKKKKKK
+                // A: first digit
+                // B: digits and underscores up to the decimal point
+                // C: decimal point
+                // D: underscores after the decimal point
+                // E: first digit after the decimal point
+                // F: digits and underscores up to the suffix
+                // G: suffix "e"
+                // H: suffix sign
+                // I: suffix underscores before the first suffix digit
+                // J: suffix first digit
+                // K: suffix digits and underscores after the suffix first digit
+
+                let part_b_len = rng.gen_range(0..=10);
+                let part_d_len = if rng.gen() { rng.gen_range(1..=5) } else { 0 };
+                let part_f_len = rng.gen_range(0..=10);
+                let has_exp_suffix = rng.gen::<bool>();
+                let has_suffix_sign = has_exp_suffix && rng.gen();
+                let part_i_len = if has_exp_suffix && rng.gen() {
+                    rng.gen_range(1..=5)
+                } else {
+                    0
+                };
+                let part_k_len = if has_exp_suffix {
+                    rng.gen_range(0..=10)
+                } else {
+                    0
+                };
+                // While it's true that I'm often converting true to 1 and false
+                // to 0, I'm not trying to "convert a bool to an int", I'm
+                // calculating a value which is dependant on a bool - the fact
+                // that those values happen to correspond to how bools are
+                // converted to ints with `usize::from(...)` is a coincidence
+                // But thanks anyway clippy I still love you <3
+                #[allow(clippy::bool_to_int_with_if)]
+                let mut raw = String::with_capacity(
+                    // Part A (first digit)
+                    1
+                    // Part B (digits and underscores up to the decimal point)
+                    + part_b_len
+                    // Part C (decimal point)
+                    + 1
+                    // Part D (underscores after the decimal point)
+                    + part_d_len
+                    // Part E (first digit after the decimal point)
+                    + 1
+                    // Part F (digits and underscores up to the suffix)
+                    + part_f_len
+                    // Part G (suffix "e")
+                    + if has_exp_suffix { 1 } else { 0 }
+                    // Part H (suffix sign)
+                    + if has_suffix_sign { 1 } else { 0 }
+                    // Part I (suffix underscores before the first suffix digit)
+                    + part_i_len
+                    // Part J (suffix first digit)
+                    + if has_exp_suffix { 1 } else { 0 }
+                    // Part K (suffix digits and underscores after the suffix first digit)
+                    + part_k_len,
+                );
+
+                // Part A (first digit)
+                raw.push(rng.gen_range('0'..='9'));
+                // Part B (digits and underscores up to the decimal point)
+                for _ in 0..part_b_len {
+                    raw.push(match rng.gen_range(0..=10) {
+                        0 => '0',
+                        1 => '1',
+                        2 => '2',
+                        3 => '3',
+                        4 => '4',
+                        5 => '5',
+                        6 => '6',
+                        7 => '7',
+                        8 => '8',
+                        9 => '9',
+                        10 => '_',
+                        _ => unreachable!(),
+                    });
+                }
+                // Part C (decimal point)
+                raw.push('.');
+                // Part D (underscores after the decimal point)
+                for _ in 0..part_d_len {
+                    raw.push('_');
+                }
+                // Part E (first digit after the decimal point)
+                raw.push(rng.gen_range('0'..='9'));
+                // Part F (digits and underscores up to the suffix)
+                for _ in 0..part_f_len {
+                    raw.push(match rng.gen_range(0..=10) {
+                        0 => '0',
+                        1 => '1',
+                        2 => '2',
+                        3 => '3',
+                        4 => '4',
+                        5 => '5',
+                        6 => '6',
+                        7 => '7',
+                        8 => '8',
+                        9 => '9',
+                        10 => '_',
+                        _ => unreachable!(),
+                    });
+                }
+                // The rest of the parts are only applicable if there is a suffix
+                if has_exp_suffix {
+                    // Part G (suffix "e")
+                    raw.push('e');
+                    // Part H (suffix sign)
+                    if has_suffix_sign {
+                        raw.push(if rng.gen() { '+' } else { '-' });
+                    }
+                    // Part I (suffix underscores before the first suffix digit)
+                    for _ in 0..part_i_len {
+                        raw.push('_');
+                    }
+                    // Part J (suffix first digit)
+                    raw.push(rng.gen_range('0'..='9'));
+                    // Part K (suffix digits and underscores after the suffix first digit)
+                    for _ in 0..part_k_len {
+                        raw.push(match rng.gen_range(0..=10) {
+                            0 => '0',
+                            1 => '1',
+                            2 => '2',
+                            3 => '3',
+                            4 => '4',
+                            5 => '5',
+                            6 => '6',
+                            7 => '7',
+                            8 => '8',
+                            9 => '9',
+                            10 => '_',
+                            _ => unreachable!(),
+                        });
+                    }
+                }
+
+                raw
+            };
+
+            let expected = format!("[Token] Literal (float): {raw}");
+            TokenSample { raw, expected }
         }
 
         fn gen_ident_token_sample(rng: &mut impl Rng) -> TokenSample {
@@ -963,10 +1641,57 @@ true false null
             TokenSample { raw, expected }
         }
 
+        fn gen_bool_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
+            let literal = if rng.gen() {
+                KeywordLiteral::True
+            } else {
+                KeywordLiteral::False
+            };
+
+            let raw = literal.to_string();
+            let expected = format!("[Token] Literal (bool): {literal}");
+            TokenSample { raw, expected }
+        }
+
+        fn gen_null_literal_token_sample() -> TokenSample {
+            let literal = KeywordLiteral::Null;
+
+            let raw = literal.to_string();
+            let expected = format!("[Token] Literal (null): {literal}");
+            TokenSample { raw, expected }
+        }
+
+        fn gen_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
+            match rng.gen_range(0..=5) {
+                0 => gen_int_literal_token_sample(rng),
+                1 => gen_byte_literal_token_sample(rng),
+                2 => gen_float_literal_token_sample(rng),
+                3 => gen_bool_literal_token_sample(rng),
+                // TODO temporarily using null here, since I haven't implemented
+                // string literal tokens sample generation
+                // This will eventually be:
+                // 4 => gen_string_literal_token_sample(rng),
+                4 => gen_null_literal_token_sample(),
+                5 => gen_null_literal_token_sample(),
+                _ => unreachable!(),
+            }
+        }
+
+        fn gen_keyword_token_sample(rng: &mut impl Rng) -> TokenSample {
+            let keyword = enum_iterator::all::<Keyword>().choose(rng).unwrap();
+
+            let expected = format!("[Token] Keyword: {keyword}");
+            let raw = keyword.to_string();
+            TokenSample { raw, expected }
+        }
+
         fn gen_token_sample(rng: &mut impl Rng) -> TokenSample {
             // TODO add all token types
-            match rng.gen_range(0..1) {
+            match rng.gen_range(0..=2) {
                 0 => gen_ident_token_sample(rng),
+                1 => gen_literal_token_sample(rng),
+                2 => gen_keyword_token_sample(rng),
+                // 3 => gen_punctuator_token_sample(rng),
                 _ => unreachable!(),
             }
         }
@@ -976,7 +1701,7 @@ true false null
             let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(RAND_SEED);
 
             for _ in 0..RAND_ITERATIONS {
-                let token_count = rng.gen_range(0..=50);
+                let token_count = rng.gen_range(0..=1000);
                 let mut generated_source = String::new();
                 let mut expected: Vec<String> = Vec::with_capacity(token_count);
 
