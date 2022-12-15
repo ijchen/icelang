@@ -3,7 +3,139 @@
 
 use std::fmt::Display;
 
+use enum_iterator::Sequence;
+
 use crate::{ice_type::IceType, source_range::SourceRange};
+
+/// Represents an icelang keyword
+#[derive(Debug, Clone, Copy, Sequence)]
+pub enum Keyword {
+    /// The "if" keyword
+    If,
+    /// The "else" keyword
+    Else,
+    /// The "loop" keyword
+    Loop,
+    /// The "while" keyword
+    While,
+    /// The "for" keyword
+    For,
+    /// The "in" keyword
+    In,
+    /// The "break" keyword
+    Break,
+    /// The "continue" keyword
+    Continue,
+    /// The "return" keyword
+    Return,
+    /// The "fn" keyword
+    Fn,
+    /// The "let" keyword
+    Let,
+}
+
+impl TryFrom<&str> for Keyword {
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        // TODO this should not compile (unless implicit Err(())?)
+        match value {
+            "if" => Ok(Self::If),
+            "else" => Ok(Self::Else),
+            "loop" => Ok(Self::Loop),
+            "while" => Ok(Self::While),
+            "for" => Ok(Self::For),
+            "in" => Ok(Self::In),
+            "break" => Ok(Self::Break),
+            "continue" => Ok(Self::Continue),
+            "return" => Ok(Self::Return),
+            "fn" => Ok(Self::Fn),
+            "let" => Ok(Self::Let),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Display for Keyword {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::If => "if",
+                Self::Else => "else",
+                Self::Loop => "loop",
+                Self::While => "while",
+                Self::For => "for",
+                Self::In => "in",
+                Self::Break => "break",
+                Self::Continue => "continue",
+                Self::Return => "return",
+                Self::Fn => "fn",
+                Self::Let => "let",
+            }
+        )
+    }
+}
+
+/// Represents an icelang keyword literal
+#[derive(Debug, Clone, Copy, Sequence)]
+pub enum KeywordLiteral {
+    /// The "true" bool keyword literal
+    True,
+    /// The "false" bool keyword literal
+    False,
+    /// The "null" null keyword literal
+    Null,
+    /// The "infinity" float keyword literal
+    Infinity,
+    /// The "nan" float keyword literal
+    Nan,
+}
+
+impl KeywordLiteral {
+    /// Returns the icelang type of the keyword literal
+    pub fn ice_type(&self) -> IceType {
+        match self {
+            Self::True => IceType::Bool,
+            Self::False => IceType::Bool,
+            Self::Null => IceType::Null,
+            Self::Infinity => IceType::Float,
+            Self::Nan => IceType::Float,
+        }
+    }
+}
+
+impl TryFrom<&str> for KeywordLiteral {
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "true" => Ok(Self::True),
+            "false" => Ok(Self::False),
+            "null" => Ok(Self::Null),
+            "Infinity" => Ok(Self::Infinity),
+            "NaN" => Ok(Self::Nan),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Display for KeywordLiteral {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::True => "true",
+                Self::False => "false",
+                Self::Null => "null",
+                Self::Infinity => "Infinity",
+                Self::Nan => "NaN",
+            }
+        )
+    }
+}
 
 /// A generic token of any type
 #[derive(Debug)]
@@ -30,7 +162,7 @@ impl<'source> Token<'source> {
     }
 
     /// Constructs a new Keyword Token
-    pub fn new_keyword(keyword: String, pos: SourceRange<'source>) -> Self {
+    pub fn new_keyword(keyword: Keyword, pos: SourceRange<'source>) -> Self {
         Self::Keyword(TokenKeyword { keyword, pos })
     }
 
@@ -120,14 +252,14 @@ impl Display for TokenLiteral<'_> {
 /// A keyword token
 #[derive(Debug)]
 pub struct TokenKeyword<'source> {
-    keyword: String,
+    keyword: Keyword,
     pos: SourceRange<'source>,
 }
 
 impl<'source> TokenKeyword<'source> {
     /// Returns the keyword as a string
-    pub fn keyword(&self) -> &str {
-        &self.keyword
+    pub fn keyword(&self) -> Keyword {
+        self.keyword
     }
 
     /// Returns the position in the source code of this keyword
@@ -229,10 +361,8 @@ mod tests {
     fn test_keyword_display() {
         let nowhere = SourceRange::new(" ", "", 0, 0);
 
-        let kws = ["for", "while", "if", "return", "NaN", "true", "null"];
-
-        for kw in kws {
-            let tok = Token::new_keyword(kw.to_string(), nowhere.clone());
+        for kw in enum_iterator::all::<Keyword>() {
+            let tok = Token::new_keyword(kw, nowhere.clone());
 
             assert_eq!(tok.to_string(), format!("[Token] Keyword: {kw}"));
         }

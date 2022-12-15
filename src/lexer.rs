@@ -6,7 +6,7 @@ use crate::{
     ice_error::{self, IceErrorType},
     ice_type::IceType,
     source_range::SourceRange,
-    token::Token,
+    token::{KeywordLiteral, Token},
 };
 
 /// Represents an error that occurred during lexing
@@ -122,6 +122,15 @@ pub fn tokenize<'source>(
             // Store the starting index of the comment (might be needed later in
             // an error message)
             let start_index = index;
+
+            // Advance past the "/*"
+            index += 2;
+            if index >= chars.len() {
+                return Err(LexerError::new_unexpected_eof(
+                    "unclosed block comment".to_string(),
+                    SourceRange::new(source_code, source_file_name, start_index, index - 1),
+                ));
+            }
 
             // Advance until we find a matching "*/"
             while index < chars.len() {
@@ -583,45 +592,22 @@ pub fn tokenize<'source>(
             }
 
             // Check if the string we've built matches a keyword literal
-            match raw.as_str() {
-                "Infinity" | "NaN" => {
-                    tokens.push(Token::new_literal(
-                        raw,
-                        IceType::Float,
-                        SourceRange::new(source_code, source_file_name, start_index, index - 1),
-                    ));
-                    continue;
-                }
-                "true" | "false" => {
-                    tokens.push(Token::new_literal(
-                        raw,
-                        IceType::Bool,
-                        SourceRange::new(source_code, source_file_name, start_index, index - 1),
-                    ));
-                    continue;
-                }
-                "null" => {
-                    tokens.push(Token::new_literal(
-                        raw,
-                        IceType::Null,
-                        SourceRange::new(source_code, source_file_name, start_index, index - 1),
-                    ));
-                    continue;
-                }
-                _ => { /* Not a keyword literal, carry on */ }
+            if let Ok(keyword_literal) = <&str as TryInto<KeywordLiteral>>::try_into(raw.as_str()) {
+                tokens.push(Token::new_literal(
+                    keyword_literal.to_string(),
+                    keyword_literal.ice_type(),
+                    SourceRange::new(source_code, source_file_name, start_index, index - 1),
+                ));
+                continue;
             };
 
             // Check if the string we've built matches a keyword
-            match raw.as_str() {
-                "if" | "else" | "loop" | "while" | "for" | "in" | "break" | "continue"
-                | "return" | "fn" | "let" => {
-                    tokens.push(Token::new_keyword(
-                        raw,
-                        SourceRange::new(source_code, source_file_name, start_index, index - 1),
-                    ));
-                    continue;
-                }
-                _ => { /* Not a keyword, carry on */ }
+            if let Ok(keyword) = raw.as_str().try_into() {
+                tokens.push(Token::new_keyword(
+                    keyword,
+                    SourceRange::new(source_code, source_file_name, start_index, index - 1),
+                ));
+                continue;
             };
 
             // It must be an identifier
@@ -700,7 +686,21 @@ mod tests {
     const RAND_ITERATIONS: usize = 1000;
 
     fn gen_rand_char(rng: &mut impl Rng) -> char {
-        rng.gen::<char>()
+        // Most of the time, we'll just use a normal ASCII value...
+        if rng.gen_bool(0.75) {
+            rng.gen_range(' '..='~')
+        }
+        // ...but every now and then, let's mix things up
+        else {
+            // Sometimes with a completely random character
+            if rng.gen_bool(0.9) {
+                rng.gen::<char>()
+            }
+            // And other times with a weird control character
+            else {
+                rng.gen_range('\0'..=' ')
+            }
+        }
     }
 
     #[test]
@@ -860,6 +860,8 @@ true false null
     mod test_tokenize_randomized {
         use rand::seq::IteratorRandom;
 
+        use crate::token::Keyword;
+
         use super::*;
 
         struct TokenSample {
@@ -912,7 +914,7 @@ true false null
                                 comment.push_str("/*");
                                 for _ in 0..comment_len {
                                     let mut c = gen_rand_char(rng);
-                                    while c == '\n' {
+                                    while c == '\n' || c == '*' {
                                         c = gen_rand_char(rng);
                                     }
                                     comment.push(c);
@@ -937,16 +939,23 @@ true false null
         }
 
         fn gen_ident_token_sample(rng: &mut impl Rng) -> TokenSample {
-            let len = rng.gen_range(1..10);
+            let len = rng.gen_range(1..4);
             let mut ident = String::with_capacity(len);
-            for i in 0..len {
-                let ident_start = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-                let ident_cont = &(ident_start.to_string() + "0123456789");
-                let c = if i == 0 { ident_start } else { ident_cont }
-                    .chars()
-                    .choose(rng)
-                    .unwrap();
-                ident.push(c);
+            while ident == ""
+                || enum_iterator::all::<Keyword>().any(|keyword| keyword.to_string() == ident)
+                || enum_iterator::all::<KeywordLiteral>()
+                    .any(|keyword_literal| keyword_literal.to_string() == ident)
+            {
+                ident.clear();
+                for i in 0..len {
+                    let ident_start = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                    let ident_cont = &(ident_start.to_string() + "0123456789");
+                    let c = if i == 0 { ident_start } else { ident_cont }
+                        .chars()
+                        .choose(rng)
+                        .unwrap();
+                    ident.push(c);
+                }
             }
 
             let expected = format!("[Token] Identifier: {ident}");
@@ -966,24 +975,26 @@ true false null
         fn test_tokenize_randomized() {
             let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(RAND_SEED);
 
-            let token_count = rng.gen_range(0..=1000);
-            let mut generated_source = String::new();
-            let mut expected: Vec<String> = Vec::with_capacity(token_count);
+            for _ in 0..RAND_ITERATIONS {
+                let token_count = rng.gen_range(0..=50);
+                let mut generated_source = String::new();
+                let mut expected: Vec<String> = Vec::with_capacity(token_count);
 
-            // Construct the source code
-            for i in 0..token_count {
-                if i > 0 {
-                    generated_source.push_str(&gen_whitespace(&mut rng));
+                // Construct the source code
+                for i in 0..token_count {
+                    if i > 0 {
+                        generated_source.push_str(&gen_whitespace(&mut rng));
+                    }
+                    let token_sample = gen_token_sample(&mut rng);
+                    generated_source.push_str(&token_sample.raw);
+                    expected.push(token_sample.expected);
                 }
-                let token_sample = gen_token_sample(&mut rng);
-                generated_source.push_str(&token_sample.raw);
-                expected.push(token_sample.expected);
-            }
 
-            let tokens = tokenize(&generated_source, "<test generated source>").unwrap();
-            assert_eq!(expected.len(), tokens.len());
-            for (token, expected) in tokens.into_iter().zip(expected) {
-                assert_eq!(token.to_string(), expected);
+                let tokens = tokenize(&generated_source, "<test generated source>").unwrap();
+                assert_eq!(expected.len(), tokens.len());
+                for (token, expected) in tokens.into_iter().zip(expected) {
+                    assert_eq!(token.to_string(), expected);
+                }
             }
         }
     }
