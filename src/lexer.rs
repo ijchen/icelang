@@ -410,32 +410,8 @@ pub fn tokenize<'source>(
                             }
 
                             match chars[index] {
-                                '"' => {
-                                    raw.push('"');
-                                    index += 1;
-                                }
-                                '\\' => {
-                                    raw.push('\\');
-                                    index += 1;
-                                }
-                                't' => {
-                                    raw.push('\t');
-                                    index += 1;
-                                }
-                                'n' => {
-                                    raw.push('\n');
-                                    index += 1;
-                                }
-                                'r' => {
-                                    raw.push('\r');
-                                    index += 1;
-                                }
-                                '0' => {
-                                    raw.push('\0');
-                                    index += 1;
-                                }
-                                '\n' => {
-                                    // The newline was escaped, ignore it
+                                '"' | '\\' | 't' | 'n' | 'r' | '0' | '\n' => {
+                                    raw.push(chars[index]);
                                     index += 1;
                                 }
                                 // ASCII escape sequence
@@ -1653,6 +1629,77 @@ true false null
             TokenSample { raw, expected }
         }
 
+        fn gen_normal_string_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
+            let char_count = rng.gen_range(0..=25);
+            let mut raw = String::new();
+
+            raw.push('"');
+            for _ in 0..char_count {
+                // Small chance to do an escape sequences
+                if rng.gen_bool(0.1) {
+                    // TODO enable ASCII and unicode escape sequences once the
+                    // lexer supports them
+                    match rng.gen_range(0..=6) {
+                        0 => raw.push_str("\\\""),
+                        1 => raw.push_str(r"\\"),
+                        2 => raw.push_str(r"\t"),
+                        3 => raw.push_str(r"\n"),
+                        4 => raw.push_str(r"\r"),
+                        5 => raw.push_str(r"\0"),
+                        6 => raw.push_str("\\\n"),
+                        // 7 => {
+                        //     raw.push_str("\\x");
+                        //     let value = rng.gen_range(0x00..0x7F);
+                        //     for ch in format!("{value:02x}").chars() {
+                        //         raw.push(if rng.gen() {
+                        //             ch.to_ascii_uppercase()
+                        //         } else {
+                        //             ch
+                        //         });
+                        //     }
+                        // }
+                        // 8 => {
+                        //     raw.push_str("\\u{");
+                        //     let value = rng.gen::<char>() as u32;
+                        //     let mut hex = format!("{value:x}");
+                        //     let len: usize = rng.gen_range(1..=6);
+                        //     hex = "0".repeat(len.saturating_sub(hex.len())) + &hex;
+                        //     for ch in hex.chars() {
+                        //         raw.push(if rng.gen() {
+                        //             ch.to_ascii_uppercase()
+                        //         } else {
+                        //             ch
+                        //         });
+                        //     }
+                        //     raw.push('}');
+                        // }
+                        _ => unreachable!(),
+                    };
+                } else {
+                    let mut ch = gen_rand_char(rng);
+                    while ch == '"' || ch == '\\' {
+                        ch = gen_rand_char(rng);
+                    }
+                    raw.push(ch);
+                }
+            }
+            raw.push('"');
+
+            let expected = format!("[Token] Literal (string): {raw}");
+            TokenSample { raw, expected }
+        }
+
+        fn gen_string_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
+            match rng.gen_range(0..=0) {
+                0 => gen_normal_string_literal_token_sample(rng),
+                // TODO
+                // 1 => gen_raw_string_literal_token_sample(rng),
+                // TODO
+                // 2 => gen_format_string_literal_token_sample(rng),
+                _ => unreachable!(),
+            }
+        }
+
         fn gen_null_literal_token_sample() -> TokenSample {
             let literal = KeywordLiteral::Null;
 
@@ -1667,11 +1714,7 @@ true false null
                 1 => gen_byte_literal_token_sample(rng),
                 2 => gen_float_literal_token_sample(rng),
                 3 => gen_bool_literal_token_sample(rng),
-                // TODO temporarily using null here, since I haven't implemented
-                // string literal tokens sample generation
-                // This will eventually be:
-                // 4 => gen_string_literal_token_sample(rng),
-                4 => gen_null_literal_token_sample(),
+                4 => gen_string_literal_token_sample(rng),
                 5 => gen_null_literal_token_sample(),
                 _ => unreachable!(),
             }
