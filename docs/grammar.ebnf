@@ -9,7 +9,8 @@ code_block = lbrace , [statements] , rbrace;
 statements = statement , {semicolon , statement} , [semicolon];
 statement = expression
           | control_flow_statement
-          | declaration;
+          | declaration
+          | empty;
 control_flow_statement = if_else_statement | loop | match_statement | jump_statement;
 
 (* If statements and related *)
@@ -45,7 +46,7 @@ var_declaration = kw_let , single_var_declaration , {comma , single_var_declarat
 single_var_declaration = identifier , [equals , expression];
 
 (* Expressions *)
-expression = ? TODO ?;
+expression = expr_assignment;
 expr_assignment = expr_inline_cond , [op_assignment , expr_inline_cond];
 expr_inline_cond = expr_logical_or , [
                          op_inline_conditional_start
@@ -64,7 +65,7 @@ expr_additive = expr_multiplicative , {op_additive , expr_multiplicative};
 expr_multiplicative = expr_unary_prefix , {op_multiplicative , expr_unary_prefix};
 expr_unary_prefix = (op_unary_prefix , expr_unary_prefix) | expr_exponentiation;
 expr_exponentiation = expr_usage_suffix , {op_exponentiation , expr_usage_suffix};
-expr_usage_suffix = expr_atomic , {
+expr_usage_suffix = expr_type_cast , {
                           usage_suffix_member_access
                         | usage_suffix_computed_member_access
                         | usage_suffix_function_call
@@ -72,6 +73,7 @@ expr_usage_suffix = expr_atomic , {
 usage_suffix_member_access = dot , identifier;
 usage_suffix_computed_member_access = lbracket , expression , rbracket;
 usage_suffix_function_call = lparen , [expression , {comma , expression} , [comma]] , rparen;
+expr_type_cast = (type , lparen , expression , rparen) | expr_atomic;
 expr_atomic = parenthesized_expression | literal | identifier;
 parenthesized_expression = lparen , expression , rparen;
 
@@ -160,7 +162,8 @@ kw_infinity = "Infinity";
 kw_nan = "NaN";
 
 (* Identifiers *)
-identifier = ident_start , {ident_continue};
+identifier = ? identifier_but_maybe_keyword, except it can't be a keyword ?;
+identifier_but_maybe_keyword = ident_start , {ident_continue};
 ident_start = alpha | underscore;
 ident_continue = alphanumeric | underscore;
 

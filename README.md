@@ -61,30 +61,32 @@ features:
 - [ ] Make a cool logo
 - [ ] Guidebook
   - [ ] Language features
+    - [ ] Program structure
+      - [ ] General program structure
+      - [ ] Keywords
+      - [ ] Operators
+      - [ ] Separators
+      - [ ] Identifiers
+      - [ ] Values and types
+    - [ ] Control flow
+      - [ ] If/else statements
+      - [ ] Loops
+        - [ ] Simple loops
+        - [ ] `while` loops
+        - [ ] `for` loops
+      - [ ] Match statements
+      - [ ] Jump statements
+        - [ ] `break`
+        - [ ] `continue`
+        - [ ] `return`
+    - [ ] Declarations
+      - [ ] Variable declarations
+      - [ ] Function declarations
+    - [ ] Expressions
+      - [x] Literals
+      - [ ] Variable access
+      - [ ] Operations
   - [ ] Standard library features
-- [ ] Formalize grammar
-  - [x] Full program
-  - [x] Statements
-  - [x] Literals
-    - [x] int
-    - [x] byte
-    - [x] float
-    - [x] bool
-    - [x] string
-    - [x] list
-    - [x] dict
-    - [x] null
-  - [x] Identifiers
-  - [x] Variables
-  - [x] Functions
-  - [x] Expressions
-  - [x] Control flow
-    - [x] If/else
-    - [x] Loops
-      - [x] Simple loops
-      - [x] `while` loops
-      - [x] `for` loops
-    - [x] Match
 - [ ] Implementation
   - [ ] ice (binary)
     - [ ] REPL
