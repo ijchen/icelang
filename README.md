@@ -77,8 +77,7 @@ features:
   - [x] Identifiers
   - [x] Variables
   - [x] Functions
-  - [ ] Expressions
-    - [ ] TODO expand
+  - [x] Expressions
   - [ ] Control flow
     - [x] If/else
     - [x] Loops
