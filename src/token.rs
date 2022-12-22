@@ -22,6 +22,8 @@ pub enum Keyword {
     For,
     /// The "in" keyword
     In,
+    /// The "match" keyword
+    Match,
     /// The "break" keyword
     Break,
     /// The "continue" keyword
@@ -45,6 +47,7 @@ impl TryFrom<&str> for Keyword {
             "while" => Ok(Self::While),
             "for" => Ok(Self::For),
             "in" => Ok(Self::In),
+            "match" => Ok(Self::Match),
             "break" => Ok(Self::Break),
             "continue" => Ok(Self::Continue),
             "return" => Ok(Self::Return),
@@ -67,6 +70,7 @@ impl Display for Keyword {
                 Self::While => "while",
                 Self::For => "for",
                 Self::In => "in",
+                Self::Match => "match",
                 Self::Break => "break",
                 Self::Continue => "continue",
                 Self::Return => "return",

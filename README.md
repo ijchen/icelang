@@ -78,13 +78,13 @@ features:
   - [x] Variables
   - [x] Functions
   - [x] Expressions
-  - [ ] Control flow
+  - [x] Control flow
     - [x] If/else
     - [x] Loops
       - [x] Simple loops
       - [x] `while` loops
       - [x] `for` loops
-    - [ ] Match
+    - [x] Match
 - [ ] Implementation
   - [ ] ice (binary)
     - [ ] REPL

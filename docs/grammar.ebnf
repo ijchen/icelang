@@ -10,7 +10,7 @@ statements = statement , {semicolon , statement} , [semicolon];
 statement = expression
           | control_flow_statement
           | declaration;
-control_flow_statement = if_else_statement | loop | jump_statement;
+control_flow_statement = if_else_statement | loop | match_statement | jump_statement;
 
 (* If statements and related *)
 if_else_statement = if_statement , {else_if_statement} , [else_statement];
@@ -23,6 +23,11 @@ loop = simple_loop | while_loop | for_loop;
 simple_loop = kw_loop , [expression] , code_block;
 while_loop = kw_while , expression , code_block;
 for_loop = kw_for , identifier , kw_in , expression , code_block;
+
+(* Match statement *)
+match_statement = kw_match , expression , match_body;
+match_body = lbrace , [match_arm , {comma , match_arm} , [comma]] , rbrace;
+match_arm = expression , fat_arrow , code_block;
 
 (* Jump statements (break, continue, return) *)
 jump_statement = break_statement | continue_statement | return_statement;
@@ -132,6 +137,9 @@ op_multiplicative = "*" | "/" | "%";
 op_exponentiation = "**";
 op_unary_prefix = "!" | "+" | "-";
 
+(* Multi-character separators *)
+fat_arrow = "=>";
+
 (* Keywords *)
 kw_if = "if";
 kw_else = "else";
@@ -139,6 +147,7 @@ kw_loop = "loop";
 kw_while = "while";
 kw_for = "for";
 kw_in = "in";
+kw_match = "match";
 kw_break = "break";
 kw_continue = "continue";
 kw_return = "return";
