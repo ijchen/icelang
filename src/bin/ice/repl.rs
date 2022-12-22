@@ -123,5 +123,9 @@ pub fn enter_repl(mut show_debug_info: bool) {
             }
             println!();
         }
+
+        // TODO parsing
+
+        // TODO lexing
     }
 }
