@@ -386,7 +386,7 @@ pub fn tokenize<'source>(
                 let mut raw = String::new();
                 raw.push(chars[index]);
                 index += 1;
-                while !string_literal_is_complete && index < chars.len() {
+                'string_literal_loop: while !string_literal_is_complete && index < chars.len() {
                     match chars[index] {
                         '"' => {
                             // Add the closing quote to the string literal
@@ -416,11 +416,122 @@ pub fn tokenize<'source>(
                                 }
                                 // ASCII escape sequence
                                 'x' => {
-                                    todo!();
+                                    // Add the 'x' to the string literal
+                                    raw.push(chars[index]);
+                                    index += 1;
+
+                                    // Read the digits of the escape sequence
+                                    let mut escape_sequence_digits = String::with_capacity(2);
+                                    for _ in 0..2 {
+                                        // If we reached EOF, this literal is invalid
+                                        if index >= chars.len() {
+                                            break 'string_literal_loop;
+                                        }
+
+                                        // Add the escape sequence digit
+                                        escape_sequence_digits.push(chars[index]);
+                                        index += 1;
+                                    }
+
+                                    // Ensure the escape sequence digits are
+                                    // valid
+                                    let escape_sequence_value =
+                                        u8::from_str_radix(&escape_sequence_digits, 16);
+                                    if escape_sequence_value.is_err()
+                                        || escape_sequence_value.unwrap() > 0x7F
+                                    {
+                                        return Err(LexerError::new_invalid_escape_sequence(
+                                            SourceRange::new(
+                                                source_code,
+                                                source_file_name,
+                                                escape_sequence_start_index,
+                                                index - 1,
+                                            ),
+                                        ));
+                                    }
+
+                                    // Add the escape sequence digits
+                                    raw.push_str(&escape_sequence_digits);
                                 }
                                 // Unicode escape sequence
                                 'u' => {
-                                    todo!();
+                                    // Add the 'u' to the string literal
+                                    raw.push(chars[index]);
+                                    index += 1;
+
+                                    // Expect a '{'
+                                    match chars.get(index) {
+                                        Some('{') => {
+                                            raw.push(chars[index]);
+                                            index += 1;
+                                        }
+                                        Some(_) => {
+                                            return Err(LexerError::new_invalid_escape_sequence(
+                                                SourceRange::new(
+                                                    source_code,
+                                                    source_file_name,
+                                                    escape_sequence_start_index,
+                                                    index - 1,
+                                                ),
+                                            ));
+                                        }
+                                        None => break,
+                                    }
+
+                                    // Read the digits of the escape sequence
+                                    let mut escape_sequence_digits = String::with_capacity(6);
+                                    for _ in 0..6 {
+                                        match chars.get(index) {
+                                            Some('}') => break,
+                                            Some(&ch) => {
+                                                // Add the escape sequence digit
+                                                escape_sequence_digits.push(ch);
+                                                index += 1;
+                                            }
+                                            // If we reached EOF, this literal
+                                            // is invalid
+                                            None => break 'string_literal_loop,
+                                        }
+                                    }
+
+                                    // Ensure the escape sequence digits are
+                                    // valid
+                                    let escape_sequence_value =
+                                        u32::from_str_radix(&escape_sequence_digits, 16);
+                                    if escape_sequence_value.is_err()
+                                        || char::from_u32(escape_sequence_value.unwrap()).is_none()
+                                    {
+                                        return Err(LexerError::new_invalid_escape_sequence(
+                                            SourceRange::new(
+                                                source_code,
+                                                source_file_name,
+                                                escape_sequence_start_index,
+                                                index - 1,
+                                            ),
+                                        ));
+                                    }
+
+                                    // Add the escape sequence digits
+                                    raw.push_str(&escape_sequence_digits);
+
+                                    // Expect a '}'
+                                    match chars.get(index) {
+                                        Some('}') => {
+                                            raw.push(chars[index]);
+                                            index += 1;
+                                        }
+                                        Some(_) => {
+                                            return Err(LexerError::new_invalid_escape_sequence(
+                                                SourceRange::new(
+                                                    source_code,
+                                                    source_file_name,
+                                                    escape_sequence_start_index,
+                                                    index - 1,
+                                                ),
+                                            ));
+                                        }
+                                        None => break,
+                                    }
                                 }
                                 _ => {
                                     return Err(LexerError::new_invalid_escape_sequence(
@@ -1637,9 +1748,7 @@ true false null
             for _ in 0..char_count {
                 // Small chance to do an escape sequences
                 if rng.gen_bool(0.1) {
-                    // TODO enable ASCII and unicode escape sequences once the
-                    // lexer supports them
-                    match rng.gen_range(0..=6) {
+                    match rng.gen_range(0..=8) {
                         0 => raw.push_str("\\\""),
                         1 => raw.push_str(r"\\"),
                         2 => raw.push_str(r"\t"),
@@ -1647,32 +1756,32 @@ true false null
                         4 => raw.push_str(r"\r"),
                         5 => raw.push_str(r"\0"),
                         6 => raw.push_str("\\\n"),
-                        // 7 => {
-                        //     raw.push_str("\\x");
-                        //     let value = rng.gen_range(0x00..0x7F);
-                        //     for ch in format!("{value:02x}").chars() {
-                        //         raw.push(if rng.gen() {
-                        //             ch.to_ascii_uppercase()
-                        //         } else {
-                        //             ch
-                        //         });
-                        //     }
-                        // }
-                        // 8 => {
-                        //     raw.push_str("\\u{");
-                        //     let value = rng.gen::<char>() as u32;
-                        //     let mut hex = format!("{value:x}");
-                        //     let len: usize = rng.gen_range(1..=6);
-                        //     hex = "0".repeat(len.saturating_sub(hex.len())) + &hex;
-                        //     for ch in hex.chars() {
-                        //         raw.push(if rng.gen() {
-                        //             ch.to_ascii_uppercase()
-                        //         } else {
-                        //             ch
-                        //         });
-                        //     }
-                        //     raw.push('}');
-                        // }
+                        7 => {
+                            raw.push_str("\\x");
+                            let value = rng.gen_range(0x00..=0x7F);
+                            for ch in format!("{value:02x}").chars() {
+                                raw.push(if rng.gen() {
+                                    ch.to_ascii_uppercase()
+                                } else {
+                                    ch
+                                });
+                            }
+                        }
+                        8 => {
+                            raw.push_str("\\u{");
+                            let value = rng.gen::<char>() as u32;
+                            let mut hex = format!("{value:x}");
+                            let len: usize = rng.gen_range(1..=6);
+                            hex = "0".repeat(len.saturating_sub(hex.len())) + &hex;
+                            for ch in hex.chars() {
+                                raw.push(if rng.gen() {
+                                    ch.to_ascii_uppercase()
+                                } else {
+                                    ch
+                                });
+                            }
+                            raw.push('}');
+                        }
                         _ => unreachable!(),
                     };
                 } else {
@@ -1689,11 +1798,60 @@ true false null
             TokenSample { raw, expected }
         }
 
+        fn gen_raw_string_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
+            let char_count = rng.gen_range(0..=25);
+            let hash_count = if rng.gen() { 0 } else { rng.gen_range(1..=10) };
+            let mut raw = String::new();
+
+            raw.push('r');
+            raw.push_str(&"#".repeat(hash_count));
+            raw.push('"');
+            let mut curr_hash_count = 0;
+            let mut following_double_quote = false;
+            for _ in 0..char_count {
+                let mut ch = gen_rand_char(rng);
+                // If the hash count is 0, ensure there aren't any double quotes
+                if hash_count == 0 {
+                    while ch == '"' {
+                        ch = gen_rand_char(rng);
+                    }
+                } else {
+                    // Ensure there isn't a double quote followed by hash_count
+                    // octothorpes
+                    if ch == '"' {
+                        curr_hash_count = 0;
+                        following_double_quote = true;
+                    } else if following_double_quote && ch == '#' {
+                        // If this would be the octothorpe that completes an
+                        // ending of the raw string literal, regenerate the
+                        // character until we have something besides '#'
+                        if curr_hash_count + 1 >= hash_count {
+                            while ch == '#' {
+                                ch = gen_rand_char(rng);
+                            }
+                            following_double_quote = false;
+                            curr_hash_count = 0;
+                        } else {
+                            curr_hash_count += 1;
+                        }
+                    } else {
+                        following_double_quote = false;
+                        curr_hash_count = 0;
+                    }
+                }
+                raw.push(ch);
+            }
+            raw.push('"');
+            raw.push_str(&"#".repeat(hash_count));
+
+            let expected = format!("[Token] Literal (string): {raw}");
+            TokenSample { raw, expected }
+        }
+
         fn gen_string_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
-            match rng.gen_range(0..=0) {
+            match rng.gen_range(0..=1) {
                 0 => gen_normal_string_literal_token_sample(rng),
-                // TODO
-                // 1 => gen_raw_string_literal_token_sample(rng),
+                1 => gen_raw_string_literal_token_sample(rng),
                 // TODO
                 // 2 => gen_format_string_literal_token_sample(rng),
                 _ => unreachable!(),

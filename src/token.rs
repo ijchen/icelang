@@ -38,7 +38,6 @@ impl TryFrom<&str> for Keyword {
     type Error = ();
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        // TODO this should not compile (unless implicit Err(())?)
         match value {
             "if" => Ok(Self::If),
             "else" => Ok(Self::Else),
