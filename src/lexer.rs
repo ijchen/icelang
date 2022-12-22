@@ -117,7 +117,6 @@ pub fn tokenize<'source>(
         }
 
         // Ignore comments
-        // Block comments
         if matches!((chars[index], chars.get(index + 1)), ('/', Some('*'))) {
             // Store the starting index of the comment (might be needed later in
             // an error message)
@@ -159,7 +158,6 @@ pub fn tokenize<'source>(
 
             continue;
         }
-        // Line comments
         if matches!((chars[index], chars.get(index + 1)), ('/', Some('/'))) {
             // Advance past the comment start
             index += 2;
@@ -706,8 +704,13 @@ pub fn tokenize<'source>(
         }
 
         // Punctuators
+        // TODO this should probably be a macro or something
         match (chars[index], chars.get(index + 1), chars.get(index + 2)) {
-            ('*', Some('*'), Some('=')) => {
+            ('*', Some('*'), Some('='))
+            | ('<', Some('<'), Some('='))
+            | ('>', Some('>'), Some('='))
+            | ('&', Some('&'), Some('='))
+            | ('|', Some('|'), Some('=')) => {
                 let start_index = index;
                 let mut punctuator = String::with_capacity(3);
                 for _ in 0..3 {
@@ -720,7 +723,17 @@ pub fn tokenize<'source>(
                 ));
                 continue;
             }
-            ('*', Some('*'), _) | ('+' | '-' | '*' | '/' | '%', Some('='), _) => {
+            (
+                '+' | '-' | '*' | '/' | '%' | '&' | '^' | '|' | '=' | '!' | '<' | '>',
+                Some('='),
+                _,
+            )
+            | ('|', Some('|'), _)
+            | ('&', Some('&'), _)
+            | ('<', Some('<'), _)
+            | ('>', Some('>'), _)
+            | ('*', Some('*'), _)
+            | ('=', Some('>'), _) => {
                 let start_index = index;
                 let mut punctuator = String::with_capacity(2);
                 for _ in 0..2 {
@@ -734,8 +747,8 @@ pub fn tokenize<'source>(
                 continue;
             }
             (
-                ';' | ':' | ',' | '.' | '"' | '(' | ')' | '{' | '}' | '[' | ']' | '=' | '_' | '+'
-                | '-' | '*' | '/' | '%',
+                '=' | '?' | ':' | '<' | '>' | '|' | '^' | '&' | '+' | '-' | '*' | '/' | '%' | '!'
+                | ';' | ',' | '.' | '(' | ')' | '{' | '}' | '[' | ']',
                 _,
                 _,
             ) => {
@@ -862,7 +875,9 @@ if null true while loop false break NaN return return _ _hi ___hey ___
 76.54321 3.14159265358979323 0.0 1.0 0.25 6.67430e-11 0.0000314e+5 0.0000314e5 \
 123.456e3 NaN Infinity
 true false null
-; : , . ( ) { } [ ] =
+= += -= *= /= %= **= <<= >>= &= ^= |= &&= ||=
+? : || && == != < > <= >= | ^ & << >> + - * / % ** !
+=> ; , . ( ) { } [ ]
 ";
         let source_file_name = "tokens.ice";
         let tokens: Vec<Token> = tokenize(source_code, source_file_name).unwrap();
@@ -924,8 +939,44 @@ true false null
             "[Token] Literal (bool): true",
             "[Token] Literal (bool): false",
             "[Token] Literal (null): null",
-            "[Token] Punctuator: ;",
+            "[Token] Punctuator: =",
+            "[Token] Punctuator: +=",
+            "[Token] Punctuator: -=",
+            "[Token] Punctuator: *=",
+            "[Token] Punctuator: /=",
+            "[Token] Punctuator: %=",
+            "[Token] Punctuator: **=",
+            "[Token] Punctuator: <<=",
+            "[Token] Punctuator: >>=",
+            "[Token] Punctuator: &=",
+            "[Token] Punctuator: ^=",
+            "[Token] Punctuator: |=",
+            "[Token] Punctuator: &&=",
+            "[Token] Punctuator: ||=",
+            "[Token] Punctuator: ?",
             "[Token] Punctuator: :",
+            "[Token] Punctuator: ||",
+            "[Token] Punctuator: &&",
+            "[Token] Punctuator: ==",
+            "[Token] Punctuator: !=",
+            "[Token] Punctuator: <",
+            "[Token] Punctuator: >",
+            "[Token] Punctuator: <=",
+            "[Token] Punctuator: >=",
+            "[Token] Punctuator: |",
+            "[Token] Punctuator: ^",
+            "[Token] Punctuator: &",
+            "[Token] Punctuator: <<",
+            "[Token] Punctuator: >>",
+            "[Token] Punctuator: +",
+            "[Token] Punctuator: -",
+            "[Token] Punctuator: *",
+            "[Token] Punctuator: /",
+            "[Token] Punctuator: %",
+            "[Token] Punctuator: **",
+            "[Token] Punctuator: !",
+            "[Token] Punctuator: =>",
+            "[Token] Punctuator: ;",
             "[Token] Punctuator: ,",
             "[Token] Punctuator: .",
             "[Token] Punctuator: (",
@@ -934,18 +985,15 @@ true false null
             "[Token] Punctuator: }",
             "[Token] Punctuator: [",
             "[Token] Punctuator: ]",
-            "[Token] Punctuator: =",
         ];
 
         for (token, expected) in tokens.zip(expected) {
             assert_eq!(token, expected);
         }
-
-        // TODO continue work on this
     }
 
     mod test_tokenize_randomized {
-        use rand::seq::IteratorRandom;
+        use rand::seq::{IteratorRandom, SliceRandom};
 
         use crate::token::Keyword;
 
@@ -954,11 +1002,12 @@ true false null
         struct TokenSample {
             raw: String,
             expected: String,
+            whitespace_after: String,
         }
 
         /// Generates a random sequence of whitespace-like (whitespace or
         /// separating comment) characters
-        fn gen_whitespace(rng: &mut impl Rng) -> String {
+        fn gen_whitespace(rng: &mut impl Rng, allow_comments: bool) -> String {
             let part_count = if rng.gen_bool(0.75) {
                 1
             } else {
@@ -967,7 +1016,7 @@ true false null
             let mut raw = String::new();
 
             for _ in 0..part_count {
-                let part = match rng.gen_range(0..4) {
+                let part = match rng.gen_range(0..=if allow_comments { 3 } else { 2 }) {
                     0 => " ".to_string(),
                     1 => "\t".to_string(),
                     2 => if rng.gen() { "\n" } else { "\r\n" }.to_string(),
@@ -1308,7 +1357,12 @@ true false null
             };
 
             let expected = format!("[Token] Literal (int): {raw}");
-            TokenSample { raw, expected }
+            let whitespace_after = gen_whitespace(rng, true);
+            TokenSample {
+                raw,
+                expected,
+                whitespace_after,
+            }
         }
 
         fn gen_byte_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
@@ -1541,7 +1595,12 @@ true false null
             };
 
             let expected = format!("[Token] Literal (byte): {raw}");
-            TokenSample { raw, expected }
+            let whitespace_after = gen_whitespace(rng, true);
+            TokenSample {
+                raw,
+                expected,
+                whitespace_after,
+            }
         }
 
         fn gen_float_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
@@ -1700,7 +1759,12 @@ true false null
             };
 
             let expected = format!("[Token] Literal (float): {raw}");
-            TokenSample { raw, expected }
+            let whitespace_after = gen_whitespace(rng, true);
+            TokenSample {
+                raw,
+                expected,
+                whitespace_after,
+            }
         }
 
         fn gen_ident_token_sample(rng: &mut impl Rng) -> TokenSample {
@@ -1725,7 +1789,12 @@ true false null
 
             let expected = format!("[Token] Identifier: {ident}");
             let raw = ident;
-            TokenSample { raw, expected }
+            let whitespace_after = gen_whitespace(rng, true);
+            TokenSample {
+                raw,
+                expected,
+                whitespace_after,
+            }
         }
 
         fn gen_bool_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
@@ -1737,7 +1806,12 @@ true false null
 
             let raw = literal.to_string();
             let expected = format!("[Token] Literal (bool): {literal}");
-            TokenSample { raw, expected }
+            let whitespace_after = gen_whitespace(rng, true);
+            TokenSample {
+                raw,
+                expected,
+                whitespace_after,
+            }
         }
 
         fn gen_normal_string_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
@@ -1795,7 +1869,16 @@ true false null
             raw.push('"');
 
             let expected = format!("[Token] Literal (string): {raw}");
-            TokenSample { raw, expected }
+            let whitespace_after = if rng.gen() {
+                gen_whitespace(rng, true)
+            } else {
+                "".to_string()
+            };
+            TokenSample {
+                raw,
+                expected,
+                whitespace_after,
+            }
         }
 
         fn gen_raw_string_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
@@ -1845,7 +1928,16 @@ true false null
             raw.push_str(&"#".repeat(hash_count));
 
             let expected = format!("[Token] Literal (string): {raw}");
-            TokenSample { raw, expected }
+            let whitespace_after = if rng.gen() {
+                gen_whitespace(rng, true)
+            } else {
+                "".to_string()
+            };
+            TokenSample {
+                raw,
+                expected,
+                whitespace_after,
+            }
         }
 
         fn gen_string_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
@@ -1858,12 +1950,17 @@ true false null
             }
         }
 
-        fn gen_null_literal_token_sample() -> TokenSample {
+        fn gen_null_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
             let literal = KeywordLiteral::Null;
 
             let raw = literal.to_string();
             let expected = format!("[Token] Literal (null): {literal}");
-            TokenSample { raw, expected }
+            let whitespace_after = gen_whitespace(rng, true);
+            TokenSample {
+                raw,
+                expected,
+                whitespace_after,
+            }
         }
 
         fn gen_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
@@ -1873,7 +1970,7 @@ true false null
                 2 => gen_float_literal_token_sample(rng),
                 3 => gen_bool_literal_token_sample(rng),
                 4 => gen_string_literal_token_sample(rng),
-                5 => gen_null_literal_token_sample(),
+                5 => gen_null_literal_token_sample(rng),
                 _ => unreachable!(),
             }
         }
@@ -1883,16 +1980,40 @@ true false null
 
             let expected = format!("[Token] Keyword: {keyword}");
             let raw = keyword.to_string();
-            TokenSample { raw, expected }
+            let whitespace_after = gen_whitespace(rng, true);
+            TokenSample {
+                raw,
+                expected,
+                whitespace_after,
+            }
+        }
+
+        fn gen_punctuator_token_sample(rng: &mut impl Rng) -> TokenSample {
+            let punctuator = [
+                "=", "+=", "-=", "*=", "/=", "%=", "**=", "<<=", ">>=", "&=", "|=", "&&=", "||=",
+                "?", ":", "||", "&&", "==", "!=", "<", ">", "<=", ">=", "|", "^", "&", "<<", ">>",
+                "+", "-", "*", "/", "%", "**", "!", "=>", ";", ",", ".", "(", ")", "{", "}", "[",
+                "]",
+            ]
+            .choose(rng)
+            .unwrap();
+
+            let expected = format!("[Token] Punctuator: {punctuator}");
+            let raw = punctuator.to_string();
+            let whitespace_after = gen_whitespace(rng, false);
+            TokenSample {
+                raw,
+                expected,
+                whitespace_after,
+            }
         }
 
         fn gen_token_sample(rng: &mut impl Rng) -> TokenSample {
-            // TODO add all token types
-            match rng.gen_range(0..=2) {
+            match rng.gen_range(0..=3) {
                 0 => gen_ident_token_sample(rng),
                 1 => gen_literal_token_sample(rng),
                 2 => gen_keyword_token_sample(rng),
-                // 3 => gen_punctuator_token_sample(rng),
+                3 => gen_punctuator_token_sample(rng),
                 _ => unreachable!(),
             }
         }
@@ -1907,12 +2028,10 @@ true false null
                 let mut expected: Vec<String> = Vec::with_capacity(token_count);
 
                 // Construct the source code
-                for i in 0..token_count {
-                    if i > 0 {
-                        generated_source.push_str(&gen_whitespace(&mut rng));
-                    }
+                for _ in 0..token_count {
                     let token_sample = gen_token_sample(&mut rng);
                     generated_source.push_str(&token_sample.raw);
+                    generated_source.push_str(&token_sample.whitespace_after);
                     expected.push(token_sample.expected);
                 }
 
