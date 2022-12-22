@@ -60,13 +60,22 @@ icelang is still in development, and has a number of incomplete or missing
 features:
 - [ ] Make a cool logo
 - [ ] Guidebook
+  - [ ] Language features
+  - [ ] Standard library features
 - [ ] Formalize grammar
   - [x] Full program
   - [x] Statements
   - [x] Literals
+    - [x] int
+    - [x] byte
+    - [x] float
+    - [x] bool
+    - [x] string
+    - [x] list
+    - [x] dict
+    - [x] null
   - [x] Identifiers
   - [x] Variables
-    - [ ] TODO expand
   - [x] Functions
   - [ ] Expressions
     - [ ] TODO expand
@@ -77,14 +86,10 @@ features:
       - [x] `while` loops
       - [x] `for` loops
     - [ ] Match
-      - [ ] TODO expand
-  - [ ] TODO is there more I'm forgetting?
-- [ ] Document semantics
-  - [ ] Documentation of language features
-  - [ ] Documentation of standard library features
 - [ ] Implementation
   - [ ] ice (binary)
-    - [ ] TODO expand
+    - [ ] REPL
+    - [ ] File interpreter
   - [ ] lexer
     - [ ] TODO expand
   - [ ] parser
@@ -106,6 +111,8 @@ features:
   - [ ] Compilation, JIT-compilation, transpilation, and static code analysis
   - [ ] Preprocessor and macros
   - [ ] Namespaces and including
+  - [ ] Nullish-coalescing operator (JavaScript's `??`), null-propagation
+  (Rust's `?`), optional chaining (JavaScript's `.?`)
 
 # License
 
