@@ -875,6 +875,18 @@ if null true while loop false break NaN return return _ _hi ___hey ___
 76.54321 3.14159265358979323 0.0 1.0 0.25 6.67430e-11 0.0000314e+5 0.0000314e5 \
 123.456e3 NaN Infinity
 true false null
+\"Hello, world!\" \"This string has lots of non-ASCII characters like 你好 and \
+🦀\" \"This string contains a newline...
+see, new line!\"
+r\"This isn't an escape sequence: \\x69\"
+r###\"I don't know why \"## anyone would ever need this\"###
+f\"Hello, {name}!\"
+f\"Format string literals can have {how_many} {\"replacement fields\"}! This one has {1 + 1 + 1}.\"
+f\"Curly braces look like this: {{ }} and are {what_are_they}!\"
+f\"hi {{}}}}{f\"0{0}\"}{ {2:{4:7}}[2][4]} - {f\"yo{ {2:{4:7}}[2][4]}\"}{{}}{{\"
+f\"A complete formatted string literal (no replacement fields)\"
+f\"{{}} {{ }}  }} }}\"
+f\"{9} + {10} = {2 + 2} is a {true} fact, {name}\"
 = += -= *= /= %= **= <<= >>= &= ^= |= &&= ||=
 ? : || && == != < > <= >= | ^ & << >> + - * / % ** !
 => ; , . ( ) { } [ ]
@@ -939,6 +951,82 @@ true false null
             "[Token] Literal (bool): true",
             "[Token] Literal (bool): false",
             "[Token] Literal (null): null",
+            "[Token] Literal (string): \"Hello, world!\"",
+            "[Token] Literal (string): \"This string has lots of non-ASCII characters like 你好 and 🦀\"",
+            "[Token] Literal (string): \"This string contains a newline...\nsee, new line!\"",
+            "[Token] Literal (string): r\"This isn't an escape sequence: \\x69\"",
+            "[Token] Literal (string): r###\"I don't know why \"## anyone would ever need this\"###",
+            "[Token] Formatted string literal section (start): f\"Hello, {",
+            "[Token] Identifier: name",
+            "[Token] Formatted string literal section (end): }!\"",
+            "[Token] Formatted string literal section (start): f\"Format string literals can have {",
+            "[Token] Identifier: how_many",
+            "[Token] Formatted string literal section (continuation): } {",
+            "[Token] Literal (string): \"replacement fields\"",
+            "[Token] Formatted string literal section (continuation): }! This one has {",
+            "[Token] Literal (int): 1",
+            "[Token] Punctuator: +",
+            "[Token] Literal (int): 1",
+            "[Token] Punctuator: +",
+            "[Token] Literal (int): 1",
+            "[Token] Formatted string literal section (end): }.\"",
+            "[Token] Formatted string literal section (start): f\"Curly braces look like this: {{ }} and are {",
+            "[Token] Identifier: what_are_they",
+            "[Token] Formatted string literal section (end): }!\"",
+            "[Token] Formatted string literal section (start): f\"hi {{}}}}{",
+            "[Token] Formatted string literal section (start): f\"0{",
+            "[Token] Literal (int): 0",
+            "[Token] Formatted string literal section (end): }\"",
+            "[Token] Formatted string literal section (continuation): }{",
+            "[Token] Punctuator: {",
+            "[Token] Literal (int): 2",
+            "[Token] Punctuator: :",
+            "[Token] Punctuator: {",
+            "[Token] Literal (int): 4",
+            "[Token] Punctuator: :",
+            "[Token] Literal (int): 7",
+            "[Token] Punctuator: }",
+            "[Token] Punctuator: }",
+            "[Token] Punctuator: [",
+            "[Token] Literal (int): 2",
+            "[Token] Punctuator: ]",
+            "[Token] Punctuator: [",
+            "[Token] Literal (int): 4",
+            "[Token] Punctuator: ]",
+            "[Token] Formatted string literal section (continuation): } - {",
+            "[Token] Formatted string literal section (start): f\"yo{",
+            "[Token] Punctuator: {",
+            "[Token] Literal (int): 2",
+            "[Token] Punctuator: :",
+            "[Token] Punctuator: {",
+            "[Token] Literal (int): 4",
+            "[Token] Punctuator: :",
+            "[Token] Literal (int): 7",
+            "[Token] Punctuator: }",
+            "[Token] Punctuator: }",
+            "[Token] Punctuator: [",
+            "[Token] Literal (int): 2",
+            "[Token] Punctuator: ]",
+            "[Token] Punctuator: [",
+            "[Token] Literal (int): 4",
+            "[Token] Punctuator: ]",
+            "[Token] Formatted string literal section (end): }\"",
+            "[Token] Formatted string literal section (end): }{{}}{{\"",
+            "[Token] Formatted string literal section (complete): f\"A complete formatted string literal (no replacement fields)\"",
+            "[Token] Formatted string literal section (complete): f\"{{}} {{ }}  }} }}\"",
+            "[Token] Formatted string literal section (start): f\"{",
+            "[Token] Literal (int): 9",
+            "[Token] Formatted string literal section (continuation): } + {",
+            "[Token] Literal (int): 10",
+            "[Token] Formatted string literal section (continuation): } = {",
+            "[Token] Literal (int): 2",
+            "[Token] Punctuator: +",
+            "[Token] Literal (int): 2",
+            "[Token] Formatted string literal section (continuation): } is a {",
+            "[Token] Literal (bool): true",
+            "[Token] Formatted string literal section (continuation): } fact, {",
+            "[Token] Identifier: name",
+            "[Token] Formatted string literal section (end): }\"",
             "[Token] Punctuator: =",
             "[Token] Punctuator: +=",
             "[Token] Punctuator: -=",
