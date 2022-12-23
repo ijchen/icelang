@@ -140,6 +140,53 @@ impl Display for KeywordLiteral {
     }
 }
 
+/// The kind of a formatted string literal section token
+///
+/// Here are a few example formatted string literals, and their section kinds
+/// ```text
+/// let msg = f"Hello, {name}! You are {curr_year - birth_year} years old";
+/// //        ^^^^^^^^^^    ^^^^^^^^^^^^                      ^^^^^^^^^^^^
+/// //           start      continuation                           end
+///
+/// let my_fstring = f"{9} + {10} = {2 + 2} is a {true} fact, {name}";
+/// //               ^^^ ^^^^^   ^^^^^     ^^^^^^^^    ^^^^^^^^^    ^^
+/// //                |    |       |          |            |        |
+/// //              start  |  continuation    |       continuation  |
+/// //                     |                  |                     |
+/// //                continuation       continuation              end
+///
+/// let my_fstring = f"No replacement fields here";
+/// //               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/// //                          complete          
+/// ```
+#[derive(Debug, Clone, Copy)]
+pub enum FormattedStringLiteralSectionKind {
+    /// The start of a formatted string literal, before the first replacement
+    /// field
+    Start,
+    /// A continuation of a formatted string literal, between replacement fields
+    Continuation,
+    /// The end of a formatted literal string, after the last replacement field
+    End,
+    /// A complete formatted string literal with no replacement fields
+    Complete,
+}
+
+impl Display for FormattedStringLiteralSectionKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Start => "start",
+                Self::Continuation => "continuation",
+                Self::End => "end",
+                Self::Complete => "complete",
+            }
+        )
+    }
+}
+
 /// A generic token of any type
 #[derive(Debug)]
 pub enum Token<'source> {
@@ -147,6 +194,8 @@ pub enum Token<'source> {
     Ident(TokenIdent<'source>),
     /// A literal token
     Literal(TokenLiteral<'source>),
+    /// A section of a formatted string literal
+    FormattedStringLiteralSection(TokenFormattedStringLiteralSection<'source>),
     /// A keyword token
     Keyword(TokenKeyword<'source>),
     /// A punctuator (separator or operator) token
@@ -162,6 +211,15 @@ impl<'source> Token<'source> {
     /// Constructs a new Literal Token
     pub fn new_literal(raw: String, ice_type: IceType, pos: SourceRange<'source>) -> Self {
         Self::Literal(TokenLiteral { raw, ice_type, pos })
+    }
+
+    /// Constructs a new FormattedStringLiteralSection Token
+    pub fn new_formatted_string_literal_section(
+        raw: String,
+        kind: FormattedStringLiteralSectionKind,
+        pos: SourceRange<'source>,
+    ) -> Self {
+        Self::FormattedStringLiteralSection(TokenFormattedStringLiteralSection { raw, kind, pos })
     }
 
     /// Constructs a new Keyword Token
@@ -180,6 +238,7 @@ impl<'source> Token<'source> {
             Self::Ident(token) => token.pos(),
             Self::Keyword(token) => token.pos(),
             Self::Literal(token) => token.pos(),
+            Self::FormattedStringLiteralSection(token) => token.pos(),
             Self::Punctuator(token) => token.pos(),
         }
     }
@@ -191,6 +250,7 @@ impl Display for Token<'_> {
             Self::Ident(token) => write!(f, "{token}"),
             Self::Keyword(token) => write!(f, "{token}"),
             Self::Literal(token) => write!(f, "{token}"),
+            Self::FormattedStringLiteralSection(token) => write!(f, "{token}"),
             Self::Punctuator(token) => write!(f, "{token}"),
         }
     }
@@ -249,6 +309,41 @@ impl<'source> TokenLiteral<'source> {
 impl Display for TokenLiteral<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "[Token] Literal ({}): {}", self.ice_type, self.raw)
+    }
+}
+
+/// A formatted string literal section token
+#[derive(Debug)]
+pub struct TokenFormattedStringLiteralSection<'source> {
+    raw: String,
+    kind: FormattedStringLiteralSectionKind,
+    pos: SourceRange<'source>,
+}
+
+impl<'source> TokenFormattedStringLiteralSection<'source> {
+    /// Returns the formatted string literal as a string
+    pub fn raw(&self) -> &str {
+        &self.raw
+    }
+
+    /// Returns the kind of this formatted string literal section
+    pub fn kind(&self) -> FormattedStringLiteralSectionKind {
+        self.kind
+    }
+
+    /// Returns the position in the source code of this literal
+    pub fn pos(&self) -> &SourceRange<'source> {
+        &self.pos
+    }
+}
+
+impl Display for TokenFormattedStringLiteralSection<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "[Token] Formatted string literal section ({}): {}",
+            self.kind, self.raw
+        )
     }
 }
 
