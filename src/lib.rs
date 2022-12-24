@@ -2,8 +2,9 @@
 
 #![warn(missing_docs)]
 
-mod ice_error;
-pub mod ice_type;
+mod icelang_error;
+pub mod icelang_type;
+pub mod keyword;
 pub mod lexer;
 mod source_range;
 pub mod token;

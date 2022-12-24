@@ -5,11 +5,11 @@ use static_assertions::const_assert;
 use crate::source_range::SourceRange;
 
 #[derive(Clone, Copy)]
-pub enum IceErrorType {
+pub enum IcelangErrorType {
     Syntax,
 }
 
-impl Display for IceErrorType {
+impl Display for IcelangErrorType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Syntax => write!(f, "Syntax"),
@@ -39,7 +39,7 @@ const_assert!(PREFIX.len() < MAX_LEN);
 
 fn display_header(
     f: &mut impl std::fmt::Write,
-    error_type: IceErrorType,
+    error_type: IcelangErrorType,
     description: &str,
 ) -> std::fmt::Result {
     const MULTILINE_HEADER_INDENT: &str = "  ";
@@ -278,7 +278,7 @@ fn display_source_highlight(f: &mut impl std::fmt::Write, pos: &SourceRange) -> 
 
 pub fn display(
     f: &mut impl std::fmt::Write,
-    error_type: IceErrorType,
+    error_type: IcelangErrorType,
     description: &str,
     pos: &SourceRange<'_>,
     stack_trace: Option<StackTrace>,

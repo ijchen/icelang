@@ -3,10 +3,11 @@
 use std::{error::Error, fmt::Display};
 
 use crate::{
-    ice_error::{self, IceErrorType},
-    ice_type::IceType,
+    icelang_error::{self, IcelangErrorType},
+    icelang_type::IcelangType,
+    keyword::KeywordLiteral,
     source_range::SourceRange,
-    token::{FormattedStringLiteralSectionKind, KeywordLiteral, Token},
+    token::{FormattedStringLiteralSectionKind, Token},
 };
 
 /// Represents an error that occurred during lexing
@@ -93,7 +94,7 @@ impl Display for LexerError<'_> {
             }
         };
 
-        ice_error::display(f, IceErrorType::Syntax, &description, self.pos(), None)
+        icelang_error::display(f, IcelangErrorType::Syntax, &description, self.pos(), None)
     }
 }
 
@@ -360,9 +361,9 @@ pub fn tokenize<'source>(
 
             // Add the new int literal to tokens
             let literal_type = match kind {
-                BasedInt(_, _) | Int => IceType::Int,
-                BasedByte(_) => IceType::Byte,
-                Float => IceType::Float,
+                BasedInt(_, _) | Int => IcelangType::Int,
+                BasedByte(_) => IcelangType::Byte,
+                Float => IcelangType::Float,
                 IntOrFloat => unreachable!(),
             };
             let literal_pos =
@@ -568,7 +569,7 @@ pub fn tokenize<'source>(
                 // Add the new string literal to tokens
                 tokens.push(Token::new_literal(
                     raw,
-                    IceType::String,
+                    IcelangType::String,
                     SourceRange::new(source_code, source_file_name, start_index, index - 1),
                 ));
 
@@ -650,7 +651,7 @@ pub fn tokenize<'source>(
                 // Add the new string literal to tokens
                 tokens.push(Token::new_literal(
                     raw,
-                    IceType::String,
+                    IcelangType::String,
                     SourceRange::new(source_code, source_file_name, start_index, index - 1),
                 ));
 
@@ -1661,7 +1662,7 @@ f\"{9} + {10} = {2 + 2} is a {true} fact, {name}\"
     mod test_tokenize_randomized {
         use rand::seq::{IteratorRandom, SliceRandom};
 
-        use crate::token::Keyword;
+        use crate::keyword::Keyword;
 
         use super::*;
 
