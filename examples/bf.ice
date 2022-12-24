@@ -5,7 +5,7 @@
 fn execute(program) {
     // Initialize the program state
     let data = [];
-    for _ in range(30000) {
+    loop 30000 {
         push(data, 8x00);
     }
     let data_ptr = 0;
