@@ -1,10 +1,10 @@
-//! Contains code related to ice types (the data type of values in ice)
+//! Contains code related to icelang types (the data type of values in icelang)
 
 use std::fmt::Display;
 
 #[derive(Debug, Copy, Clone)]
-/// The data type of a value in ice
-pub enum IceType {
+/// The data type of a value in icelang
+pub enum IcelangType {
     /// A signed, arbitrary precision integer
     Int,
     /// A single byte (8 bit value) interpreted as an unsigned integer in the
@@ -24,7 +24,7 @@ pub enum IceType {
     Null,
 }
 
-impl Display for IceType {
+impl Display for IcelangType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -49,13 +49,13 @@ mod tests {
 
     #[test]
     fn test_display() {
-        assert_eq!(IceType::Int.to_string(), "int");
-        assert_eq!(IceType::Byte.to_string(), "byte");
-        assert_eq!(IceType::Float.to_string(), "float");
-        assert_eq!(IceType::Bool.to_string(), "bool");
-        assert_eq!(IceType::String.to_string(), "string");
-        assert_eq!(IceType::List.to_string(), "list");
-        assert_eq!(IceType::Dict.to_string(), "dict");
-        assert_eq!(IceType::Null.to_string(), "null");
+        assert_eq!(IcelangType::Int.to_string(), "int");
+        assert_eq!(IcelangType::Byte.to_string(), "byte");
+        assert_eq!(IcelangType::Float.to_string(), "float");
+        assert_eq!(IcelangType::Bool.to_string(), "bool");
+        assert_eq!(IcelangType::String.to_string(), "string");
+        assert_eq!(IcelangType::List.to_string(), "list");
+        assert_eq!(IcelangType::Dict.to_string(), "dict");
+        assert_eq!(IcelangType::Null.to_string(), "null");
     }
 }
