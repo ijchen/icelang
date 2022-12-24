@@ -6,7 +6,7 @@ use crate::{
     ice_error::{self, IceErrorType},
     ice_type::IceType,
     source_range::SourceRange,
-    token::{KeywordLiteral, Token},
+    token::{FormattedStringLiteralSectionKind, KeywordLiteral, Token},
 };
 
 /// Represents an error that occurred during lexing
@@ -106,7 +106,8 @@ pub fn tokenize<'source>(
 ) -> Result<Vec<Token<'source>>, LexerError<'source>> {
     let chars: Vec<char> = source_code.chars().collect();
     let mut index = 0;
-    let mut tokens: Vec<Token> = vec![];
+    let mut tokens: Vec<Token> = Vec::new();
+    let mut brace_depth_stack: Vec<u32> = Vec::new();
 
     while index < chars.len() {
         // Ignore whitespace
@@ -372,6 +373,8 @@ pub fn tokenize<'source>(
         }
 
         // String literals
+        // TODO reduce code repetition, general style cleanup
+        // Update: this code is *disgusting*... Seriously guy, clean it up
         match (chars[index], chars.get(index + 1)) {
             // Normal string literal
             ('"', _) => {
@@ -653,11 +656,586 @@ pub fn tokenize<'source>(
 
                 continue;
             }
-            // Format string literal
+            // Formatted string literal start
             ('f', Some('"')) => {
-                todo!();
+                // Store the starting index of the formatted string literal
+                let start_index = index;
 
-                // continue;
+                // Add the 'f' and '"' to the string literal
+                let mut raw = String::new();
+                raw.push(chars[index]);
+                index += 1;
+                raw.push(chars[index]);
+                index += 1;
+
+                // Read characters into the formatted string literal until we
+                // reach a replacement field or the end of it
+                loop {
+                    match (chars.get(index), chars.get(index + 1)) {
+                        (Some('"'), _) => {
+                            // Add the closing quote to the string literal
+                            raw.push(chars[index]);
+                            index += 1;
+
+                            // This was a formatted string literal with no
+                            // replacement fields. Create the token and add it
+                            // to tokens
+                            tokens.push(Token::new_formatted_string_literal_section(
+                                raw,
+                                FormattedStringLiteralSectionKind::Complete,
+                                SourceRange::new(
+                                    source_code,
+                                    source_file_name,
+                                    start_index,
+                                    index - 1,
+                                ),
+                            ));
+
+                            break;
+                        }
+                        (Some('\\'), _) => {
+                            // Store the starting index of the escape sequence
+                            let escape_sequence_start_index = index;
+
+                            // Add the backslash to the formatted string literal
+                            raw.push(chars[index]);
+                            index += 1;
+
+                            // If we reached EOF, this literal is invalid
+                            if index >= chars.len() {
+                                return Err(LexerError::new_invalid_literal(SourceRange::new(
+                                    source_code,
+                                    source_file_name,
+                                    start_index,
+                                    index - 1,
+                                )));
+                            }
+
+                            match chars[index] {
+                                '"' | '\\' | 't' | 'n' | 'r' | '0' | '\n' => {
+                                    raw.push(chars[index]);
+                                    index += 1;
+                                }
+                                // ASCII escape sequence
+                                'x' => {
+                                    // Add the 'x'
+                                    raw.push(chars[index]);
+                                    index += 1;
+
+                                    // Read the digits of the escape sequence
+                                    let mut escape_sequence_digits = String::with_capacity(2);
+                                    for _ in 0..2 {
+                                        // If we reached EOF, this literal is invalid
+                                        if index >= chars.len() {
+                                            return Err(LexerError::new_invalid_literal(
+                                                SourceRange::new(
+                                                    source_code,
+                                                    source_file_name,
+                                                    start_index,
+                                                    index - 1,
+                                                ),
+                                            ));
+                                        }
+
+                                        // Add the escape sequence digit
+                                        escape_sequence_digits.push(chars[index]);
+                                        index += 1;
+                                    }
+
+                                    // Ensure the escape sequence digits are
+                                    // valid
+                                    let escape_sequence_value =
+                                        u8::from_str_radix(&escape_sequence_digits, 16);
+                                    if escape_sequence_value.is_err()
+                                        || escape_sequence_value.unwrap() > 0x7F
+                                    {
+                                        return Err(LexerError::new_invalid_escape_sequence(
+                                            SourceRange::new(
+                                                source_code,
+                                                source_file_name,
+                                                escape_sequence_start_index,
+                                                index - 1,
+                                            ),
+                                        ));
+                                    }
+
+                                    // Add the escape sequence digits
+                                    raw.push_str(&escape_sequence_digits);
+                                }
+                                // Unicode escape sequence
+                                'u' => {
+                                    // Add the 'u'
+                                    raw.push(chars[index]);
+                                    index += 1;
+
+                                    // Expect a '{'
+                                    match chars.get(index) {
+                                        Some('{') => {
+                                            raw.push(chars[index]);
+                                            index += 1;
+                                        }
+                                        Some(_) => {
+                                            return Err(LexerError::new_invalid_escape_sequence(
+                                                SourceRange::new(
+                                                    source_code,
+                                                    source_file_name,
+                                                    escape_sequence_start_index,
+                                                    index - 1,
+                                                ),
+                                            ));
+                                        }
+                                        None => break,
+                                    }
+
+                                    // Read the digits of the escape sequence
+                                    let mut escape_sequence_digits = String::with_capacity(6);
+                                    for _ in 0..6 {
+                                        match chars.get(index) {
+                                            Some('}') => break,
+                                            Some(&ch) => {
+                                                // Add the escape sequence digit
+                                                escape_sequence_digits.push(ch);
+                                                index += 1;
+                                            }
+                                            // If we reached EOF, this literal
+                                            // is invalid
+                                            None => {
+                                                return Err(LexerError::new_invalid_literal(
+                                                    SourceRange::new(
+                                                        source_code,
+                                                        source_file_name,
+                                                        start_index,
+                                                        index - 1,
+                                                    ),
+                                                ))
+                                            }
+                                        }
+                                    }
+
+                                    // Ensure the escape sequence digits are
+                                    // valid
+                                    let escape_sequence_value =
+                                        u32::from_str_radix(&escape_sequence_digits, 16);
+                                    if escape_sequence_value.is_err()
+                                        || char::from_u32(escape_sequence_value.unwrap()).is_none()
+                                    {
+                                        return Err(LexerError::new_invalid_escape_sequence(
+                                            SourceRange::new(
+                                                source_code,
+                                                source_file_name,
+                                                escape_sequence_start_index,
+                                                index - 1,
+                                            ),
+                                        ));
+                                    }
+
+                                    // Add the escape sequence digits
+                                    raw.push_str(&escape_sequence_digits);
+
+                                    // Expect a '}'
+                                    match chars.get(index) {
+                                        Some('}') => {
+                                            raw.push(chars[index]);
+                                            index += 1;
+                                        }
+                                        Some(_) => {
+                                            return Err(LexerError::new_invalid_escape_sequence(
+                                                SourceRange::new(
+                                                    source_code,
+                                                    source_file_name,
+                                                    escape_sequence_start_index,
+                                                    index - 1,
+                                                ),
+                                            ));
+                                        }
+                                        None => break,
+                                    }
+                                }
+                                _ => {
+                                    return Err(LexerError::new_invalid_escape_sequence(
+                                        SourceRange::new(
+                                            source_code,
+                                            source_file_name,
+                                            escape_sequence_start_index,
+                                            index,
+                                        ),
+                                    ));
+                                }
+                            };
+                        }
+                        (Some('{'), Some('{')) | (Some('}'), Some('}')) => {
+                            raw.push(chars[index]);
+                            index += 1;
+                            raw.push(chars[index]);
+                            index += 1;
+                        }
+                        (Some('{'), _) => {
+                            // Entering a replacement field, push 0
+                            brace_depth_stack.push(0);
+
+                            // Add the '{'
+                            raw.push(chars[index]);
+                            index += 1;
+
+                            // Add the new formatted string literal section
+                            // token to tokens
+                            tokens.push(Token::new_formatted_string_literal_section(
+                                raw,
+                                FormattedStringLiteralSectionKind::Start,
+                                SourceRange::new(
+                                    source_code,
+                                    source_file_name,
+                                    start_index,
+                                    index - 1,
+                                ),
+                            ));
+
+                            break;
+                        }
+                        (Some('}'), _) => {
+                            // If we find an unescaped '}', this literal is
+                            // invalid
+                            // TODO I'd like this error message to be more
+                            // descriptive and helpful
+                            return Err(LexerError::new_invalid_literal(SourceRange::new(
+                                source_code,
+                                source_file_name,
+                                start_index,
+                                index,
+                            )));
+                        }
+                        (Some(&c), _) => {
+                            // Add the character to the formatted string literal
+                            raw.push(c);
+                            index += 1;
+                        }
+                        (None, _) => {
+                            return Err(LexerError::new_invalid_literal(SourceRange::new(
+                                source_code,
+                                source_file_name,
+                                start_index,
+                                index - 1,
+                            )));
+                        }
+                    };
+                }
+
+                continue;
+            }
+            // Closing brace (relevant to formatted string literals)
+            ('}', _) => {
+                match brace_depth_stack.last_mut() {
+                    // End of a replacement field
+                    Some(&mut 0) => {
+                        // We're exiting this replacement field, pop the 0
+                        brace_depth_stack.pop();
+
+                        // Store the starting index of the formatted string literal
+                        let start_index = index;
+
+                        // Add the '}' to the formatted string literal section
+                        let mut raw = String::new();
+                        raw.push(chars[index]);
+                        index += 1;
+
+                        // Read characters into the formatted string literal
+                        // section until we reach a replacement field or the
+                        // end of it
+                        loop {
+                            match (chars.get(index), chars.get(index + 1)) {
+                                (Some('"'), _) => {
+                                    // Add the closing quote to the string literal
+                                    raw.push(chars[index]);
+                                    index += 1;
+
+                                    // This was a formatted string literal with no
+                                    // replacement fields. Create the token and add it
+                                    // to tokens
+                                    tokens.push(Token::new_formatted_string_literal_section(
+                                        raw,
+                                        FormattedStringLiteralSectionKind::End,
+                                        SourceRange::new(
+                                            source_code,
+                                            source_file_name,
+                                            start_index,
+                                            index - 1,
+                                        ),
+                                    ));
+
+                                    break;
+                                }
+                                (Some('\\'), _) => {
+                                    // Store the starting index of the escape sequence
+                                    let escape_sequence_start_index = index;
+
+                                    // Add the backslash to the formatted string literal
+                                    raw.push(chars[index]);
+                                    index += 1;
+
+                                    // If we reached EOF, this literal is invalid
+                                    if index >= chars.len() {
+                                        return Err(LexerError::new_invalid_literal(
+                                            SourceRange::new(
+                                                source_code,
+                                                source_file_name,
+                                                start_index,
+                                                index - 1,
+                                            ),
+                                        ));
+                                    }
+
+                                    match chars[index] {
+                                        '"' | '\\' | 't' | 'n' | 'r' | '0' | '\n' => {
+                                            raw.push(chars[index]);
+                                            index += 1;
+                                        }
+                                        // ASCII escape sequence
+                                        'x' => {
+                                            // Add the 'x'
+                                            raw.push(chars[index]);
+                                            index += 1;
+
+                                            // Read the digits of the escape sequence
+                                            let mut escape_sequence_digits =
+                                                String::with_capacity(2);
+                                            for _ in 0..2 {
+                                                // If we reached EOF, this literal is invalid
+                                                if index >= chars.len() {
+                                                    return Err(LexerError::new_invalid_literal(
+                                                        SourceRange::new(
+                                                            source_code,
+                                                            source_file_name,
+                                                            start_index,
+                                                            index - 1,
+                                                        ),
+                                                    ));
+                                                }
+
+                                                // Add the escape sequence digit
+                                                escape_sequence_digits.push(chars[index]);
+                                                index += 1;
+                                            }
+
+                                            // Ensure the escape sequence digits are
+                                            // valid
+                                            let escape_sequence_value =
+                                                u8::from_str_radix(&escape_sequence_digits, 16);
+                                            if escape_sequence_value.is_err()
+                                                || escape_sequence_value.unwrap() > 0x7F
+                                            {
+                                                return Err(
+                                                    LexerError::new_invalid_escape_sequence(
+                                                        SourceRange::new(
+                                                            source_code,
+                                                            source_file_name,
+                                                            escape_sequence_start_index,
+                                                            index - 1,
+                                                        ),
+                                                    ),
+                                                );
+                                            }
+
+                                            // Add the escape sequence digits
+                                            raw.push_str(&escape_sequence_digits);
+                                        }
+                                        // Unicode escape sequence
+                                        'u' => {
+                                            // Add the 'u'
+                                            raw.push(chars[index]);
+                                            index += 1;
+
+                                            // Expect a '{'
+                                            match chars.get(index) {
+                                                Some('{') => {
+                                                    raw.push(chars[index]);
+                                                    index += 1;
+                                                }
+                                                Some(_) => {
+                                                    return Err(
+                                                        LexerError::new_invalid_escape_sequence(
+                                                            SourceRange::new(
+                                                                source_code,
+                                                                source_file_name,
+                                                                escape_sequence_start_index,
+                                                                index - 1,
+                                                            ),
+                                                        ),
+                                                    );
+                                                }
+                                                None => break,
+                                            }
+
+                                            // Read the digits of the escape sequence
+                                            let mut escape_sequence_digits =
+                                                String::with_capacity(6);
+                                            for _ in 0..6 {
+                                                match chars.get(index) {
+                                                    Some('}') => break,
+                                                    Some(&ch) => {
+                                                        // Add the escape sequence digit
+                                                        escape_sequence_digits.push(ch);
+                                                        index += 1;
+                                                    }
+                                                    // If we reached EOF, this literal
+                                                    // is invalid
+                                                    None => {
+                                                        return Err(
+                                                            LexerError::new_invalid_literal(
+                                                                SourceRange::new(
+                                                                    source_code,
+                                                                    source_file_name,
+                                                                    start_index,
+                                                                    index - 1,
+                                                                ),
+                                                            ),
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            // Ensure the escape sequence digits are
+                                            // valid
+                                            let escape_sequence_value =
+                                                u32::from_str_radix(&escape_sequence_digits, 16);
+                                            if escape_sequence_value.is_err()
+                                                || char::from_u32(escape_sequence_value.unwrap())
+                                                    .is_none()
+                                            {
+                                                return Err(
+                                                    LexerError::new_invalid_escape_sequence(
+                                                        SourceRange::new(
+                                                            source_code,
+                                                            source_file_name,
+                                                            escape_sequence_start_index,
+                                                            index - 1,
+                                                        ),
+                                                    ),
+                                                );
+                                            }
+
+                                            // Add the escape sequence digits
+                                            raw.push_str(&escape_sequence_digits);
+
+                                            // Expect a '}'
+                                            match chars.get(index) {
+                                                Some('}') => {
+                                                    raw.push(chars[index]);
+                                                    index += 1;
+                                                }
+                                                Some(_) => {
+                                                    return Err(
+                                                        LexerError::new_invalid_escape_sequence(
+                                                            SourceRange::new(
+                                                                source_code,
+                                                                source_file_name,
+                                                                escape_sequence_start_index,
+                                                                index - 1,
+                                                            ),
+                                                        ),
+                                                    );
+                                                }
+                                                None => break,
+                                            }
+                                        }
+                                        _ => {
+                                            return Err(LexerError::new_invalid_escape_sequence(
+                                                SourceRange::new(
+                                                    source_code,
+                                                    source_file_name,
+                                                    escape_sequence_start_index,
+                                                    index,
+                                                ),
+                                            ));
+                                        }
+                                    };
+                                }
+                                (Some('{'), Some('{')) | (Some('}'), Some('}')) => {
+                                    raw.push(chars[index]);
+                                    index += 1;
+                                    raw.push(chars[index]);
+                                    index += 1;
+                                }
+                                (Some('{'), _) => {
+                                    // Entering a replacement field, push 0
+                                    brace_depth_stack.push(0);
+
+                                    // Add the '{'
+                                    raw.push(chars[index]);
+                                    index += 1;
+
+                                    // Add the new formatted string literal section
+                                    // token to tokens
+                                    tokens.push(Token::new_formatted_string_literal_section(
+                                        raw,
+                                        FormattedStringLiteralSectionKind::Continuation,
+                                        SourceRange::new(
+                                            source_code,
+                                            source_file_name,
+                                            start_index,
+                                            index - 1,
+                                        ),
+                                    ));
+
+                                    break;
+                                }
+                                (Some('}'), _) => {
+                                    // If we find an unescaped '}', this literal is
+                                    // invalid
+                                    // TODO I'd like this error message to be more
+                                    // descriptive and helpful
+                                    return Err(LexerError::new_invalid_literal(SourceRange::new(
+                                        source_code,
+                                        source_file_name,
+                                        start_index,
+                                        index,
+                                    )));
+                                }
+                                (Some(&c), _) => {
+                                    // Add the character to the formatted string
+                                    // literal section
+                                    raw.push(c);
+                                    index += 1;
+                                }
+                                (None, _) => {
+                                    return Err(LexerError::new_invalid_literal(SourceRange::new(
+                                        source_code,
+                                        source_file_name,
+                                        start_index,
+                                        index - 1,
+                                    )));
+                                }
+                            };
+                        }
+
+                        continue;
+                    }
+                    // Closing brace inside a replacement field
+                    Some(brace_depth) => {
+                        // Decrement the brace depth of the current replacement
+                        // field
+                        *brace_depth -= 1;
+
+                        // No need to tokenize the '}', it will be handled later
+                        // as a punctuator
+                    }
+                    // Not in a replacement field
+                    None => {
+                        // This closing brace isn't relevant to us, carry on and
+                        // let it be tokenized later as a punctuator
+                    }
+                }
+            }
+            // Opening brace (relevant to formatted string literals)
+            ('{', _) => {
+                // Opening brace inside a replacement field
+                if let Some(brace_depth) = brace_depth_stack.last_mut() {
+                    // Increment the brace depth of the current replacement
+                    // field
+                    *brace_depth += 1;
+
+                    // No need to tokenize the '{', it will be handled later
+                    // as a punctuator
+                }
             }
             _ => { /* Not a string literal, carry on */ }
         }
