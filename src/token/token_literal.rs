@@ -6,14 +6,18 @@ use crate::{icelang_type::IcelangType, source_range::SourceRange};
 #[derive(Debug)]
 pub struct TokenLiteral<'source> {
     raw: String,
-    ice_type: IcelangType,
+    icelang_type: IcelangType,
     pos: SourceRange<'source>,
 }
 
 impl<'source> TokenLiteral<'source> {
     /// Constructs a new TokeTokenLiteralnIdent
     pub fn new(raw: String, ice_type: IcelangType, pos: SourceRange<'source>) -> Self {
-        Self { raw, ice_type, pos }
+        Self {
+            raw,
+            icelang_type: ice_type,
+            pos,
+        }
     }
 
     /// Returns the literal as a string
@@ -21,9 +25,9 @@ impl<'source> TokenLiteral<'source> {
         &self.raw
     }
 
-    /// Returns the ice type of this literal
-    pub fn ice_type(&self) -> IcelangType {
-        self.ice_type
+    /// Returns the icelang type of this literal
+    pub fn icelang_type(&self) -> IcelangType {
+        self.icelang_type
     }
 
     /// Returns the position in the source code of this literal
@@ -34,6 +38,62 @@ impl<'source> TokenLiteral<'source> {
 
 impl Display for TokenLiteral<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[Token] Literal ({}): {}", self.ice_type, self.raw)
+        write!(f, "[Token] Literal ({}): {}", self.icelang_type, self.raw)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{icelang_type::IcelangType, source_range::SourceRange};
+
+    use super::*;
+
+    const LITS: &[(&str, IcelangType)] = &[
+        ("true", IcelangType::Bool),
+        ("false", IcelangType::Bool),
+        ("8bFF", IcelangType::Byte),
+        ("8b00", IcelangType::Byte),
+        ("Merriam-Webster", IcelangType::Dict),
+        ("3.14", IcelangType::Float),
+        ("1330", IcelangType::Int),
+        (":thinking:", IcelangType::List),
+        ("null", IcelangType::Null),
+        ("\"Strange thing this is\"", IcelangType::String),
+    ];
+
+    #[test]
+    fn test_literal_raw() {
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+
+        for (lit, ty) in LITS {
+            let tok = TokenLiteral::new(lit.to_string(), *ty, nowhere.clone());
+
+            assert_eq!(tok.raw(), *lit);
+        }
+    }
+
+    #[test]
+    fn test_literal_icelang_type() {
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+
+        for (lit, ty) in LITS {
+            let tok = TokenLiteral::new(lit.to_string(), *ty, nowhere.clone());
+
+            assert_eq!(tok.icelang_type(), *ty);
+        }
+    }
+
+    #[test]
+    fn test_literal_display() {
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+
+        for (lit, ty) in LITS {
+            let tok = TokenLiteral::new(lit.to_string(), *ty, nowhere.clone());
+
+            assert_eq!(
+                tok.to_string(),
+                format!("[Token] Literal ({}): {}", ty, lit)
+            );
+        }
     }
 }

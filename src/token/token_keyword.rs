@@ -31,3 +31,30 @@ impl Display for TokenKeyword<'_> {
         write!(f, "[Token] Keyword: {}", self.keyword)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{keyword::Keyword, source_range::SourceRange, token::TokenKeyword};
+
+    #[test]
+    fn test_keyword() {
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+
+        for kw in enum_iterator::all::<Keyword>() {
+            let tok: TokenKeyword = TokenKeyword::new(kw, nowhere.clone());
+
+            assert_eq!(tok.keyword(), kw);
+        }
+    }
+
+    #[test]
+    fn test_keyword_display() {
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+
+        for kw in enum_iterator::all::<Keyword>() {
+            let tok: TokenKeyword = TokenKeyword::new(kw, nowhere.clone());
+
+            assert_eq!(tok.to_string(), format!("[Token] Keyword: {kw}"));
+        }
+    }
+}

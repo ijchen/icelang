@@ -31,3 +31,34 @@ impl Display for TokenPunctuator<'_> {
         write!(f, "[Token] Punctuator: {}", self.punctuator)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::source_range::SourceRange;
+
+    use super::*;
+
+    const PUNCTUATORS: &[&str] = &["(", ")", "{", "*", "+", "]", "==", "**=", ","];
+
+    #[test]
+    fn test_punctuator() {
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+
+        for punc in PUNCTUATORS {
+            let tok = TokenPunctuator::new(punc.to_string(), nowhere.clone());
+
+            assert_eq!(tok.punctuator(), *punc);
+        }
+    }
+
+    #[test]
+    fn test_punctuator_display() {
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+
+        for punc in PUNCTUATORS {
+            let tok = TokenPunctuator::new(punc.to_string(), nowhere.clone());
+
+            assert_eq!(tok.to_string(), format!("[Token] Punctuator: {punc}"));
+        }
+    }
+}

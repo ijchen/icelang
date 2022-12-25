@@ -7,7 +7,7 @@ use enum_iterator::Sequence;
 use crate::icelang_type::IcelangType;
 
 /// Represents an icelang keyword
-#[derive(Debug, Clone, Copy, Sequence)]
+#[derive(Debug, Clone, Copy, Sequence, PartialEq, Eq)]
 pub enum Keyword {
     /// The "if" keyword
     If,

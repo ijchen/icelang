@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use enum_iterator::Sequence;
+
 use crate::source_range::SourceRange;
 
 /// The kind of a formatted string literal section token
@@ -21,7 +23,7 @@ use crate::source_range::SourceRange;
 /// //               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 /// //                          complete          
 /// ```
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Sequence, PartialEq, Eq)]
 pub enum FormattedStringLiteralSectionKind {
     /// The start of a formatted string literal, before the first replacement
     /// field
@@ -90,5 +92,42 @@ impl Display for TokenFormattedStringLiteralSection<'_> {
             "[Token] Formatted string literal section ({}): {}",
             self.kind, self.raw
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        source_range::SourceRange,
+        token::{FormattedStringLiteralSectionKind, TokenFormattedStringLiteralSection},
+    };
+
+    #[test]
+    fn test_formatted_string_literal_section_kind() {
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+        let raw = "foobar";
+
+        for kind in enum_iterator::all::<FormattedStringLiteralSectionKind>() {
+            let tok =
+                TokenFormattedStringLiteralSection::new(raw.to_string(), kind, nowhere.clone());
+
+            assert_eq!(tok.kind(), kind);
+        }
+    }
+
+    #[test]
+    fn test_formatted_string_literal_section_display() {
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+        let raw = "foobar";
+
+        for kind in enum_iterator::all::<FormattedStringLiteralSectionKind>() {
+            let tok =
+                TokenFormattedStringLiteralSection::new(raw.to_string(), kind, nowhere.clone());
+
+            assert_eq!(
+                tok.to_string(),
+                format!("[Token] Formatted string literal section ({kind}): {raw}")
+            );
+        }
     }
 }

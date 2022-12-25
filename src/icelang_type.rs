@@ -2,7 +2,7 @@
 
 use std::fmt::Display;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// The data type of a value in icelang
 pub enum IcelangType {
     /// A signed, arbitrary precision integer
