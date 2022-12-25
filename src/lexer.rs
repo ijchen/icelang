@@ -7,7 +7,10 @@ use crate::{
     icelang_type::IcelangType,
     keyword::KeywordLiteral,
     source_range::SourceRange,
-    token::{FormattedStringLiteralSectionKind, Token},
+    token::{
+        FormattedStringLiteralSectionKind, Token, TokenFormattedStringLiteralSection, TokenIdent,
+        TokenKeyword, TokenLiteral, TokenPunctuator,
+    },
 };
 
 /// Represents an error that occurred during lexing
@@ -368,7 +371,7 @@ pub fn tokenize<'source>(
             };
             let literal_pos =
                 SourceRange::new(source_code, source_file_name, start_index, index - 1);
-            tokens.push(Token::new_literal(literal, literal_type, literal_pos));
+            tokens.push(TokenLiteral::new(literal, literal_type, literal_pos).into());
 
             continue;
         }
@@ -567,11 +570,14 @@ pub fn tokenize<'source>(
                 }
 
                 // Add the new string literal to tokens
-                tokens.push(Token::new_literal(
-                    raw,
-                    IcelangType::String,
-                    SourceRange::new(source_code, source_file_name, start_index, index - 1),
-                ));
+                tokens.push(
+                    TokenLiteral::new(
+                        raw,
+                        IcelangType::String,
+                        SourceRange::new(source_code, source_file_name, start_index, index - 1),
+                    )
+                    .into(),
+                );
 
                 continue;
             }
@@ -649,11 +655,14 @@ pub fn tokenize<'source>(
                 }
 
                 // Add the new string literal to tokens
-                tokens.push(Token::new_literal(
-                    raw,
-                    IcelangType::String,
-                    SourceRange::new(source_code, source_file_name, start_index, index - 1),
-                ));
+                tokens.push(
+                    TokenLiteral::new(
+                        raw,
+                        IcelangType::String,
+                        SourceRange::new(source_code, source_file_name, start_index, index - 1),
+                    )
+                    .into(),
+                );
 
                 continue;
             }
@@ -681,16 +690,19 @@ pub fn tokenize<'source>(
                             // This was a formatted string literal with no
                             // replacement fields. Create the token and add it
                             // to tokens
-                            tokens.push(Token::new_formatted_string_literal_section(
-                                raw,
-                                FormattedStringLiteralSectionKind::Complete,
-                                SourceRange::new(
-                                    source_code,
-                                    source_file_name,
-                                    start_index,
-                                    index - 1,
-                                ),
-                            ));
+                            tokens.push(
+                                TokenFormattedStringLiteralSection::new(
+                                    raw,
+                                    FormattedStringLiteralSectionKind::Complete,
+                                    SourceRange::new(
+                                        source_code,
+                                        source_file_name,
+                                        start_index,
+                                        index - 1,
+                                    ),
+                                )
+                                .into(),
+                            );
 
                             break;
                         }
@@ -880,16 +892,19 @@ pub fn tokenize<'source>(
 
                             // Add the new formatted string literal section
                             // token to tokens
-                            tokens.push(Token::new_formatted_string_literal_section(
-                                raw,
-                                FormattedStringLiteralSectionKind::Start,
-                                SourceRange::new(
-                                    source_code,
-                                    source_file_name,
-                                    start_index,
-                                    index - 1,
-                                ),
-                            ));
+                            tokens.push(
+                                TokenFormattedStringLiteralSection::new(
+                                    raw,
+                                    FormattedStringLiteralSectionKind::Start,
+                                    SourceRange::new(
+                                        source_code,
+                                        source_file_name,
+                                        start_index,
+                                        index - 1,
+                                    ),
+                                )
+                                .into(),
+                            );
 
                             break;
                         }
@@ -952,16 +967,19 @@ pub fn tokenize<'source>(
                                     // This was a formatted string literal with no
                                     // replacement fields. Create the token and add it
                                     // to tokens
-                                    tokens.push(Token::new_formatted_string_literal_section(
-                                        raw,
-                                        FormattedStringLiteralSectionKind::End,
-                                        SourceRange::new(
-                                            source_code,
-                                            source_file_name,
-                                            start_index,
-                                            index - 1,
-                                        ),
-                                    ));
+                                    tokens.push(
+                                        TokenFormattedStringLiteralSection::new(
+                                            raw,
+                                            FormattedStringLiteralSectionKind::End,
+                                            SourceRange::new(
+                                                source_code,
+                                                source_file_name,
+                                                start_index,
+                                                index - 1,
+                                            ),
+                                        )
+                                        .into(),
+                                    );
 
                                     break;
                                 }
@@ -1166,16 +1184,19 @@ pub fn tokenize<'source>(
 
                                     // Add the new formatted string literal section
                                     // token to tokens
-                                    tokens.push(Token::new_formatted_string_literal_section(
-                                        raw,
-                                        FormattedStringLiteralSectionKind::Continuation,
-                                        SourceRange::new(
-                                            source_code,
-                                            source_file_name,
-                                            start_index,
-                                            index - 1,
-                                        ),
-                                    ));
+                                    tokens.push(
+                                        TokenFormattedStringLiteralSection::new(
+                                            raw,
+                                            FormattedStringLiteralSectionKind::Continuation,
+                                            SourceRange::new(
+                                                source_code,
+                                                source_file_name,
+                                                start_index,
+                                                index - 1,
+                                            ),
+                                        )
+                                        .into(),
+                                    );
 
                                     break;
                                 }
@@ -1257,28 +1278,37 @@ pub fn tokenize<'source>(
 
             // Check if the string we've built matches a keyword literal
             if let Ok(keyword_literal) = <&str as TryInto<KeywordLiteral>>::try_into(raw.as_str()) {
-                tokens.push(Token::new_literal(
-                    keyword_literal.to_string(),
-                    keyword_literal.ice_type(),
-                    SourceRange::new(source_code, source_file_name, start_index, index - 1),
-                ));
+                tokens.push(
+                    TokenLiteral::new(
+                        keyword_literal.to_string(),
+                        keyword_literal.ice_type(),
+                        SourceRange::new(source_code, source_file_name, start_index, index - 1),
+                    )
+                    .into(),
+                );
                 continue;
             };
 
             // Check if the string we've built matches a keyword
             if let Ok(keyword) = raw.as_str().try_into() {
-                tokens.push(Token::new_keyword(
-                    keyword,
-                    SourceRange::new(source_code, source_file_name, start_index, index - 1),
-                ));
+                tokens.push(
+                    TokenKeyword::new(
+                        keyword,
+                        SourceRange::new(source_code, source_file_name, start_index, index - 1),
+                    )
+                    .into(),
+                );
                 continue;
             };
 
             // It must be an identifier
-            tokens.push(Token::new_ident(
-                raw,
-                SourceRange::new(source_code, source_file_name, start_index, index - 1),
-            ));
+            tokens.push(
+                TokenIdent::new(
+                    raw,
+                    SourceRange::new(source_code, source_file_name, start_index, index - 1),
+                )
+                .into(),
+            );
             continue;
         }
 
@@ -1296,10 +1326,13 @@ pub fn tokenize<'source>(
                     punctuator.push(chars[index]);
                     index += 1;
                 }
-                tokens.push(Token::new_punctuator(
-                    punctuator,
-                    SourceRange::new(source_code, source_file_name, start_index, index - 1),
-                ));
+                tokens.push(
+                    TokenPunctuator::new(
+                        punctuator,
+                        SourceRange::new(source_code, source_file_name, start_index, index - 1),
+                    )
+                    .into(),
+                );
                 continue;
             }
             (
@@ -1319,10 +1352,13 @@ pub fn tokenize<'source>(
                     punctuator.push(chars[index]);
                     index += 1;
                 }
-                tokens.push(Token::new_punctuator(
-                    punctuator,
-                    SourceRange::new(source_code, source_file_name, start_index, index - 1),
-                ));
+                tokens.push(
+                    TokenPunctuator::new(
+                        punctuator,
+                        SourceRange::new(source_code, source_file_name, start_index, index - 1),
+                    )
+                    .into(),
+                );
                 continue;
             }
             (
@@ -1337,10 +1373,13 @@ pub fn tokenize<'source>(
                     punctuator.push(chars[index]);
                     index += 1;
                 }
-                tokens.push(Token::new_punctuator(
-                    punctuator,
-                    SourceRange::new(source_code, source_file_name, start_index, index - 1),
-                ));
+                tokens.push(
+                    TokenPunctuator::new(
+                        punctuator,
+                        SourceRange::new(source_code, source_file_name, start_index, index - 1),
+                    )
+                    .into(),
+                );
                 continue;
             }
             _ => { /* Not a punctuator, carry on */ }

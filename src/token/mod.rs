@@ -44,7 +44,7 @@ mod tests {
         ];
 
         for ident in idents {
-            let tok = Token::new_ident(ident.to_string(), nowhere.clone());
+            let tok: Token = TokenIdent::new(ident.to_string(), nowhere.clone()).into();
 
             assert_eq!(tok.to_string(), format!("[Token] Identifier: {ident}"));
         }
@@ -68,7 +68,7 @@ mod tests {
         ];
 
         for (lit, ty) in lits {
-            let tok = Token::new_literal(lit.to_string(), ty, nowhere.clone());
+            let tok: Token = TokenLiteral::new(lit.to_string(), ty, nowhere.clone()).into();
 
             assert_eq!(
                 tok.to_string(),
@@ -82,7 +82,7 @@ mod tests {
         let nowhere = SourceRange::new(" ", "", 0, 0);
 
         for kw in enum_iterator::all::<Keyword>() {
-            let tok = Token::new_keyword(kw, nowhere.clone());
+            let tok: Token = TokenKeyword::new(kw, nowhere.clone()).into();
 
             assert_eq!(tok.to_string(), format!("[Token] Keyword: {kw}"));
         }
@@ -95,7 +95,7 @@ mod tests {
         let puncs = ["(", ")", "{", "*", "+", "]", "==", "**=", ","];
 
         for punc in puncs {
-            let tok = Token::new_punctuator(punc.to_string(), nowhere.clone());
+            let tok: Token = TokenPunctuator::new(punc.to_string(), nowhere.clone()).into();
 
             assert_eq!(tok.to_string(), format!("[Token] Punctuator: {punc}"));
         }
