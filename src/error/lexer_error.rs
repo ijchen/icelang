@@ -96,4 +96,69 @@ impl Display for LexerError<'_> {
 
 impl Error for LexerError<'_> {}
 
-// TODO unit tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::*;
+
+    #[test]
+    fn test_illegal_char_display() {
+        let mut rng = make_rng();
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+
+        let chars = (' '..='~')
+            .chain("\t\r\n\0ⱳ⛩⎃Ⅷℕ✫⽑▯∰⨡⿊".chars())
+            .chain(std::iter::repeat_with(|| gen_rand_char(&mut rng)).take(RAND_ITERATIONS));
+
+        for ch in chars {
+            let le = LexerError::new_illegal_char(ch, nowhere.clone());
+            match ch {
+                '\n' => {
+                    assert!(le.to_string().contains("\\n"));
+                }
+                ' '..='~' => {
+                    assert!(le.to_string().contains(ch));
+                }
+                ch => {
+                    assert!(le.to_string().contains(ch));
+                    assert!(le.to_string().contains(&format!("0x{:0X}", ch as u32)));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_unexpected_eof_display() {
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+
+        let reasons = [
+            "Some reason",
+            "oashjifn aiuhs4h3 fiasune fikau3hf is",
+            "something went wrong",
+        ];
+
+        for reason in reasons {
+            let le = LexerError::new_unexpected_eof(reason.to_string(), nowhere.clone());
+
+            assert!(le.to_string().contains(reason));
+        }
+    }
+
+    #[test]
+    fn test_invalid_literal_display() {
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+        let le = LexerError::new_invalid_literal(nowhere);
+
+        assert!(le.to_string().contains("invalid literal"));
+    }
+
+    #[test]
+    fn test_invalid_escape_sequence_display() {
+        let nowhere = SourceRange::new(" ", "", 0, 0);
+        let le = LexerError::new_invalid_escape_sequence(nowhere);
+
+        assert!(le
+            .to_string()
+            .contains("invalid escape sequence in string literal"));
+    }
+}

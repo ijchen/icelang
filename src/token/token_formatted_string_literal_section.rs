@@ -103,6 +103,16 @@ mod tests {
     };
 
     #[test]
+    fn test_formatted_string_literal_section_kind_display() {
+        use FormattedStringLiteralSectionKind::*;
+
+        assert_eq!(Complete.to_string(), "complete");
+        assert_eq!(Start.to_string(), "start");
+        assert_eq!(Continuation.to_string(), "continuation");
+        assert_eq!(End.to_string(), "end");
+    }
+
+    #[test]
     fn test_formatted_string_literal_section_kind() {
         let nowhere = SourceRange::new(" ", "", 0, 0);
         let raw = "foobar";

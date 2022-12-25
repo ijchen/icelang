@@ -1306,71 +1306,7 @@ pub fn tokenize<'source>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::{Rng, SeedableRng};
-
-    const RAND_SEED: u64 = 123;
-    const RAND_ITERATIONS: usize = 1000;
-
-    fn gen_rand_char(rng: &mut impl Rng) -> char {
-        // Most of the time, we'll just use a normal ASCII value...
-        if rng.gen_bool(0.75) {
-            rng.gen_range(' '..='~')
-        }
-        // ...but every now and then, let's mix things up
-        else {
-            // Sometimes with a completely random character
-            if rng.gen_bool(0.9) {
-                rng.gen::<char>()
-            }
-            // And other times with a weird control character
-            else {
-                rng.gen_range('\0'..=' ')
-            }
-        }
-    }
-
-    #[test]
-    fn test_lexer_err_illegal_char_display() {
-        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(RAND_SEED);
-        let nowhere = SourceRange::new(" ", "", 0, 0);
-
-        let chars = (' '..='~')
-            .chain("\t\r\n\0ⱳ⛩⎃Ⅷℕ✫⽑▯∰⨡⿊".chars())
-            .chain(std::iter::repeat_with(|| gen_rand_char(&mut rng)).take(RAND_ITERATIONS));
-
-        for ch in chars {
-            let le = LexerError::new_illegal_char(ch, nowhere.clone());
-            match ch {
-                '\n' => {
-                    assert!(le.to_string().contains("\\n"));
-                }
-                ' '..='~' => {
-                    assert!(le.to_string().contains(ch));
-                }
-                ch => {
-                    assert!(le.to_string().contains(ch));
-                    assert!(le.to_string().contains(&format!("0x{:0X}", ch as u32)));
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn test_lexer_err_unexpected_eof_display() {
-        let nowhere = SourceRange::new(" ", "", 0, 0);
-
-        let reasons = [
-            "Some reason",
-            "oashjifn aiuhs4h3 fiasune fikau3hf is",
-            "something went wrong",
-        ];
-
-        for reason in reasons {
-            let le = LexerError::new_unexpected_eof(reason.to_string(), nowhere.clone());
-
-            assert!(le.to_string().contains(reason));
-        }
-    }
+    use crate::test_utils::*;
 
     #[test]
     fn test_tokenize_empty() {
@@ -1607,7 +1543,10 @@ f\"{9} + {10} = {2 + 2} is a {true} fact, {name}\"
     }
 
     mod test_tokenize_randomized {
-        use rand::seq::{IteratorRandom, SliceRandom};
+        use rand::{
+            seq::{IteratorRandom, SliceRandom},
+            Rng,
+        };
 
         use crate::keyword::Keyword;
 
@@ -2604,10 +2543,10 @@ f\"{9} + {10} = {2 + 2} is a {true} fact, {name}\"
 
         fn gen_punctuator_token_sample(rng: &mut impl Rng) -> TokenSample {
             let punctuator = [
-                "=", "+=", "-=", "*=", "/=", "%=", "**=", "<<=", ">>=", "&=", "|=", "&&=", "||=",
-                "?", ":", "||", "&&", "==", "!=", "<", ">", "<=", ">=", "|", "^", "&", "<<", ">>",
-                "+", "-", "*", "/", "%", "**", "!", "=>", ";", ",", ".", "(", ")", "{", "}", "[",
-                "]",
+                "=", "+=", "-=", "*=", "/=", "%=", "**=", "<<=", ">>=", "&=", "^=", "|=", "&&=",
+                "||=", "?", ":", "||", "&&", "==", "!=", "<", ">", "<=", ">=", "|", "^", "&", "<<",
+                ">>", "+", "-", "*", "/", "%", "**", "!", "=>", ";", ",", ".", "(", ")", "{", "}",
+                "[", "]",
             ]
             .choose(rng)
             .unwrap();
@@ -2634,7 +2573,7 @@ f\"{9} + {10} = {2 + 2} is a {true} fact, {name}\"
 
         #[test]
         fn test_tokenize_randomized() {
-            let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(RAND_SEED);
+            let mut rng = make_rng();
 
             for _ in 0..RAND_ITERATIONS {
                 let token_count = rng.gen_range(0..=1000);

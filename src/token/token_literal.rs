@@ -49,16 +49,16 @@ mod tests {
     use super::*;
 
     const LITS: &[(&str, IcelangType)] = &[
-        ("true", IcelangType::Bool),
-        ("false", IcelangType::Bool),
+        ("1330", IcelangType::Int),
         ("8bFF", IcelangType::Byte),
         ("8b00", IcelangType::Byte),
-        ("Merriam-Webster", IcelangType::Dict),
         ("3.14", IcelangType::Float),
-        ("1330", IcelangType::Int),
-        (":thinking:", IcelangType::List),
-        ("null", IcelangType::Null),
+        ("true", IcelangType::Bool),
+        ("false", IcelangType::Bool),
         ("\"Strange thing this is\"", IcelangType::String),
+        (":thinking:", IcelangType::List),
+        ("Merriam-Webster", IcelangType::Dict),
+        ("null", IcelangType::Null),
     ];
 
     #[test]
@@ -90,10 +90,7 @@ mod tests {
         for (lit, ty) in LITS {
             let tok = TokenLiteral::new(lit.to_string(), *ty, nowhere.clone());
 
-            assert_eq!(
-                tok.to_string(),
-                format!("[Token] Literal ({}): {}", ty, lit)
-            );
+            assert_eq!(tok.to_string(), format!("[Token] Literal ({ty}): {lit}"));
         }
     }
 }

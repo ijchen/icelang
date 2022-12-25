@@ -49,9 +49,10 @@ mod tests {
         "SCREAMING_SNAKE_CASE",
         "camel_Snake_Case",
         "Pascal_Snake_Case",
-        "ujfai83yuafishvf89amhj39vfa87y398asy3vfans3fyfpavws3m78yfams9837vy\
-            fhap89ws3y7fma8374hfmva8s7y3fn0vlaifjsp98ufa9ps3j8ufmvioaj8mu38fav9\
-            83yua98v3uynf9as8yn398vasyum9faa8s7",
+        "Z",
+        "ujfai83yuafishvf89a_mhj39v__fa87y398asy3vfans3fyfpavws3_m78yfams9837vy\
+            fhap89ws3y7fma8374hfmva8s7y3fn0vlaifjsp9_8ufa9ps3j8ufmvioaj8mu38fav\
+            983yua98v3uynf9as8yn398vasyum9_faa8s7",
     ];
 
     #[test]
