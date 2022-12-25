@@ -97,7 +97,7 @@ pub enum KeywordLiteral {
 
 impl KeywordLiteral {
     /// Returns the icelang type of the keyword literal
-    pub fn ice_type(&self) -> IcelangType {
+    pub fn icelang_type(&self) -> IcelangType {
         match self {
             Self::True => IcelangType::Bool,
             Self::False => IcelangType::Bool,

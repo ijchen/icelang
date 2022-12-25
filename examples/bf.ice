@@ -95,7 +95,7 @@ fn execute(program) {
                         return;
                     },
                     start_bracket_ptr => {
-                        // This was the first ever bug in an ice program :)
+                        // This was the first ever bug in an icelang program :)
                         // I intended to jump back to the start bracket, and
                         // skipped the zero check because I assumed if the
                         // current byte is zero, it's okay to just jump back to

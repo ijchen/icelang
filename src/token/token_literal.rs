@@ -12,10 +12,10 @@ pub struct TokenLiteral<'source> {
 
 impl<'source> TokenLiteral<'source> {
     /// Constructs a new TokeTokenLiteralnIdent
-    pub fn new(raw: String, ice_type: IcelangType, pos: SourceRange<'source>) -> Self {
+    pub fn new(raw: String, icelang_type: IcelangType, pos: SourceRange<'source>) -> Self {
         Self {
             raw,
-            icelang_type: ice_type,
+            icelang_type,
             pos,
         }
     }

@@ -294,9 +294,11 @@ pub fn display(
     display_source_highlight(f, pos)?;
 
     // Stack trace (optional)
-    if let Some(_unused_todo) = stack_trace {
-        todo!()
+    if let Some(stack_trace) = stack_trace {
+        write!(f, "{stack_trace}")?;
     }
 
     Ok(())
 }
+
+// TODO unit tests

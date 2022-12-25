@@ -5,9 +5,9 @@ use typed_arena::Arena;
 use crate::debug_info::print_source_info;
 
 const WELCOME_MESSAGE: &str = "\
-ice REPL - Welcome!
-Heads up: the ice language is still in development - expect changes as the \
-language develops.
+icelang REPL - Welcome!
+Heads up: icelang is still in development - expect changes as the language \
+develops.
 enter \"help\" for help, or \"exit\" to exit.";
 
 const HELP_MESSAGE: &str = "\

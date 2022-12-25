@@ -1,6 +1,8 @@
+//! Contains code related to source ranges
+
 use std::fmt::{Debug, Display};
 
-/// Represents a contiguous range of characters in some ice source code
+/// Represents a contiguous range of characters in some icelang source code
 #[derive(Clone)]
 pub struct SourceRange<'source> {
     entire_source: &'source str,
