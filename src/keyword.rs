@@ -81,7 +81,7 @@ impl Display for Keyword {
 }
 
 /// Represents an icelang keyword literal
-#[derive(Debug, Clone, Copy, Sequence)]
+#[derive(Debug, Clone, Copy, Sequence, PartialEq, Eq)]
 pub enum KeywordLiteral {
     /// The "true" bool keyword literal
     True,
@@ -139,4 +139,81 @@ impl Display for KeywordLiteral {
     }
 }
 
-// TODO unit tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_keyword_display() {
+        assert_eq!(Keyword::If.to_string(), "if");
+        assert_eq!(Keyword::Else.to_string(), "else");
+        assert_eq!(Keyword::Loop.to_string(), "loop");
+        assert_eq!(Keyword::While.to_string(), "while");
+        assert_eq!(Keyword::For.to_string(), "for");
+        assert_eq!(Keyword::In.to_string(), "in");
+        assert_eq!(Keyword::Match.to_string(), "match");
+        assert_eq!(Keyword::Break.to_string(), "break");
+        assert_eq!(Keyword::Continue.to_string(), "continue");
+        assert_eq!(Keyword::Return.to_string(), "return");
+        assert_eq!(Keyword::Fn.to_string(), "fn");
+        assert_eq!(Keyword::Let.to_string(), "let");
+    }
+
+    #[test]
+    fn test_keyword_from_str() {
+        assert_eq!(Ok(Keyword::If), "if".try_into());
+        assert_eq!(Ok(Keyword::Else), "else".try_into());
+        assert_eq!(Ok(Keyword::Loop), "loop".try_into());
+        assert_eq!(Ok(Keyword::While), "while".try_into());
+        assert_eq!(Ok(Keyword::For), "for".try_into());
+        assert_eq!(Ok(Keyword::In), "in".try_into());
+        assert_eq!(Ok(Keyword::Match), "match".try_into());
+        assert_eq!(Ok(Keyword::Break), "break".try_into());
+        assert_eq!(Ok(Keyword::Continue), "continue".try_into());
+        assert_eq!(Ok(Keyword::Return), "return".try_into());
+        assert_eq!(Ok(Keyword::Fn), "fn".try_into());
+        assert_eq!(Ok(Keyword::Let), "let".try_into());
+        assert_eq!(Err::<Keyword, ()>(()), "asdf".try_into());
+        assert_eq!(Err::<Keyword, ()>(()), "".try_into());
+        assert_eq!(Err::<Keyword, ()>(()), "looop".try_into());
+        assert_eq!(Err::<Keyword, ()>(()), "reutrn".try_into());
+    }
+
+    #[test]
+    fn test_keyword_literal_display() {
+        assert_eq!(KeywordLiteral::True.to_string(), "true");
+        assert_eq!(KeywordLiteral::False.to_string(), "false");
+        assert_eq!(KeywordLiteral::Null.to_string(), "null");
+        assert_eq!(KeywordLiteral::Infinity.to_string(), "Infinity");
+        assert_eq!(KeywordLiteral::Nan.to_string(), "NaN");
+    }
+
+    #[test]
+    fn test_keyword_literal_icelang_type() {
+        assert_eq!(KeywordLiteral::True.icelang_type(), IcelangType::Bool);
+        assert_eq!(KeywordLiteral::False.icelang_type(), IcelangType::Bool);
+        assert_eq!(KeywordLiteral::Null.icelang_type(), IcelangType::Null);
+        assert_eq!(KeywordLiteral::Infinity.icelang_type(), IcelangType::Float);
+        assert_eq!(KeywordLiteral::Nan.icelang_type(), IcelangType::Float);
+    }
+
+    #[test]
+    fn test_keyword_literal_from_str() {
+        assert_eq!(Ok(KeywordLiteral::True), "true".try_into());
+        assert_eq!(Ok(KeywordLiteral::False), "false".try_into());
+        assert_eq!(Ok(KeywordLiteral::Null), "null".try_into());
+        assert_eq!(Ok(KeywordLiteral::Infinity), "Infinity".try_into());
+        assert_eq!(Ok(KeywordLiteral::Nan), "NaN".try_into());
+        assert_eq!(Err::<KeywordLiteral, ()>(()), "asdf".try_into());
+        assert_eq!(Err::<KeywordLiteral, ()>(()), "".try_into());
+        assert_eq!(Err::<KeywordLiteral, ()>(()), "flase".try_into());
+        assert_eq!(Err::<KeywordLiteral, ()>(()), "True".try_into());
+        assert_eq!(Err::<KeywordLiteral, ()>(()), "False".try_into());
+        assert_eq!(Err::<KeywordLiteral, ()>(()), "TRUE".try_into());
+        assert_eq!(Err::<KeywordLiteral, ()>(()), "FALSE".try_into());
+        assert_eq!(Err::<KeywordLiteral, ()>(()), "infinity".try_into());
+        assert_eq!(Err::<KeywordLiteral, ()>(()), "nan".try_into());
+        assert_eq!(Err::<KeywordLiteral, ()>(()), "NAN".try_into());
+        assert_eq!(Err::<KeywordLiteral, ()>(()), "Nan".try_into());
+    }
+}

@@ -35,6 +35,11 @@ impl<'source> SourceRange<'source> {
         self.entire_source
     }
 
+    /// Returns the file name of the source that this error occurred in
+    pub fn source_file_name(&self) -> &'source str {
+        self.source_file_name
+    }
+
     /// Returns the slice from the entire source corresponding to this range
     pub fn read(&self) -> &'source str {
         let start_byte_index = self
@@ -75,21 +80,20 @@ impl<'source> SourceRange<'source> {
 
     /// Returns the (1-indexed) column number that a character (by index) is on
     fn col_of(&self, index: usize) -> usize {
-        // TODO this could probably be optimized
-
         let mut col = 1;
-        let mut curr_index = 0;
-        while curr_index < index {
-            if self.entire_source.chars().nth(curr_index).unwrap() == '\n' {
+        for (curr_index, ch) in self.entire_source.chars().enumerate() {
+            if curr_index == index {
+                return col;
+            }
+
+            if ch == '\n' {
                 col = 1;
             } else {
                 col += 1;
             }
-
-            curr_index += 1;
         }
 
-        col
+        panic!("Index out of bounds");
     }
 
     /// Returns the (1-indexed) column number that this range starts on

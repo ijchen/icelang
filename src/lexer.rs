@@ -2497,7 +2497,8 @@ f\"{9} + {10} = {2 + 2} is a {true} fact, {name}\"
             match rng.gen_range(0..=1) {
                 0 => gen_normal_string_literal_token_sample(rng),
                 1 => gen_raw_string_literal_token_sample(rng),
-                // TODO
+                // TODO add formatted string literal tokens to randomized unit
+                // tests
                 // 2 => gen_format_string_literal_token_sample(rng),
                 _ => unreachable!(),
             }

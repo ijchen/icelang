@@ -1,35 +1,77 @@
-use std::fmt::Display;
+use std::{collections::VecDeque, fmt::Display};
 
 use static_assertions::const_assert;
 
 use crate::source_range::SourceRange;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum IcelangErrorType {
     Syntax,
+    // TODO remove once this is used
+    #[allow(dead_code)]
+    Runtime,
 }
 
 impl Display for IcelangErrorType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Syntax => write!(f, "Syntax"),
+            Self::Runtime => write!(f, "Runtime"),
         }
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct StackTrace<'source> {
-    sources: Vec<(String, SourceRange<'source>)>,
+    sources: VecDeque<(String, SourceRange<'source>)>,
+}
+
+impl<'source> StackTrace<'source> {
+    // TODO remove once this is used
+    #[allow(dead_code)]
+    /// Constructs a new (empty) StackTrace
+    pub fn new() -> Self {
+        Self {
+            sources: VecDeque::new(),
+        }
+    }
+
+    // TODO remove once this is used
+    #[allow(dead_code)]
+    /// Adds a stack frame to the top of the StackTrace
+    pub fn add_top(&mut self, source_fn_display_name: String, source_range: SourceRange<'source>) {
+        self.sources
+            .push_front((source_fn_display_name, source_range));
+    }
+
+    // TODO remove once this is used
+    #[allow(dead_code)]
+    /// Adds a stack frame to the bottom of the StackTrace
+    pub fn add_bottom(
+        &mut self,
+        source_fn_display_name: String,
+        source_range: SourceRange<'source>,
+    ) {
+        self.sources
+            .push_back((source_fn_display_name, source_range));
+    }
 }
 
 impl Display for StackTrace<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Stack trace:")?;
+        writeln!(f, "Stack trace (most recent call at the top):")?;
 
-        for source in self.sources.iter() {
-            writeln!(f, "^ {} {}", source.0, source.1)?;
+        if self.sources.is_empty() {
+            writeln!(f, "<empty>")
+        } else {
+            for (source_fn_display_name, source_range) in self.sources.iter() {
+                // TODO trim source_fn_display_name if necessary to respect
+                // MAX_LEN (don't forget to update unit tests)
+                writeln!(f, "^ {source_fn_display_name} {source_range}")?;
+            }
+
+            Ok(())
         }
-
-        Ok(())
     }
 }
 
@@ -37,7 +79,7 @@ const PREFIX: &str = "| ";
 const MAX_LEN: usize = 80;
 const_assert!(PREFIX.len() < MAX_LEN);
 
-fn display_header(
+fn write_header(
     f: &mut impl std::fmt::Write,
     error_type: IcelangErrorType,
     description: &str,
@@ -86,7 +128,7 @@ fn display_header(
     Ok(())
 }
 
-fn display_source_highlight(f: &mut impl std::fmt::Write, pos: &SourceRange) -> std::fmt::Result {
+fn write_source_highlight(f: &mut impl std::fmt::Write, pos: &SourceRange) -> std::fmt::Result {
     // Convenience variables
     let start_line_number = pos.start_line();
     let original_start_column = pos.start_col() - 1;
@@ -276,7 +318,7 @@ fn display_source_highlight(f: &mut impl std::fmt::Write, pos: &SourceRange) -> 
     write!(f, "{PREFIX}{out_line}\n{PREFIX}{out_err}")
 }
 
-pub fn display(
+pub fn write_error(
     f: &mut impl std::fmt::Write,
     error_type: IcelangErrorType,
     description: &str,
@@ -284,14 +326,14 @@ pub fn display(
     stack_trace: Option<StackTrace>,
 ) -> std::fmt::Result {
     // Error message header
-    display_header(f, error_type, description)?;
+    write_header(f, error_type, description)?;
 
     // Error location
     writeln!(f, "{PREFIX}{pos}")?;
     writeln!(f, "{PREFIX}")?;
 
     // Error source highlight
-    display_source_highlight(f, pos)?;
+    write_source_highlight(f, pos)?;
 
     // Stack trace (optional)
     if let Some(stack_trace) = stack_trace {
@@ -301,4 +343,142 @@ pub fn display(
     Ok(())
 }
 
-// TODO unit tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_icelang_error_type_display() {
+        assert_eq!(IcelangErrorType::Syntax.to_string(), "Syntax");
+        assert_eq!(IcelangErrorType::Runtime.to_string(), "Runtime");
+    }
+
+    #[test]
+    fn test_stack_trace_display_empty() {
+        let my_stack_trace = StackTrace::new();
+
+        assert_eq!(
+            my_stack_trace.to_string(),
+            "\
+            Stack trace (most recent call at the top):\n\
+            <empty>\n"
+        );
+    }
+
+    #[test]
+    fn test_stack_trace_display_single() {
+        let mut my_stack_trace = StackTrace::new();
+
+        let main_ice = (
+            "main.ice",
+            "\
+fn foo() {
+    for i in range(10) {
+        println(31.0 / bar(i ** 2));
+    }
+}
+
+fn bar(n) {
+    return float(64 - n);
+}
+
+fn bat() {
+    baz(6);
+
+    println(\"Hello, world!\");
+
+    baz(21);
+
+    println(\"Hello again :)\");
+}
+
+fn baz(num) {
+    if num > 10 {
+        foo();
+    }
+}
+
+bat();
+",
+        );
+
+        my_stack_trace.add_top(
+            "<global>".to_string(),
+            SourceRange::new(main_ice.1, main_ice.0, 282, 286),
+        );
+
+        assert_eq!(
+            my_stack_trace.to_string(),
+            "\
+            Stack trace (most recent call at the top):\n\
+            ^ <global> main.ice line 27, col 1 to 5\n"
+        );
+    }
+
+    #[test]
+    fn test_stack_trace_display_multi() {
+        let mut my_stack_trace = StackTrace::new();
+
+        let main_ice = (
+            "main.ice",
+            "\
+fn foo() {
+    for i in range(10) {
+        println(31.0 / bar(i ** 2));
+    }
+}
+
+fn bar(n) {
+    return float(64 - n);
+}
+
+fn bat() {
+    baz(6);
+
+    println(\"Hello, world!\");
+
+    baz(21);
+
+    println(\"Hello again :)\");
+}
+
+fn baz(num) {
+    if num > 10 {
+        foo();
+    }
+}
+
+bat();
+",
+        );
+
+        my_stack_trace.add_top(
+            "<global>".to_string(),
+            SourceRange::new(main_ice.1, main_ice.0, 282, 286),
+        );
+        my_stack_trace.add_top(
+            "bat()".to_string(),
+            SourceRange::new(main_ice.1, main_ice.0, 182, 188),
+        );
+        my_stack_trace.add_top(
+            "baz(num)".to_string(),
+            SourceRange::new(main_ice.1, main_ice.0, 266, 270),
+        );
+        my_stack_trace.add_top(
+            "foo()".to_string(),
+            SourceRange::new(main_ice.1, main_ice.0, 52, 69),
+        );
+
+        assert_eq!(
+            my_stack_trace.to_string(),
+            "\
+            Stack trace (most recent call at the top):\n\
+            ^ foo() main.ice line 3, col 17 to 34\n\
+            ^ baz(num) main.ice line 23, col 9 to 13\n\
+            ^ bat() main.ice line 16, col 5 to 11\n\
+            ^ <global> main.ice line 27, col 1 to 5\n"
+        );
+    }
+
+    // TODO test write_header, write_source_highlight, and write_error (fully)
+}
