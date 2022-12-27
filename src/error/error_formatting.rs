@@ -599,8 +599,8 @@ Syntax Error: Here is my super long message. I hope you like it! I am using it t
 Here is my super long message. I hope you like it! I am using it t\
 o unit test the multiline header error formatting for my programming languag\
 e called 'icelang'. This long message will be split into many lines (this ->\
-<- is where the third newline will be put!). Anyway, I hope you liked my mes\n
-sage.\r\n
+<- is where the third newline will be put!). Anyway, I hope you
+liked\r\nmy message.\n
 Have a great day :D",
         )
         .unwrap();
@@ -610,8 +610,10 @@ Have a great day :D",
 Syntax Error: Here is my super long message. I hope you like it! I am using it t
 |   o unit test the multiline header error formatting for my programming languag
 |   e called 'icelang'. This long message will be split into many lines (this ->
-|   <- is where the third newline will be put!). Anyway, I hope you liked my mes
-|   sage.
+|   <- is where the third newline will be put!). Anyway, I hope you
+|   liked
+|   my message.
+|   
 |   Have a great day :D
 | 
 "
