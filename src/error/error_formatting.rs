@@ -577,5 +577,46 @@ Syntax Error: Here is my super long message. I hope you like it! I am using it t
         );
     }
 
-    // TODO test write_header, write_source_highlight, and write_error (fully)
+    #[test]
+    fn test_write_header_too_long_and_embedded_newline() {
+        let mut header1 = String::with_capacity(134);
+        write_header(
+            &mut header1,
+            IcelangErrorType::Syntax,
+            "This has both a newline here:\nand a line that is too long (this one!) In fact, it's just over 80 characters",
+        )
+        .unwrap();
+        assert_eq!(
+            header1,
+            "Syntax Error: This has both a newline here:\n|   and a line that is too long (this one!) In fact, it's just over 80 character\n|   s\n| \n"
+        );
+
+        let mut header2 = String::with_capacity(389);
+        write_header(
+            &mut header2,
+            IcelangErrorType::Syntax,
+            "\
+Here is my super long message. I hope you like it! I am using it t\
+o unit test the multiline header error formatting for my programming languag\
+e called 'icelang'. This long message will be split into many lines (this ->\
+<- is where the third newline will be put!). Anyway, I hope you liked my mes\n
+sage.\r\n
+Have a great day :D",
+        )
+        .unwrap();
+        assert_eq!(
+            header2,
+            "\
+Syntax Error: Here is my super long message. I hope you like it! I am using it t
+|   o unit test the multiline header error formatting for my programming languag
+|   e called 'icelang'. This long message will be split into many lines (this ->
+|   <- is where the third newline will be put!). Anyway, I hope you liked my mes
+|   sage.
+|   Have a great day :D
+| 
+"
+        );
+    }
+
+    // TODO test write_source_highlight, and write_error (fully)
 }
