@@ -155,7 +155,7 @@ fn write_source_highlight(f: &mut impl std::fmt::Write, pos: &SourceRange) -> st
     let adj_end_column = original_end_column
         + original_line
             .chars()
-            .take(original_start_column + 1)
+            .take(original_end_column + 1)
             .filter(|&c| c == '\t')
             .count()
             * 3;
@@ -617,6 +617,94 @@ Syntax Error: Here is my super long message. I hope you like it! I am using it t
 |   Have a great day :D
 | 
 "
+        );
+    }
+
+    #[test]
+    fn test_write_source_highlight_simple() {
+        let main_ice = (
+            "main.ice",
+            "\
+fn foo() {
+    for i in range(10) {
+        println(31.0 / bar(i ** 2));
+    }
+}
+
+fn bar(n) {
+    return float(64 - n);
+}
+
+fn bat() {
+    baz(6);
+
+    println(\"Hello, world!\");
+
+    baz(21);
+
+    println(\"Hello again :)\");
+}
+
+fn baz(num) {
+    if num > 10 {
+        foo();
+    }
+}
+
+bat();
+",
+        );
+
+        let mut source_highlight = String::with_capacity(0);
+        write_source_highlight(
+            &mut source_highlight,
+            &SourceRange::new(main_ice.1, main_ice.0, 52, 69),
+        )
+        .unwrap();
+
+        assert_eq!(
+            source_highlight,
+            "\
+|         println(31.0 / bar(i ** 2));
+|                 ^^^^^^^^^^^^^^^^^^"
+        );
+    }
+
+    #[test]
+    fn test_write_source_highlight_single_start_tab() {
+        let main_ice = ("main.ice", "\tprintln(\"Hello, world!\");");
+
+        let mut source_highlight = String::with_capacity(0);
+        write_source_highlight(
+            &mut source_highlight,
+            &SourceRange::new(main_ice.1, main_ice.0, 9, 23),
+        )
+        .unwrap();
+
+        assert_eq!(
+            source_highlight,
+            "\
+|     println(\"Hello, world!\");
+|             ^^^^^^^^^^^^^^^"
+        );
+    }
+
+    #[test]
+    fn test_write_source_highlight_multiple_tabs() {
+        let main_ice = ("main.ice", "\t\t  \t println\t(\"Hello,\t\\t\tworld!\"\t);");
+
+        let mut source_highlight = String::with_capacity(0);
+        write_source_highlight(
+            &mut source_highlight,
+            &SourceRange::new(main_ice.1, main_ice.0, 15, 32),
+        )
+        .unwrap();
+
+        assert_eq!(
+            source_highlight,
+            "\
+|                println    (\"Hello,    \\t    world!\"    );
+|                            ^^^^^^^^^^^^^^^^^^^^^^^^"
         );
     }
 
