@@ -513,7 +513,7 @@ bat();
 
     #[test]
     fn test_write_header_embedded_newline() {
-        let mut header1 = String::with_capacity(27);
+        let mut header1 = String::with_capacity(52);
         write_header(
             &mut header1,
             IcelangErrorType::Syntax,
@@ -525,7 +525,7 @@ bat();
             "Syntax Error: Uh oh stinky\n|   with a newline...\n| \n"
         );
 
-        let mut header2 = String::with_capacity(57);
+        let mut header2 = String::with_capacity(83);
         write_header(
             &mut header2,
             IcelangErrorType::Runtime,
@@ -534,7 +534,7 @@ bat();
         .unwrap();
         assert_eq!(
             header2,
-            "Runtime Error: I'm sorry Dave,\n|   I'm afraid\n|   I can't\n|   do\rthat\n|   \n| \n"
+            "Runtime Error: I'm sorry Dave,\n|   I'm afraid\n|   I can't\n|   do\rthat\n|   \n|   \n| \n"
         );
     }
 
