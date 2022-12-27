@@ -480,5 +480,102 @@ bat();
         );
     }
 
+    #[test]
+    fn test_write_header_single_line() {
+        let mut header1 = String::with_capacity(27);
+        write_header(&mut header1, IcelangErrorType::Syntax, "Uh oh stinky").unwrap();
+        assert_eq!(header1, "Syntax Error: Uh oh stinky\n");
+
+        let mut header2 = String::with_capacity(57);
+        write_header(
+            &mut header2,
+            IcelangErrorType::Runtime,
+            "I'm sorry Dave, I'm afraid I can't do that",
+        )
+        .unwrap();
+        assert_eq!(
+            header2,
+            "Runtime Error: I'm sorry Dave, I'm afraid I can't do that\n"
+        );
+
+        let mut header3 = String::with_capacity(81);
+        write_header(
+            &mut header3,
+            IcelangErrorType::Runtime,
+            "This is a pretty long message, but not *too* long (it's 80 chars)",
+        )
+        .unwrap();
+        assert_eq!(
+            header3,
+            "Runtime Error: This is a pretty long message, but not *too* long (it's 80 chars)\n"
+        );
+    }
+
+    #[test]
+    fn test_write_header_embedded_newline() {
+        let mut header1 = String::with_capacity(27);
+        write_header(
+            &mut header1,
+            IcelangErrorType::Syntax,
+            "Uh oh stinky\nwith a newline...",
+        )
+        .unwrap();
+        assert_eq!(
+            header1,
+            "Syntax Error: Uh oh stinky\n|   with a newline...\n| \n"
+        );
+
+        let mut header2 = String::with_capacity(57);
+        write_header(
+            &mut header2,
+            IcelangErrorType::Runtime,
+            "I'm sorry Dave,\nI'm afraid\r\nI can't\ndo\rthat\n\r\n",
+        )
+        .unwrap();
+        assert_eq!(
+            header2,
+            "Runtime Error: I'm sorry Dave,\n|   I'm afraid\n|   I can't\n|   do\rthat\n|   \n| \n"
+        );
+    }
+
+    #[test]
+    fn test_write_header_too_long() {
+        let mut header1 = String::with_capacity(90);
+        write_header(
+            &mut header1,
+            IcelangErrorType::Runtime,
+            "This is a pretty long message. In fact its just over 80 characters",
+        )
+        .unwrap();
+        assert_eq!(
+            header1,
+            "Runtime Error: This is a pretty long message. In fact its just over 80 character\n|   s\n| \n"
+        );
+
+        let mut header2 = String::with_capacity(357);
+        write_header(
+            &mut header2,
+            IcelangErrorType::Syntax,
+            "\
+Here is my super long message. I hope you like it! I am using it t\
+o unit test the multiline header error formatting for my programming languag\
+e called 'icelang'. This long message will be split into many lines (this ->\
+<- is where the third newline will be put!). Anyway, I hope you liked my mes\
+sage. Have a great day :D",
+        )
+        .unwrap();
+        assert_eq!(
+            header2,
+            "\
+Syntax Error: Here is my super long message. I hope you like it! I am using it t
+|   o unit test the multiline header error formatting for my programming languag
+|   e called 'icelang'. This long message will be split into many lines (this ->
+|   <- is where the third newline will be put!). Anyway, I hope you liked my mes
+|   sage. Have a great day :D
+| 
+"
+        );
+    }
+
     // TODO test write_header, write_source_highlight, and write_error (fully)
 }
