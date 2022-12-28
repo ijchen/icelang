@@ -5,14 +5,14 @@ use static_assertions::const_assert;
 use crate::source_range::SourceRange;
 
 #[derive(Clone, Copy, Debug)]
-pub enum IcelangErrorType {
+pub enum IcelangErrorKind {
     Syntax,
     // TODO remove once this is used
     #[allow(dead_code)]
     Runtime,
 }
 
-impl Display for IcelangErrorType {
+impl Display for IcelangErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Syntax => write!(f, "Syntax"),
@@ -81,13 +81,13 @@ const_assert!(PREFIX.len() < MAX_LEN);
 
 fn write_header(
     f: &mut impl std::fmt::Write,
-    error_type: IcelangErrorType,
+    error_kind: IcelangErrorKind,
     description: &str,
 ) -> std::fmt::Result {
     const MULTILINE_HEADER_INDENT: &str = "  ";
     const_assert!(PREFIX.len() + MULTILINE_HEADER_INDENT.len() < MAX_LEN);
     let mut header_buff = String::with_capacity(MAX_LEN);
-    header_buff.push_str(&format!("{error_type} Error: "));
+    header_buff.push_str(&format!("{error_kind} Error: "));
     let mut multiline_header = false;
     let mut index = 0;
     let chars: Vec<char> = description.chars().collect();
@@ -129,6 +129,8 @@ fn write_header(
 }
 
 fn write_source_highlight(f: &mut impl std::fmt::Write, pos: &SourceRange) -> std::fmt::Result {
+    // TODO Strip leading whitespace on a line ("        error();" becomes "error();")
+
     // Convenience variables
     let start_line_number = pos.start_line();
     let original_start_column = pos.start_col() - 1;
@@ -320,13 +322,13 @@ fn write_source_highlight(f: &mut impl std::fmt::Write, pos: &SourceRange) -> st
 
 pub fn write_error(
     f: &mut impl std::fmt::Write,
-    error_type: IcelangErrorType,
+    error_kind: IcelangErrorKind,
     description: &str,
     pos: &SourceRange<'_>,
-    stack_trace: Option<StackTrace>,
+    stack_trace: Option<&StackTrace>,
 ) -> std::fmt::Result {
     // Error message header
-    write_header(f, error_type, description)?;
+    write_header(f, error_kind, description)?;
 
     // Error location
     writeln!(f, "{PREFIX}{pos}")?;
@@ -337,7 +339,12 @@ pub fn write_error(
 
     // Stack trace (optional)
     if let Some(stack_trace) = stack_trace {
-        write!(f, "{stack_trace}")?;
+        writeln!(f)?;
+        write!(f, "{PREFIX}")?;
+        for stack_trace_line in stack_trace.to_string().lines() {
+            writeln!(f)?;
+            write!(f, "{PREFIX}{stack_trace_line}")?;
+        }
     }
 
     Ok(())
@@ -348,9 +355,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_icelang_error_type_display() {
-        assert_eq!(IcelangErrorType::Syntax.to_string(), "Syntax");
-        assert_eq!(IcelangErrorType::Runtime.to_string(), "Runtime");
+    fn test_icelang_error_kind_display() {
+        assert_eq!(IcelangErrorKind::Syntax.to_string(), "Syntax");
+        assert_eq!(IcelangErrorKind::Runtime.to_string(), "Runtime");
     }
 
     #[test]
@@ -483,13 +490,13 @@ bat();
     #[test]
     fn test_write_header_single_line() {
         let mut header1 = String::with_capacity(27);
-        write_header(&mut header1, IcelangErrorType::Syntax, "Uh oh stinky").unwrap();
+        write_header(&mut header1, IcelangErrorKind::Syntax, "Uh oh stinky").unwrap();
         assert_eq!(header1, "Syntax Error: Uh oh stinky\n");
 
         let mut header2 = String::with_capacity(57);
         write_header(
             &mut header2,
-            IcelangErrorType::Runtime,
+            IcelangErrorKind::Runtime,
             "I'm sorry Dave, I'm afraid I can't do that",
         )
         .unwrap();
@@ -501,7 +508,7 @@ bat();
         let mut header3 = String::with_capacity(81);
         write_header(
             &mut header3,
-            IcelangErrorType::Runtime,
+            IcelangErrorKind::Runtime,
             "This is a pretty long message, but not *too* long (it's 80 chars)",
         )
         .unwrap();
@@ -516,7 +523,7 @@ bat();
         let mut header1 = String::with_capacity(52);
         write_header(
             &mut header1,
-            IcelangErrorType::Syntax,
+            IcelangErrorKind::Syntax,
             "Uh oh stinky\nwith a newline...",
         )
         .unwrap();
@@ -528,7 +535,7 @@ bat();
         let mut header2 = String::with_capacity(83);
         write_header(
             &mut header2,
-            IcelangErrorType::Runtime,
+            IcelangErrorKind::Runtime,
             "I'm sorry Dave,\nI'm afraid\r\nI can't\ndo\rthat\n\r\n",
         )
         .unwrap();
@@ -543,7 +550,7 @@ bat();
         let mut header1 = String::with_capacity(90);
         write_header(
             &mut header1,
-            IcelangErrorType::Runtime,
+            IcelangErrorKind::Runtime,
             "This is a pretty long message. In fact its just over 80 characters",
         )
         .unwrap();
@@ -555,7 +562,7 @@ bat();
         let mut header2 = String::with_capacity(357);
         write_header(
             &mut header2,
-            IcelangErrorType::Syntax,
+            IcelangErrorKind::Syntax,
             "\
 Here is my super long message. I hope you like it! I am using it t\
 o unit test the multiline header error formatting for my programming languag\
@@ -582,7 +589,7 @@ Syntax Error: Here is my super long message. I hope you like it! I am using it t
         let mut header1 = String::with_capacity(134);
         write_header(
             &mut header1,
-            IcelangErrorType::Syntax,
+            IcelangErrorKind::Syntax,
             "This has both a newline here:\nand a line that is too long (this one!) In fact, it's just over 80 characters",
         )
         .unwrap();
@@ -594,7 +601,7 @@ Syntax Error: Here is my super long message. I hope you like it! I am using it t
         let mut header2 = String::with_capacity(389);
         write_header(
             &mut header2,
-            IcelangErrorType::Syntax,
+            IcelangErrorKind::Syntax,
             "\
 Here is my super long message. I hope you like it! I am using it t\
 o unit test the multiline header error formatting for my programming languag\
@@ -803,5 +810,88 @@ bat();
         );
     }
 
-    // TODO test write_source_highlight and write_error FULLY (edge cases!)
+    #[test]
+    fn test_write_error_1() {
+        let source = "\
+fn foo() {
+\tlet num = 0;
+\tlet value = \"Hello, world!\\mNew line\";
+
+\treturn value + \"hi\";
+}
+";
+        let mut err = String::with_capacity(170);
+        let err_kind = IcelangErrorKind::Syntax;
+        let description = "invalid escape sequence in string literal";
+        let pos = SourceRange::new(source, "main.ice", 52, 53);
+        write_error(&mut err, err_kind, description, &pos, None).unwrap();
+        assert_eq!(err, "\
+Syntax Error: invalid escape sequence in string literal
+| main.ice line 3, col 28 to 29
+| 
+|     let value = \"Hello, world!\\mNew line\";
+|                               ^^");
+    }
+
+    #[test]
+    fn test_write_error_2() {
+        let source = "\
+fn foo() {
+\tlet num = 0;
+\tlet value = (41 - 2 * 3) 17 * 2;
+
+\treturn value * 3;
+}           
+";
+        let mut err = String::with_capacity(154);
+        let err_kind = IcelangErrorKind::Syntax;
+        let description = "unexpected token";
+        let pos = SourceRange::new(source, "unexpected_seventeen.ice", 51, 52);
+        write_error(&mut err, err_kind, description, &pos, None).unwrap();
+        assert_eq!(err, "\
+Syntax Error: unexpected token
+| unexpected_seventeen.ice line 3, col 27 to 28
+| 
+|     let value = (41 - 2 * 3) 17 * 2;
+|                              ^^");
+    }
+
+    #[test]
+    fn test_write_error_3() {
+        let source = "\
+fn foo() {
+\tlet num = 0;
+\tlet value = (2 + 4 - 2) / num + 1;
+
+\treturn value * 3;
+}
+
+fn bar(num) {
+\treturn f\"foo returned {foo()}, bar got {num}.\";
+}
+
+println(bar(87));       
+";
+        let source_file_name = "main.ice";
+        let mut err = String::with_capacity(317);
+        let err_kind = IcelangErrorKind::Runtime;
+        let description = "division by zero";
+        let pos = SourceRange::new(source, source_file_name, 38, 54);
+        let mut stack_trace = StackTrace::new();
+        stack_trace.add_bottom("foo()".to_string(), SourceRange::new(source, source_file_name, 38, 54));
+        stack_trace.add_bottom("bar(num)".to_string(), SourceRange::new(source, source_file_name, 122, 126));
+        stack_trace.add_bottom("<global>".to_string(), SourceRange::new(source, source_file_name, 158, 164));
+        write_error(&mut err, err_kind, description, &pos, Some(&stack_trace)).unwrap();
+        assert_eq!(err, "\
+Runtime Error: division by zero
+| main.ice line 3, col 14 to 30
+| 
+|     let value = (2 + 4 - 2) / num + 1;
+|                 ^^^^^^^^^^^^^^^^^
+| 
+| Stack trace (most recent call at the top):
+| ^ foo() main.ice line 3, col 14 to 30
+| ^ bar(num) main.ice line 9, col 25 to 29
+| ^ <global> main.ice line 12, col 9 to 15");
+    }
 }

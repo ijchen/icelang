@@ -90,7 +90,7 @@ impl Display for LexerError<'_> {
             }
         };
 
-        error_formatting::write_error(f, IcelangErrorType::Syntax, &description, self.pos(), None)
+        error_formatting::write_error(f, IcelangErrorKind::Syntax, &description, self.pos(), None)
     }
 }
 

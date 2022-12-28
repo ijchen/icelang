@@ -4,7 +4,7 @@ use crate::source_range::SourceRange;
 
 use super::*;
 
-/// A generic token of any type
+/// A generic token of any kind
 #[derive(Debug)]
 pub enum Token<'source> {
     /// An identifier token
