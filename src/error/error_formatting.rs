@@ -655,7 +655,7 @@ bat();
 ",
         );
 
-        let mut source_highlight = String::with_capacity(0);
+        let mut source_highlight = String::with_capacity(75);
         write_source_highlight(
             &mut source_highlight,
             &SourceRange::new(main_ice.1, main_ice.0, 52, 69),
@@ -674,7 +674,7 @@ bat();
     fn test_write_source_highlight_single_start_tab() {
         let main_ice = ("main.ice", "\tprintln(\"Hello, world!\");");
 
-        let mut source_highlight = String::with_capacity(0);
+        let mut source_highlight = String::with_capacity(61);
         write_source_highlight(
             &mut source_highlight,
             &SourceRange::new(main_ice.1, main_ice.0, 9, 23),
@@ -693,7 +693,7 @@ bat();
     fn test_write_source_highlight_multiple_tabs() {
         let main_ice = ("main.ice", "\t\t  \t println\t(\"Hello,\t\\t\tworld!\"\t);");
 
-        let mut source_highlight = String::with_capacity(0);
+        let mut source_highlight = String::with_capacity(113);
         write_source_highlight(
             &mut source_highlight,
             &SourceRange::new(main_ice.1, main_ice.0, 15, 32),
@@ -708,5 +708,100 @@ bat();
         );
     }
 
-    // TODO test write_source_highlight, and write_error (fully)
+    #[test]
+    fn test_write_source_highlight_trim() {
+        let main_ice = ("main.ice", "\tprintln(2 + 2); // This comment goes on for a long time, and will be trimmed around here (so the rest of this won't even be shown)");
+
+        let mut source_highlight = String::with_capacity(161);
+        write_source_highlight(
+            &mut source_highlight,
+            &SourceRange::new(main_ice.1, main_ice.0, 9, 13),
+        )
+        .unwrap();
+
+        assert_eq!(
+            source_highlight,
+            "\
+|     println(2 + 2); // This comment goes on for a long time, and will be tr...
+|             ^^^^^                                                          ..."
+        );
+    }
+
+    #[test]
+    fn test_write_source_highlight_cutout() {
+        let main_ice = ("main.ice", "\tprintln(1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 100 / 0 + -1);");
+
+        let mut source_highlight = String::with_capacity(106);
+        write_source_highlight(
+            &mut source_highlight,
+            &SourceRange::new(main_ice.1, main_ice.0, 75, 81),
+        )
+        .unwrap();
+
+        assert_eq!(
+            source_highlight,
+            "\
+|     println(1 + 2 +  ... 13 + 14 + 15 + 100 / 0 + -1);
+|                      ...                ^^^^^^^"
+        );
+    }
+
+    #[test]
+    fn test_write_source_highlight_trim_and_cutout() {
+        let main_ice = ("main.ice", "\tprintln(1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 100 / 0 + -1); // This comment is too long and will get cut off");
+
+        let mut source_highlight = String::with_capacity(161);
+        write_source_highlight(
+            &mut source_highlight,
+            &SourceRange::new(main_ice.1, main_ice.0, 75, 81),
+        )
+        .unwrap();
+
+        assert_eq!(
+            source_highlight,
+            "\
+|     println(1 + 2 +  ... 13 + 14 + 15 + 100 / 0 + -1); // This comment is t...
+|                      ...                ^^^^^^^                            ..."
+        );
+    }
+
+    #[test]
+    fn test_write_source_highlight_spill() {
+        let main_ice = ("main.ice", "println(100 / (0 - 0 + 1 - 1 + 2 - 2 + 3 - 3 + 4 - 4 + 5 - 5 + 6 - 6 + 7 - 7 + 8 - 8));");
+
+        let mut source_highlight = String::with_capacity(161);
+        write_source_highlight(
+            &mut source_highlight,
+            &SourceRange::new(main_ice.1, main_ice.0, 8, 84),
+        )
+        .unwrap();
+
+        assert_eq!(
+            source_highlight,
+            "\
+| println(100 / (0 - 0 + 1 - 1 + 2 - 2 + 3 - 3 + 4 - 4 + 5 - 5 + 6 - 6 + 7 - ...
+|         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^>>>"
+        );
+    }
+
+    #[test]
+    fn test_write_source_highlight_err_spill_and_cutout() {
+        let main_ice = ("main.ice", "println(1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 100 / (0 - 0 + 1 - 1 + 2 - 2 + 3 - 3 + 4 - 4 + 5 - 5 + 6 - 6 + 7 - 7 + 8 - 8));");
+
+        let mut source_highlight = String::with_capacity(161);
+        write_source_highlight(
+            &mut source_highlight,
+            &SourceRange::new(main_ice.1, main_ice.0, 74, 150),
+        )
+        .unwrap();
+
+        assert_eq!(
+            source_highlight,
+            "\
+| println(1 + 2 + 3 +  ... 13 + 14 + 15 + 100 / (0 - 0 + 1 - 1 + 2 - 2 + 3 - ...
+|                      ...                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^>>>"
+        );
+    }
+
+    // TODO test write_source_highlight and write_error FULLY (edge cases!)
 }
