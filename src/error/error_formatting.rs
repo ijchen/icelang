@@ -825,12 +825,15 @@ fn foo() {
         let description = "invalid escape sequence in string literal";
         let pos = SourceRange::new(source, "main.ice", 52, 53);
         write_error(&mut err, err_kind, description, &pos, None).unwrap();
-        assert_eq!(err, "\
+        assert_eq!(
+            err,
+            "\
 Syntax Error: invalid escape sequence in string literal
 | main.ice line 3, col 28 to 29
 | 
 |     let value = \"Hello, world!\\mNew line\";
-|                               ^^");
+|                               ^^"
+        );
     }
 
     #[test]
@@ -848,12 +851,15 @@ fn foo() {
         let description = "unexpected token";
         let pos = SourceRange::new(source, "unexpected_seventeen.ice", 51, 52);
         write_error(&mut err, err_kind, description, &pos, None).unwrap();
-        assert_eq!(err, "\
+        assert_eq!(
+            err,
+            "\
 Syntax Error: unexpected token
 | unexpected_seventeen.ice line 3, col 27 to 28
 | 
 |     let value = (41 - 2 * 3) 17 * 2;
-|                              ^^");
+|                              ^^"
+        );
     }
 
     #[test]
@@ -878,11 +884,22 @@ println(bar(87));
         let description = "division by zero";
         let pos = SourceRange::new(source, source_file_name, 38, 54);
         let mut stack_trace = StackTrace::new();
-        stack_trace.add_bottom("foo()".to_string(), SourceRange::new(source, source_file_name, 38, 54));
-        stack_trace.add_bottom("bar(num)".to_string(), SourceRange::new(source, source_file_name, 122, 126));
-        stack_trace.add_bottom("<global>".to_string(), SourceRange::new(source, source_file_name, 158, 164));
+        stack_trace.add_bottom(
+            "foo()".to_string(),
+            SourceRange::new(source, source_file_name, 38, 54),
+        );
+        stack_trace.add_bottom(
+            "bar(num)".to_string(),
+            SourceRange::new(source, source_file_name, 122, 126),
+        );
+        stack_trace.add_bottom(
+            "<global>".to_string(),
+            SourceRange::new(source, source_file_name, 158, 164),
+        );
         write_error(&mut err, err_kind, description, &pos, Some(&stack_trace)).unwrap();
-        assert_eq!(err, "\
+        assert_eq!(
+            err,
+            "\
 Runtime Error: division by zero
 | main.ice line 3, col 14 to 30
 | 
@@ -892,6 +909,7 @@ Runtime Error: division by zero
 | Stack trace (most recent call at the top):
 | ^ foo() main.ice line 3, col 14 to 30
 | ^ bar(num) main.ice line 9, col 25 to 29
-| ^ <global> main.ice line 12, col 9 to 15");
+| ^ <global> main.ice line 12, col 9 to 15"
+        );
     }
 }
