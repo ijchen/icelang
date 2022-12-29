@@ -9,6 +9,8 @@ use super::*;
 pub enum ParseError<'source> {
     /// An unexpected token was encountered
     UnexpectedToken {
+        /// A description of why the token was unexpected
+        why: String,
         /// The position of the unexpected token
         pos: SourceRange<'source>,
     },
@@ -24,8 +26,8 @@ pub enum ParseError<'source> {
 
 impl<'source> ParseError<'source> {
     /// Constructs a new UnexpectedToken ParseError
-    pub fn new_unexpected_token(pos: SourceRange<'source>) -> Self {
-        Self::UnexpectedToken { pos }
+    pub fn new_unexpected_token(why: String, pos: SourceRange<'source>) -> Self {
+        Self::UnexpectedToken { why, pos }
     }
 
     /// Constructs a new UnexpectedEOF ParseError
@@ -36,7 +38,7 @@ impl<'source> ParseError<'source> {
     /// Returns the SourceRange corresponding to this error
     pub fn pos(&self) -> &SourceRange<'source> {
         match self {
-            Self::UnexpectedToken { pos } => pos,
+            Self::UnexpectedToken { why: _, pos } => pos,
             Self::UnexpectedEOF { why: _, pos } => pos,
         }
     }
@@ -45,7 +47,7 @@ impl<'source> ParseError<'source> {
 impl Display for ParseError<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let description = match self {
-            ParseError::UnexpectedToken { pos: _ } => "unexpected token".to_string(),
+            ParseError::UnexpectedToken { why, pos: _ } => format!("unexpected token ({why})"),
             ParseError::UnexpectedEOF { why, pos: _ } => {
                 format!("unexpected end-of-file ({why})")
             }
@@ -65,9 +67,18 @@ mod tests {
     fn test_unexpected_token_display() {
         let nowhere = SourceRange::new(" ", "", 0, 0);
 
-        let parse_error = ParseError::new_unexpected_token(nowhere);
+        let reasons = [
+            "Some reason",
+            "oashjifn aiuhs4h3 fiasune fikau3hf is",
+            "something went wrong",
+        ];
 
-        assert!(parse_error.to_string().contains("unexpected token"));
+        for reason in reasons {
+            let parse_error = ParseError::new_unexpected_token(reason.to_string(), nowhere.clone());
+
+            assert!(parse_error.to_string().contains("unexpected token"));
+            assert!(parse_error.to_string().contains(reason));
+        }
     }
 
     #[test]
@@ -83,6 +94,7 @@ mod tests {
         for reason in reasons {
             let parse_error = ParseError::new_unexpected_eof(reason.to_string(), nowhere.clone());
 
+            assert!(parse_error.to_string().contains("unexpected end-of-file"));
             assert!(parse_error.to_string().contains(reason));
         }
     }

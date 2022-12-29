@@ -77,9 +77,9 @@ impl Display for LexerError<'_> {
                 character: c,
                 pos: _,
             } => match *c {
-                '\n' => "unexpected character '\\n'".to_string(),
-                ' '..='~' => format!("unexpected character '{c}'"),
-                c => format!("unexpected character '{c}' (0x{:0X})", c as u32),
+                '\n' => "illegal character '\\n'".to_string(),
+                ' '..='~' => format!("illegal character '{c}'"),
+                c => format!("illegal character '{c}' (0x{:0X})", c as u32),
             },
             LexerError::UnexpectedEOF { why, pos: _ } => {
                 format!("unexpected end-of-file ({why})")
@@ -112,6 +112,7 @@ mod tests {
 
         for ch in chars {
             let le = LexerError::new_illegal_char(ch, nowhere.clone());
+            assert!(le.to_string().contains("illegal character"));
             match ch {
                 '\n' => {
                     assert!(le.to_string().contains("\\n"));
