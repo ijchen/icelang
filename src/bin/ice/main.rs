@@ -2,10 +2,10 @@ mod args;
 mod debug_info;
 mod repl;
 
-use std::fs;
+use std::{collections::VecDeque, fs};
 
 use clap::Parser;
-use icelang::lexer;
+use icelang::{lexer, parser};
 use repl::enter_repl;
 
 use crate::debug_info::print_source_info;
@@ -35,13 +35,27 @@ fn interpret_file(file_path: &str, show_debug_info: bool) {
     // If debug info is enabled, print token information
     if show_debug_info {
         println!("Tokens:");
-        for token in tokens {
+        for token in &tokens {
             println!("\t{token}");
         }
         println!();
     }
 
-    // TODO parsing
+    // Parsing
+    let ast = match parser::parse(tokens.iter().collect::<VecDeque<_>>()) {
+        Ok(tokens) => tokens,
+        Err(err) => {
+            println!("{err}");
+            return;
+        }
+    };
+
+    // If debug info is enabled, print the AST
+    if show_debug_info {
+        println!("AST:");
+        println!("{ast}");
+        println!();
+    }
 
     // TODO lexing
 }

@@ -1,4 +1,6 @@
-use icelang::lexer;
+use std::collections::VecDeque;
+
+use icelang::{lexer, parser};
 use rustyline::{error::ReadlineError, Editor};
 use typed_arena::Arena;
 
@@ -118,13 +120,27 @@ pub fn enter_repl(mut show_debug_info: bool) {
         // If debug info is enabled, print token information
         if show_debug_info {
             println!("Tokens:");
-            for token in tokens {
+            for token in &tokens {
                 println!("\t{token}");
             }
             println!();
         }
 
-        // TODO parsing
+        // Parsing
+        let ast = match parser::parse(tokens.iter().collect::<VecDeque<_>>()) {
+            Ok(tokens) => tokens,
+            Err(err) => {
+                println!("{err}");
+                continue;
+            }
+        };
+
+        // If debug info is enabled, print the AST
+        if show_debug_info {
+            println!("AST:");
+            println!("{ast}");
+            println!();
+        }
 
         // TODO lexing
     }
