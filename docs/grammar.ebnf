@@ -6,11 +6,10 @@ program = statements;
 
 (* Statements and code blocks *)
 code_block = lbrace , [statements] , rbrace;
-statements = statement , {semicolon , statement};
+statements = statement , {semicolon , statement} , [semicolon];
 statement = expression
           | control_flow_statement
-          | declaration
-          | empty;
+          | declaration;
 control_flow_statement = if_else_statement | loop | match_statement | jump_statement;
 
 (* If statements and related *)

@@ -41,11 +41,10 @@ folder to see some example icelang programs.
 # Anatomy of an icelang program
 An icelang program consists of zero or more statements seperated by semicolons.
 A statement is a single instruction, but may consist of multiple parts. There
-are four different types of statements:
+are three different types of statements:
 1. Expressions
 2. Control-flow statements
 3. Declarations
-4. Empty statements
 
 [Expressions](https://en.wikipedia.org/wiki/Expression_(computer_science)) are
 evaluated to perform general computations, and always evaluate to a value.
@@ -54,7 +53,6 @@ to manipulate the order in which other statements are executed.
 [Declarations](https://en.wikipedia.org/wiki/Declaration_(computer_programming))
 establish the existence of a new variable or function. You will learn more about
 these different kinds of statements as you progress through this guidebook.
-Empty statements are syntactically valid, but do nothing.
 
 As an example, here's a simple icelang program that has multiple different
 expressions, control-flow statements, and declarations:
