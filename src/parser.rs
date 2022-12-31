@@ -461,6 +461,12 @@ pub fn parse<'token, 'source: 'token>(
 
 #[cfg(test)]
 mod tests {
+    // TODO I'd rather that these unit tests don't rely on the lexer, but
+    // it would be quite a hassle to write the tokens out by hand. In the
+    // future, write something to use the lexer to output the rust code for
+    // the vec![] literal, then manually verify and copy-paste them here.
+    use crate::lexer::tokenize;
+
     use super::*;
 
     #[test]
@@ -468,6 +474,18 @@ mod tests {
         let tokens = vec![];
 
         let ast = parse(tokens).unwrap();
+
+        assert_eq!(ast, AstNode::Empty);
+    }
+
+    #[test]
+    fn parse_multiple_empty_statements() {
+        let source_file_name = "multiple empty statements";
+        let source = "\
+;;;;;";
+        let tokens = tokenize(source, source_file_name).unwrap();
+
+        let ast = parse(tokens.iter().collect::<VecDeque<_>>()).unwrap();
 
         assert_eq!(ast, AstNode::Empty);
     }
