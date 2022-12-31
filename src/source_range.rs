@@ -105,6 +105,17 @@ impl<'source> SourceRange<'source> {
     pub fn end_col(&self) -> usize {
         self.col_of(self.end_index)
     }
+
+    /// Returns a clone of this SourceRange with the end position extended to
+    /// the end of the source
+    pub fn extended_to_end(&self) -> Self {
+        SourceRange {
+            entire_source: self.entire_source,
+            source_file_name: self.source_file_name,
+            start_index: self.start_index,
+            end_index: self.entire_source.chars().count() - 1,
+        }
+    }
 }
 
 impl Debug for SourceRange<'_> {

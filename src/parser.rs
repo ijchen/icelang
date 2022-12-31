@@ -2,7 +2,13 @@
 
 use std::collections::VecDeque;
 
-use crate::{ast::AstNode, error::ParseError, keyword::Keyword, token::Token};
+use crate::{
+    ast::{AstNode, FunctionParameters},
+    error::ParseError,
+    keyword::Keyword,
+    source_range::SourceRange,
+    token::Token,
+};
 
 /// Simplifies the given AstNode recursively
 fn simplify_node(node: AstNode) -> AstNode {
@@ -31,18 +37,245 @@ fn simplify_node(node: AstNode) -> AstNode {
                 AstNode::Statements { statements }
             }
         }
+        AstNode::FunctionDeclaration {
+            name,
+            parameters,
+            body,
+        } => AstNode::FunctionDeclaration {
+            name,
+            parameters,
+            body: Box::new(simplify_node(*body)),
+        },
+    }
+}
+
+/// Parses a function declaration's parameters from a token stream
+fn parse_function_declaration_parameters<'source>(
+    token_stream: &mut VecDeque<&Token<'source>>,
+    start_pos: &SourceRange<'source>,
+) -> Result<FunctionParameters, ParseError<'source>> {
+    match token_stream.front() {
+        // Variadic function
+        Some(Token::Punctuator(token)) if token.punctuator() == "[" => {
+            // Consume the "["
+            token_stream.pop_front();
+
+            // Read the parameter identifier
+            let parameter_name = match token_stream.pop_front() {
+                Some(Token::Ident(token)) => token.ident(),
+                Some(token) => {
+                    return Err(ParseError::new_unexpected_token(
+                        "expected function parameter name".to_string(),
+                        token.pos().clone(),
+                    ));
+                }
+                None => {
+                    return Err(ParseError::new_unexpected_eof(
+                        "incomplete function declaration".to_string(),
+                        start_pos.extended_to_end(),
+                    ));
+                }
+            };
+
+            // Expect a closing bracket
+            match token_stream.pop_front() {
+                Some(Token::Punctuator(token)) if token.punctuator() == "]" => {}
+                Some(token) => {
+                    return Err(ParseError::new_unexpected_token(
+                        "expected closing bracket in function parameters".to_string(),
+                        token.pos().clone(),
+                    ));
+                }
+                None => {
+                    return Err(ParseError::new_unexpected_eof(
+                        "incomplete function declaration".to_string(),
+                        start_pos.extended_to_end(),
+                    ));
+                }
+            };
+
+            Ok(FunctionParameters::Variadic {
+                parameter_name: parameter_name.to_string(),
+            })
+        }
+
+        // Nullary (zero parameter) function
+        Some(Token::Punctuator(token)) if token.punctuator() == ")" => {
+            Ok(FunctionParameters::FixedArity { parameters: vec![] })
+        }
+
+        // One-or-more-ary function (technically, multiary means 2 or more)
+        Some(Token::Ident(first_parameter_name_token)) => {
+            // Read the first parameter
+            let mut parameters = vec![first_parameter_name_token.ident().to_string()];
+            token_stream.pop_front();
+
+            // Read any subsequent parameters
+            loop {
+                match token_stream.front() {
+                    Some(Token::Punctuator(token)) if token.punctuator() == "," => {
+                        // Consume the ","
+                        token_stream.pop_front();
+
+                        // Read the next parameter name
+                        match token_stream.front() {
+                            Some(Token::Ident(next_parameter_token)) => {
+                                parameters.push(next_parameter_token.ident().to_string());
+                            }
+                            // If this was the optional comma after the last
+                            // parameter, we're done
+                            Some(Token::Punctuator(closing_paren_token))
+                                if closing_paren_token.punctuator() == ")" =>
+                            {
+                                break
+                            }
+                            Some(token) => {
+                                return Err(ParseError::new_unexpected_token(
+                                    "invalid function parameter".to_string(),
+                                    token.pos().clone(),
+                                ));
+                            }
+                            None => {
+                                return Err(ParseError::new_unexpected_eof(
+                                    "incomplete function declaration".to_string(),
+                                    start_pos.extended_to_end(),
+                                ));
+                            }
+                        };
+                    }
+                    _ => break,
+                }
+            }
+
+            Ok(FunctionParameters::FixedArity { parameters })
+        }
+
+        // Invalid arguments
+        Some(token) => {
+            return Err(ParseError::new_unexpected_token(
+                "expected parameter list in function declaration".to_string(),
+                token.pos().clone(),
+            ));
+        }
+        None => {
+            return Err(ParseError::new_unexpected_eof(
+                "incomplete function declaration".to_string(),
+                start_pos.extended_to_end(),
+            ));
+        }
     }
 }
 
 /// Parses a function declaration statement from a token stream
 ///
 /// # Panics
-/// - If the token stream doesn't immediately start with a function declaration statement
+/// - If the token stream doesn't immediately start with a function declaration
+/// statement
 fn parse_function_declaration<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode, ParseError<'source>> {
-    let _ = token_stream;
-    todo!()
+    // Expect a "fn" token
+    let start_pos = match token_stream.pop_front() {
+        Some(Token::Keyword(token)) if token.keyword() == Keyword::Fn => token.pos(),
+        _ => panic!("invalid function declaration"),
+    };
+
+    // Read the function name
+    let function_name = match token_stream.pop_front() {
+        Some(Token::Ident(token)) => token.ident(),
+        Some(token) => {
+            return Err(ParseError::new_unexpected_token(
+                "expected function name".to_string(),
+                token.pos().clone(),
+            ));
+        }
+        None => {
+            return Err(ParseError::new_unexpected_eof(
+                "incomplete function declaration".to_string(),
+                start_pos.extended_to_end(),
+            ));
+        }
+    };
+
+    // Expect an opening parenthesis
+    match token_stream.pop_front() {
+        Some(Token::Punctuator(token)) if token.punctuator() == "(" => {}
+        Some(token) => {
+            return Err(ParseError::new_unexpected_token(
+                "expected opening parenthesis in function declaration".to_string(),
+                token.pos().clone(),
+            ));
+        }
+        None => {
+            return Err(ParseError::new_unexpected_eof(
+                "incomplete function declaration".to_string(),
+                start_pos.extended_to_end(),
+            ));
+        }
+    };
+
+    // Parse function parameters
+    let parameters = parse_function_declaration_parameters(token_stream, start_pos)?;
+
+    // Expect a closing parenthesis
+    match token_stream.pop_front() {
+        Some(Token::Punctuator(token)) if token.punctuator() == ")" => {}
+        Some(token) => {
+            return Err(ParseError::new_unexpected_token(
+                "expected closing parenthesis in function declaration".to_string(),
+                token.pos().clone(),
+            ));
+        }
+        None => {
+            return Err(ParseError::new_unexpected_eof(
+                "incomplete function declaration".to_string(),
+                start_pos.extended_to_end(),
+            ));
+        }
+    };
+
+    // Expect an opening curly brace
+    match token_stream.pop_front() {
+        Some(Token::Punctuator(token)) if token.punctuator() == "{" => {}
+        Some(token) => {
+            return Err(ParseError::new_unexpected_token(
+                "expected opening curly brace in function declaration".to_string(),
+                token.pos().clone(),
+            ));
+        }
+        None => {
+            return Err(ParseError::new_unexpected_eof(
+                "incomplete function declaration".to_string(),
+                start_pos.extended_to_end(),
+            ));
+        }
+    };
+
+    // Parse function body
+    let function_body = parse_statements(token_stream)?;
+
+    // Expect a closing curly brace
+    match token_stream.pop_front() {
+        Some(Token::Punctuator(token)) if token.punctuator() == "}" => {}
+        Some(token) => {
+            return Err(ParseError::new_unexpected_token(
+                "expected closing curly brace in function declaration".to_string(),
+                token.pos().clone(),
+            ));
+        }
+        None => {
+            return Err(ParseError::new_unexpected_eof(
+                "incomplete function declaration".to_string(),
+                start_pos.extended_to_end(),
+            ));
+        }
+    };
+
+    Ok(AstNode::FunctionDeclaration {
+        name: function_name.to_string(),
+        parameters,
+        body: Box::new(function_body),
+    })
 }
 
 /// Parses a variable declaration statement from a token stream
@@ -238,4 +471,6 @@ mod tests {
 
         assert_eq!(ast, AstNode::Empty);
     }
+
+    // TODO much more extensive unit testing
 }
