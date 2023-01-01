@@ -2,11 +2,10 @@
  * Complete EBNF grammar for icelang (without regard for whitespace and comments)
  *)
 
-program = statements;
+program = [statement , {semicolon , statement} , [semicolon]];
 
 (* Statements and code blocks *)
-code_block = lbrace , [statements] , rbrace;
-statements = statement , {semicolon , statement} , [semicolon];
+code_block = lbrace , [statement , {semicolon , statement} , [semicolon]] , rbrace;
 statement = expression
           | control_flow_statement
           | declaration;

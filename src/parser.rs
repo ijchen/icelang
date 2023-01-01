@@ -3,51 +3,12 @@
 use std::collections::VecDeque;
 
 use crate::{
-    ast::{AstNode, FunctionParameters},
+    ast::{Ast, AstNode, FunctionParameters},
     error::ParseError,
     keyword::Keyword,
     source_range::SourceRange,
     token::Token,
 };
-
-/// Simplifies the given AstNode recursively
-fn simplify_node(node: AstNode) -> AstNode {
-    match node {
-        AstNode::Empty => node,
-        AstNode::Statements { mut statements } => {
-            // Simplify each statement, removing any empty statements
-            statements = statements
-                .into_iter()
-                .filter_map(|node| match node {
-                    AstNode::Empty => None,
-                    node => Some(simplify_node(node)),
-                })
-                .collect();
-
-            // An empty list of statements can be simplified to an empty AstNode
-            if statements.is_empty() {
-                AstNode::Empty
-            }
-            // A list of one statement can be simplified to just the statement itself
-            else if statements.len() == 1 {
-                statements.swap_remove(0)
-            }
-            // No simplifying if the list has two or more statements
-            else {
-                AstNode::Statements { statements }
-            }
-        }
-        AstNode::FunctionDeclaration {
-            name,
-            parameters,
-            body,
-        } => AstNode::FunctionDeclaration {
-            name,
-            parameters,
-            body: Box::new(simplify_node(*body)),
-        },
-    }
-}
 
 /// Parses a function declaration's parameters from a token stream
 fn parse_function_declaration_parameters<'source>(
@@ -234,47 +195,13 @@ fn parse_function_declaration<'source>(
         }
     };
 
-    // Expect an opening curly brace
-    match token_stream.pop_front() {
-        Some(Token::Punctuator(token)) if token.punctuator() == "{" => {}
-        Some(token) => {
-            return Err(ParseError::new_unexpected_token(
-                "expected opening curly brace in function declaration".to_string(),
-                token.pos().clone(),
-            ));
-        }
-        None => {
-            return Err(ParseError::new_unexpected_eof(
-                "incomplete function declaration".to_string(),
-                start_pos.extended_to_end(),
-            ));
-        }
-    };
-
     // Parse function body
-    let function_body = parse_statements(token_stream)?;
-
-    // Expect a closing curly brace
-    match token_stream.pop_front() {
-        Some(Token::Punctuator(token)) if token.punctuator() == "}" => {}
-        Some(token) => {
-            return Err(ParseError::new_unexpected_token(
-                "expected closing curly brace in function declaration".to_string(),
-                token.pos().clone(),
-            ));
-        }
-        None => {
-            return Err(ParseError::new_unexpected_eof(
-                "incomplete function declaration".to_string(),
-                start_pos.extended_to_end(),
-            ));
-        }
-    };
+    let body = parse_code_block(token_stream)?;
 
     Ok(AstNode::FunctionDeclaration {
         name: function_name.to_string(),
         parameters,
-        body: Box::new(function_body),
+        body,
     })
 }
 
@@ -353,63 +280,60 @@ fn parse_expression<'source>(
 }
 
 /// Parses exactly one statement from a token stream
+///
+/// # Panics
+/// - If the token stream is empty
 fn parse_statement<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode, ParseError<'source>> {
-    match token_stream.front() {
-        // Empty statement (EOF)
-        None => Ok(AstNode::Empty),
+    assert!(!token_stream.is_empty());
 
-        // Empty statement (ended with a semicolon)
-        Some(Token::Punctuator(token)) if token.punctuator() == ";" => Ok(AstNode::Empty),
-
+    match token_stream.pop_front().unwrap() {
         // Function declaration
-        Some(Token::Keyword(token)) if token.keyword() == Keyword::Fn => {
+        Token::Keyword(token) if token.keyword() == Keyword::Fn => {
             parse_function_declaration(token_stream)
         }
 
         // Variable declaration
-        Some(Token::Keyword(token)) if token.keyword() == Keyword::Let => {
+        Token::Keyword(token) if token.keyword() == Keyword::Let => {
             parse_variable_declaration(token_stream)
         }
 
         // If-else statement
-        Some(Token::Keyword(token)) if token.keyword() == Keyword::If => {
+        Token::Keyword(token) if token.keyword() == Keyword::If => {
             parse_if_else_statement(token_stream)
         }
 
         // Simple loop
-        Some(Token::Keyword(token)) if token.keyword() == Keyword::Loop => {
+        Token::Keyword(token) if token.keyword() == Keyword::Loop => {
             parse_simple_loop(token_stream)
         }
 
         // While loop
-        Some(Token::Keyword(token)) if token.keyword() == Keyword::While => {
+        Token::Keyword(token) if token.keyword() == Keyword::While => {
             parse_while_loop(token_stream)
         }
 
         // For loop
-        Some(Token::Keyword(token)) if token.keyword() == Keyword::For => {
-            parse_for_loop(token_stream)
-        }
+        Token::Keyword(token) if token.keyword() == Keyword::For => parse_for_loop(token_stream),
 
         // Match statement
-        Some(Token::Keyword(token)) if token.keyword() == Keyword::Match => {
+        Token::Keyword(token) if token.keyword() == Keyword::Match => {
             parse_match_statement(token_stream)
         }
 
         // Break statement
-        Some(Token::Keyword(token)) if token.keyword() == Keyword::Break => {
+        Token::Keyword(token) if token.keyword() == Keyword::Break => {
             todo!()
         }
 
         // Continue statement
-        Some(Token::Keyword(token)) if token.keyword() == Keyword::Continue => {
+        Token::Keyword(token) if token.keyword() == Keyword::Continue => {
             todo!()
         }
 
         // Return statement
-        Some(Token::Keyword(token)) if token.keyword() == Keyword::Return => {
+        Token::Keyword(token) if token.keyword() == Keyword::Return => {
             todo!()
         }
 
@@ -418,45 +342,126 @@ fn parse_statement<'source>(
     }
 }
 
-/// Parses a single group of multiple statements from a token stream
-fn parse_statements<'source>(
+/// Parses a single code block (which may contain many statements) from a token
+/// stream
+///
+/// # Panics
+/// - If the token stream is empty
+fn parse_code_block<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
-) -> Result<AstNode, ParseError<'source>> {
+) -> Result<Vec<AstNode>, ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
+    // Expect an opening curly brace
+    let start_pos = match token_stream.pop_front().unwrap() {
+        Token::Punctuator(token) if token.punctuator() == "{" => token.pos(),
+        token => {
+            return Err(ParseError::new_unexpected_token(
+                "expected opening curly brace in code block".to_string(),
+                token.pos().clone(),
+            ));
+        }
+    };
+
+    // Parse the statements in the code block
     let mut statements = Vec::new();
+    loop {
+        match token_stream.front() {
+            Some(Token::Punctuator(token)) if token.punctuator() == "}" => {
+                // Consume the "}"
+                token_stream.pop_front();
 
-    statements.push(parse_statement(token_stream)?);
-    while matches!(token_stream.front(), Some(&Token::Punctuator(token)) if token.punctuator() == ";")
-    {
-        // Consume the ';'
-        token_stream.pop_front();
+                // Code block is done
+                break;
+            }
+            Some(_) => {
+                // Parse the next statement
+                statements.push(parse_statement(token_stream)?);
 
-        // Parse the next statement
-        statements.push(parse_statement(token_stream)?);
+                match token_stream.front() {
+                    Some(Token::Punctuator(token)) if token.punctuator() == "}" => {
+                        // Consume the "}"
+                        token_stream.pop_front();
+
+                        // Code block is done
+                        break;
+                    }
+
+                    Some(Token::Punctuator(token)) if token.punctuator() == ";" => {
+                        // Consume the ";"
+                        token_stream.pop_front();
+
+                        continue;
+                    }
+
+                    // The next token should only ever be a "}" or ";", so this
+                    // is a syntax error
+                    Some(token) => {
+                        return Err(ParseError::new_unexpected_token(
+                            "unexpected token in code block".to_string(),
+                            token.pos().clone(),
+                        ));
+                    }
+
+                    // If that's the end of the token stream, continue and we'll
+                    // return a ParseError in the next loop iteration
+                    None => continue,
+                }
+            }
+            None => {
+                return Err(ParseError::new_unexpected_eof(
+                    "incomplete code block (missing closing curly brace)".to_string(),
+                    start_pos.extended_to_end(),
+                ));
+            }
+        }
     }
 
-    Ok(AstNode::Statements { statements })
+    Ok(statements)
 }
 
 /// Reads a list of tokens and produces an abstract syntax tree
 pub fn parse<'token, 'source: 'token>(
     tokens: impl Into<VecDeque<&'token Token<'source>>>,
-) -> Result<AstNode, ParseError<'source>> {
-    // Convert `tokens` to a VecDeque, since we're going to need to pop from the front often
-    let mut tokens: VecDeque<&Token> = tokens.into();
+) -> Result<Ast, ParseError<'source>> {
+    // Convert `tokens` to a VecDeque, since we're going to need to pop from the
+    // front often
+    let mut token_stream: VecDeque<&Token> = tokens.into();
 
-    // A program's AST is just a bunch of statements
-    let root = parse_statements(&mut tokens)?;
+    // A program's AST is just a bunch of statements, so parse them
+    let mut statements = Vec::new();
+    while !token_stream.is_empty() {
+        // Parse the next statement
+        statements.push(parse_statement(&mut token_stream)?);
 
-    // Ensure there are no remaining tokens
-    if !tokens.is_empty() {
-        return Err(ParseError::UnexpectedToken {
-            why: "no tokens allowed after last statement".to_string(),
-            pos: tokens[0].pos().clone(),
-        });
+        match token_stream.front() {
+            Some(Token::Punctuator(token)) if token.punctuator() == ";" => {
+                // Consume the ";"
+                token_stream.pop_front();
+
+                continue;
+            }
+
+            // If that's the end of the token stream, we're done
+            None => break,
+
+            // The next token should only ever be a ";", so this is a syntax
+            // error
+            Some(token) => {
+                return Err(ParseError::new_unexpected_token(
+                    // Very generic error message for a very generic error
+                    "unexpected token".to_string(),
+                    token.pos().clone(),
+                ));
+            }
+        }
     }
 
-    // Return the AST (simplified first)
-    Ok(simplify_node(root))
+    // Ensure there are no remaining tokens
+    assert!(token_stream.is_empty());
+
+    // Return the AST
+    Ok(Ast { statements })
 }
 
 #[cfg(test)]
@@ -465,7 +470,7 @@ mod tests {
     // it would be quite a hassle to write the tokens out by hand. In the
     // future, write something to use the lexer to output the rust code for
     // the vec![] literal, then manually verify and copy-paste them here.
-    use crate::lexer::tokenize;
+    // use crate::lexer::tokenize;
 
     use super::*;
 
@@ -475,19 +480,7 @@ mod tests {
 
         let ast = parse(tokens).unwrap();
 
-        assert_eq!(ast, AstNode::Empty);
-    }
-
-    #[test]
-    fn parse_multiple_empty_statements() {
-        let source_file_name = "multiple empty statements";
-        let source = "\
-;;;;;";
-        let tokens = tokenize(source, source_file_name).unwrap();
-
-        let ast = parse(tokens.iter().collect::<VecDeque<_>>()).unwrap();
-
-        assert_eq!(ast, AstNode::Empty);
+        assert_eq!(ast, Ast { statements: vec![] });
     }
 
     // TODO much more extensive unit testing

@@ -32,15 +32,6 @@ impl Display for FunctionParameters {
 /// Represents a node in an abstract syntax tree (AST)
 #[derive(Debug, PartialEq, Eq)]
 pub enum AstNode {
-    /// An empty AstNode
-    Empty,
-
-    /// A list of multiple statements
-    Statements {
-        /// The list of statements, in order
-        statements: Vec<AstNode>,
-    },
-
     /// A function declaration
     FunctionDeclaration {
         /// The name of the function
@@ -50,7 +41,7 @@ pub enum AstNode {
         parameters: FunctionParameters,
 
         /// The body of the function
-        body: Box<AstNode>,
+        body: Vec<AstNode>,
     },
 }
 
@@ -60,18 +51,13 @@ impl Display for AstNode {
             f,
             "{}",
             match self {
-                AstNode::Empty => format_as_node("[Empty]", vec![]),
-                AstNode::Statements { statements } => format_as_node(
-                    "[Statements]",
-                    statements.iter().map(AstNode::to_string).collect()
-                ),
                 AstNode::FunctionDeclaration {
                     name,
                     parameters,
                     body,
                 } => format_as_node(
                     &format!("[Function Declaration] fn {name}({parameters})"),
-                    vec![body.to_string()]
+                    body.iter().map(AstNode::to_string).collect()
                 ),
             }
         )
@@ -143,36 +129,10 @@ mod tests {
     }
 
     #[test]
-    fn test_ast_node_display_empty() {
-        let node = AstNode::Empty;
-
-        assert_eq!(node.to_string(), "● [Empty]");
-    }
-
-    #[test]
-    fn test_ast_node_display_statements() {
-        // TODO make these not all the same once we have more AstNode kinds
-        let node = AstNode::Statements {
-            statements: vec![AstNode::Empty, AstNode::Empty, AstNode::Empty],
-        };
-
-        assert_eq!(
-            node.to_string(),
-            "\
-● [Statements]
-├─● [Empty]
-├─● [Empty]
-└─● [Empty]"
-        );
-    }
-
-    #[test]
     fn test_ast_node_display_function_declaration_nullary() {
         // This was my 69th unit test :)
         // TODO make this return the funny number once we have expressions
-        let body = Box::new(AstNode::Statements {
-            statements: vec![AstNode::Empty],
-        });
+        let body = vec![];
         let parameters = FunctionParameters::FixedArity { parameters: vec![] };
         let node = AstNode::FunctionDeclaration {
             name: "get_funny_number".to_string(),
@@ -183,18 +143,14 @@ mod tests {
         assert_eq!(
             node.to_string(),
             "\
-● [Function Declaration] fn get_funny_number()
-└─● [Statements]
-  └─● [Empty]"
+● [Function Declaration] fn get_funny_number()"
         );
     }
 
     #[test]
     fn test_ast_node_display_function_declaration_unary() {
-        // TODO make these not all the same once we have more AstNode kinds
-        let body = Box::new(AstNode::Statements {
-            statements: vec![AstNode::Empty, AstNode::Empty, AstNode::Empty],
-        });
+        // TODO add a body once we have more AstNode kinds
+        let body = vec![];
         let parameters = FunctionParameters::FixedArity {
             parameters: vec!["num".to_string()],
         };
@@ -207,20 +163,14 @@ mod tests {
         assert_eq!(
             node.to_string(),
             "\
-● [Function Declaration] fn square(num)
-└─● [Statements]
-  ├─● [Empty]
-  ├─● [Empty]
-  └─● [Empty]"
+● [Function Declaration] fn square(num)"
         );
     }
 
     #[test]
     fn test_ast_node_display_function_declaration_binary() {
-        // TODO make these not all the same once we have more AstNode kinds
-        let body = Box::new(AstNode::Statements {
-            statements: vec![AstNode::Empty, AstNode::Empty, AstNode::Empty],
-        });
+        // TODO add a body once we have more AstNode kinds
+        let body = vec![];
         let parameters = FunctionParameters::FixedArity {
             parameters: vec!["width".to_string(), "height".to_string()],
         };
@@ -233,20 +183,14 @@ mod tests {
         assert_eq!(
             node.to_string(),
             "\
-● [Function Declaration] fn calculate_area(width, height)
-└─● [Statements]
-  ├─● [Empty]
-  ├─● [Empty]
-  └─● [Empty]"
+● [Function Declaration] fn calculate_area(width, height)"
         );
     }
 
     #[test]
     fn test_ast_node_display_function_declaration_variadic() {
-        // TODO make these not all the same once we have more AstNode kinds
-        let body = Box::new(AstNode::Statements {
-            statements: vec![AstNode::Empty, AstNode::Empty, AstNode::Empty],
-        });
+        // TODO add a body once we have more AstNode kinds
+        let body = vec![];
         let parameters = FunctionParameters::Variadic {
             parameter_name: "numbers".to_string(),
         };
@@ -259,11 +203,7 @@ mod tests {
         assert_eq!(
             node.to_string(),
             "\
-● [Function Declaration] fn sum([numbers])
-└─● [Statements]
-  ├─● [Empty]
-  ├─● [Empty]
-  └─● [Empty]"
+● [Function Declaration] fn sum([numbers])"
         );
     }
 }
