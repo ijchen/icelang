@@ -3,7 +3,7 @@
 use std::collections::VecDeque;
 
 use crate::{
-    ast::{Ast, AstNode, FunctionParameters},
+    ast::{Ast, AstNode, AstNodeFunctionDeclaration, FunctionParameters},
     error::ParseError,
     keyword::Keyword,
     source_range::SourceRange,
@@ -134,7 +134,7 @@ fn parse_function_declaration_parameters<'source>(
 /// statement
 fn parse_function_declaration<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
-) -> Result<AstNode, ParseError<'source>> {
+) -> Result<AstNode<'source>, ParseError<'source>> {
     // Expect a "fn" token
     let start_pos = match token_stream.pop_front() {
         Some(Token::Keyword(token)) if token.keyword() == Keyword::Fn => token.pos(),
@@ -196,13 +196,15 @@ fn parse_function_declaration<'source>(
     };
 
     // Parse function body
-    let body = parse_code_block(token_stream)?;
+    let (body, body_pos) = parse_code_block(token_stream)?;
 
-    Ok(AstNode::FunctionDeclaration {
-        name: function_name.to_string(),
+    Ok(AstNodeFunctionDeclaration::new(
+        function_name.to_string(),
         parameters,
         body,
-    })
+        start_pos.extended_to(&body_pos),
+    )
+    .into())
 }
 
 /// Parses a variable declaration statement from a token stream
@@ -211,7 +213,7 @@ fn parse_function_declaration<'source>(
 /// - If the token stream doesn't immediately start with a variable declaration statement
 fn parse_variable_declaration<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
-) -> Result<AstNode, ParseError<'source>> {
+) -> Result<AstNode<'source>, ParseError<'source>> {
     let _ = token_stream;
     todo!()
 }
@@ -222,7 +224,7 @@ fn parse_variable_declaration<'source>(
 /// - If the token stream doesn't immediately start with an if-else statement
 fn parse_if_else_statement<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
-) -> Result<AstNode, ParseError<'source>> {
+) -> Result<AstNode<'source>, ParseError<'source>> {
     let _ = token_stream;
     todo!()
 }
@@ -233,7 +235,7 @@ fn parse_if_else_statement<'source>(
 /// - If the token stream doesn't immediately start with a simple loop
 fn parse_simple_loop<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
-) -> Result<AstNode, ParseError<'source>> {
+) -> Result<AstNode<'source>, ParseError<'source>> {
     let _ = token_stream;
     todo!()
 }
@@ -244,7 +246,7 @@ fn parse_simple_loop<'source>(
 /// - If the token stream doesn't immediately start with a while loop
 fn parse_while_loop<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
-) -> Result<AstNode, ParseError<'source>> {
+) -> Result<AstNode<'source>, ParseError<'source>> {
     let _ = token_stream;
     todo!()
 }
@@ -255,7 +257,7 @@ fn parse_while_loop<'source>(
 /// - If the token stream doesn't immediately start with a for loop
 fn parse_for_loop<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
-) -> Result<AstNode, ParseError<'source>> {
+) -> Result<AstNode<'source>, ParseError<'source>> {
     let _ = token_stream;
     todo!()
 }
@@ -266,7 +268,7 @@ fn parse_for_loop<'source>(
 /// - If the token stream doesn't immediately start with a match statement
 fn parse_match_statement<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
-) -> Result<AstNode, ParseError<'source>> {
+) -> Result<AstNode<'source>, ParseError<'source>> {
     let _ = token_stream;
     todo!()
 }
@@ -274,7 +276,7 @@ fn parse_match_statement<'source>(
 /// Parses an expression from a token stream
 fn parse_expression<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
-) -> Result<AstNode, ParseError<'source>> {
+) -> Result<AstNode<'source>, ParseError<'source>> {
     let _ = token_stream;
     todo!()
 }
@@ -285,7 +287,7 @@ fn parse_expression<'source>(
 /// - If the token stream is empty
 fn parse_statement<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
-) -> Result<AstNode, ParseError<'source>> {
+) -> Result<AstNode<'source>, ParseError<'source>> {
     assert!(!token_stream.is_empty());
 
     match token_stream.pop_front().unwrap() {
@@ -349,7 +351,7 @@ fn parse_statement<'source>(
 /// - If the token stream is empty
 fn parse_code_block<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
-) -> Result<Vec<AstNode>, ParseError<'source>> {
+) -> Result<(Vec<AstNode<'source>>, SourceRange<'source>), ParseError<'source>> {
     assert!(!token_stream.is_empty());
 
     // Expect an opening curly brace
@@ -362,12 +364,16 @@ fn parse_code_block<'source>(
             ));
         }
     };
+    let pos;
 
     // Parse the statements in the code block
     let mut statements = Vec::new();
     loop {
         match token_stream.front() {
             Some(Token::Punctuator(token)) if token.punctuator() == "}" => {
+                // Update pos
+                pos = start_pos.extended_to(token.pos());
+
                 // Consume the "}"
                 token_stream.pop_front();
 
@@ -380,6 +386,9 @@ fn parse_code_block<'source>(
 
                 match token_stream.front() {
                     Some(Token::Punctuator(token)) if token.punctuator() == "}" => {
+                        // Update pos
+                        pos = start_pos.extended_to(token.pos());
+
                         // Consume the "}"
                         token_stream.pop_front();
 
@@ -417,13 +426,13 @@ fn parse_code_block<'source>(
         }
     }
 
-    Ok(statements)
+    Ok((statements, pos))
 }
 
 /// Reads a list of tokens and produces an abstract syntax tree
 pub fn parse<'token, 'source: 'token>(
     tokens: impl Into<VecDeque<&'token Token<'source>>>,
-) -> Result<Ast, ParseError<'source>> {
+) -> Result<Ast<'source>, ParseError<'source>> {
     // Convert `tokens` to a VecDeque, since we're going to need to pop from the
     // front often
     let mut token_stream: VecDeque<&Token> = tokens.into();
