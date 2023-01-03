@@ -7,12 +7,14 @@ use super::*;
 /// Represents a node in an abstract syntax tree (AST)
 #[derive(Debug, PartialEq, Eq)]
 pub enum AstNode<'source> {
-    /// A function declaration
+    /// A function declaration node
     FunctionDeclaration(AstNodeFunctionDeclaration<'source>),
     /// A variable access node
     VariableAccess(AstNodeVariableAccess<'source>),
-    /// A literal
+    /// A literal node
     Literal(AstNodeLiteral<'source>),
+    /// A type cast node
+    TypeCast(AstNodeTypeCast<'source>),
 }
 
 impl<'source> AstNode<'source> {
@@ -22,6 +24,7 @@ impl<'source> AstNode<'source> {
             AstNode::FunctionDeclaration(node) => node.pos(),
             AstNode::VariableAccess(node) => node.pos(),
             AstNode::Literal(node) => node.pos(),
+            AstNode::TypeCast(node) => node.pos(),
         }
     }
     /// Returns a mutable reference to the position in the source code of this
@@ -31,6 +34,7 @@ impl<'source> AstNode<'source> {
             AstNode::FunctionDeclaration(node) => node.pos_mut(),
             AstNode::VariableAccess(node) => node.pos_mut(),
             AstNode::Literal(node) => node.pos_mut(),
+            AstNode::TypeCast(node) => node.pos_mut(),
         }
     }
 }
@@ -44,6 +48,7 @@ impl Display for AstNode<'_> {
                 AstNode::FunctionDeclaration(node) => node.to_string(),
                 AstNode::VariableAccess(node) => node.to_string(),
                 AstNode::Literal(node) => node.to_string(),
+                AstNode::TypeCast(node) => node.to_string(),
             }
         )
     }
@@ -61,3 +66,4 @@ macro_rules! impl_from_specific_ast_node {
 impl_from_specific_ast_node!(AstNodeFunctionDeclaration, FunctionDeclaration);
 impl_from_specific_ast_node!(AstNodeVariableAccess, VariableAccess);
 impl_from_specific_ast_node!(AstNodeLiteral, Literal);
+impl_from_specific_ast_node!(AstNodeTypeCast, TypeCast);

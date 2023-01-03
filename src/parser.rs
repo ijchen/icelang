@@ -4,8 +4,8 @@ use std::collections::VecDeque;
 
 use crate::{
     ast::{
-        Ast, AstNode, AstNodeFunctionDeclaration, AstNodeLiteral, AstNodeVariableAccess,
-        FunctionParameters,
+        Ast, AstNode, AstNodeFunctionDeclaration, AstNodeLiteral, AstNodeTypeCast,
+        AstNodeVariableAccess, FunctionParameters,
     },
     error::ParseError,
     keyword::Keyword,
@@ -323,8 +323,52 @@ fn parse_parenthesized_expression<'source>(
 fn parse_type_cast_expression<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
-    let _ = token_stream;
-    todo!()
+    // Expect a type keyword
+    let (start_pos, new_type) = match token_stream.pop_front() {
+        Some(Token::Keyword(token)) if token.keyword().can_be_type() => {
+            (token.pos(), token.keyword().icelang_type().unwrap())
+        }
+        _ => panic!("invalid type cast expression"),
+    };
+
+    // Expect an opening parenthesis
+    match token_stream.pop_front() {
+        Some(Token::Punctuator(token)) if token.punctuator() == "(" => token.pos(),
+        Some(token) => {
+            return Err(ParseError::new_unexpected_token(
+                "expected closing parenthesis in type cast expression".to_string(),
+                token.pos().clone(),
+            ));
+        }
+        None => {
+            return Err(ParseError::new_unexpected_eof(
+                "incomplete type cast expression".to_string(),
+                start_pos.extended_to_end(),
+            ));
+        }
+    };
+
+    // Parse the expression
+    let expression = parse_expression(token_stream)?;
+
+    // Expect a closing parenthesis
+    let end_pos = match token_stream.pop_front() {
+        Some(Token::Punctuator(token)) if token.punctuator() == ")" => token.pos(),
+        Some(token) => {
+            return Err(ParseError::new_unexpected_token(
+                "expected closing parenthesis in type cast expression".to_string(),
+                token.pos().clone(),
+            ));
+        }
+        None => {
+            return Err(ParseError::new_unexpected_eof(
+                "incomplete type cast expression".to_string(),
+                start_pos.extended_to_end(),
+            ));
+        }
+    };
+
+    Ok(AstNodeTypeCast::new(expression, new_type, start_pos.extended_to(end_pos)).into())
 }
 
 /// Parses an atomic expression from a token stream

@@ -207,18 +207,18 @@ impl Keyword {
             Keyword::Return => false,
             Keyword::Fn => false,
             Keyword::Let => false,
-            Keyword::Int => false,
-            Keyword::Byte => false,
-            Keyword::Float => false,
-            Keyword::Bool => false,
-            Keyword::String => false,
-            Keyword::List => false,
-            Keyword::Dict => false,
-            Keyword::True => true,
-            Keyword::False => true,
+            Keyword::Int => true,
+            Keyword::Byte => true,
+            Keyword::Float => true,
+            Keyword::Bool => true,
+            Keyword::String => true,
+            Keyword::List => true,
+            Keyword::Dict => true,
+            Keyword::True => false,
+            Keyword::False => false,
             Keyword::Null => true,
-            Keyword::Infinity => true,
-            Keyword::Nan => true,
+            Keyword::Infinity => false,
+            Keyword::Nan => false,
         }
     }
 
@@ -330,6 +330,93 @@ mod tests {
         assert_eq!(Err(()), Keyword::try_from("nan"));
         assert_eq!(Err(()), Keyword::try_from("NAN"));
         assert_eq!(Err(()), Keyword::try_from("Nan"));
+    }
+
+    #[test]
+    #[allow(clippy::bool_assert_comparison)] // I find this more readable
+    fn test_keyword_can_be_literal() {
+        assert_eq!(Keyword::If.can_be_literal(), false);
+        assert_eq!(Keyword::Else.can_be_literal(), false);
+        assert_eq!(Keyword::Loop.can_be_literal(), false);
+        assert_eq!(Keyword::While.can_be_literal(), false);
+        assert_eq!(Keyword::For.can_be_literal(), false);
+        assert_eq!(Keyword::In.can_be_literal(), false);
+        assert_eq!(Keyword::Match.can_be_literal(), false);
+        assert_eq!(Keyword::Break.can_be_literal(), false);
+        assert_eq!(Keyword::Continue.can_be_literal(), false);
+        assert_eq!(Keyword::Return.can_be_literal(), false);
+        assert_eq!(Keyword::Fn.can_be_literal(), false);
+        assert_eq!(Keyword::Let.can_be_literal(), false);
+        assert_eq!(Keyword::Int.can_be_literal(), false);
+        assert_eq!(Keyword::Byte.can_be_literal(), false);
+        assert_eq!(Keyword::Float.can_be_literal(), false);
+        assert_eq!(Keyword::Bool.can_be_literal(), false);
+        assert_eq!(Keyword::String.can_be_literal(), false);
+        assert_eq!(Keyword::List.can_be_literal(), false);
+        assert_eq!(Keyword::Dict.can_be_literal(), false);
+        assert_eq!(Keyword::True.can_be_literal(), true);
+        assert_eq!(Keyword::False.can_be_literal(), true);
+        assert_eq!(Keyword::Null.can_be_literal(), true);
+        assert_eq!(Keyword::Infinity.can_be_literal(), true);
+        assert_eq!(Keyword::Nan.can_be_literal(), true);
+    }
+
+    #[test]
+    #[allow(clippy::bool_assert_comparison)] // I find this more readable
+    fn test_keyword_can_only_be_literal() {
+        assert_eq!(Keyword::If.can_only_be_literal(), false);
+        assert_eq!(Keyword::Else.can_only_be_literal(), false);
+        assert_eq!(Keyword::Loop.can_only_be_literal(), false);
+        assert_eq!(Keyword::While.can_only_be_literal(), false);
+        assert_eq!(Keyword::For.can_only_be_literal(), false);
+        assert_eq!(Keyword::In.can_only_be_literal(), false);
+        assert_eq!(Keyword::Match.can_only_be_literal(), false);
+        assert_eq!(Keyword::Break.can_only_be_literal(), false);
+        assert_eq!(Keyword::Continue.can_only_be_literal(), false);
+        assert_eq!(Keyword::Return.can_only_be_literal(), false);
+        assert_eq!(Keyword::Fn.can_only_be_literal(), false);
+        assert_eq!(Keyword::Let.can_only_be_literal(), false);
+        assert_eq!(Keyword::Int.can_only_be_literal(), false);
+        assert_eq!(Keyword::Byte.can_only_be_literal(), false);
+        assert_eq!(Keyword::Float.can_only_be_literal(), false);
+        assert_eq!(Keyword::Bool.can_only_be_literal(), false);
+        assert_eq!(Keyword::String.can_only_be_literal(), false);
+        assert_eq!(Keyword::List.can_only_be_literal(), false);
+        assert_eq!(Keyword::Dict.can_only_be_literal(), false);
+        assert_eq!(Keyword::True.can_only_be_literal(), true);
+        assert_eq!(Keyword::False.can_only_be_literal(), true);
+        assert_eq!(Keyword::Null.can_only_be_literal(), false);
+        assert_eq!(Keyword::Infinity.can_only_be_literal(), true);
+        assert_eq!(Keyword::Nan.can_only_be_literal(), true);
+    }
+
+    #[test]
+    #[allow(clippy::bool_assert_comparison)] // I find this more readable
+    fn test_keyword_can_be_type() {
+        assert_eq!(Keyword::If.can_be_type(), false);
+        assert_eq!(Keyword::Else.can_be_type(), false);
+        assert_eq!(Keyword::Loop.can_be_type(), false);
+        assert_eq!(Keyword::While.can_be_type(), false);
+        assert_eq!(Keyword::For.can_be_type(), false);
+        assert_eq!(Keyword::In.can_be_type(), false);
+        assert_eq!(Keyword::Match.can_be_type(), false);
+        assert_eq!(Keyword::Break.can_be_type(), false);
+        assert_eq!(Keyword::Continue.can_be_type(), false);
+        assert_eq!(Keyword::Return.can_be_type(), false);
+        assert_eq!(Keyword::Fn.can_be_type(), false);
+        assert_eq!(Keyword::Let.can_be_type(), false);
+        assert_eq!(Keyword::Int.can_be_type(), true);
+        assert_eq!(Keyword::Byte.can_be_type(), true);
+        assert_eq!(Keyword::Float.can_be_type(), true);
+        assert_eq!(Keyword::Bool.can_be_type(), true);
+        assert_eq!(Keyword::String.can_be_type(), true);
+        assert_eq!(Keyword::List.can_be_type(), true);
+        assert_eq!(Keyword::Dict.can_be_type(), true);
+        assert_eq!(Keyword::True.can_be_type(), false);
+        assert_eq!(Keyword::False.can_be_type(), false);
+        assert_eq!(Keyword::Null.can_be_type(), true);
+        assert_eq!(Keyword::Infinity.can_be_type(), false);
+        assert_eq!(Keyword::Nan.can_be_type(), false);
     }
 
     #[test]
