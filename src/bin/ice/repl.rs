@@ -23,6 +23,8 @@ clear               Clear the screen
 debug               Enable showing debug information
 nodebug             Disable showing debug information";
 
+const SOURCE_NAME: &str = "<stdin>";
+
 pub fn enter_repl(mut show_debug_info: bool) {
     // Initialize readline editor
     let Ok(mut readline_editor) = Editor::<()>::new() else {
@@ -104,12 +106,12 @@ pub fn enter_repl(mut show_debug_info: bool) {
         // If debug info is enabled, print source code information
         if show_debug_info {
             println!();
-            print_source_info("<stdin>", source_code);
+            print_source_info(SOURCE_NAME, source_code);
             println!();
         }
 
         // Lexer
-        let tokens = match lexer::tokenize(source_code, "<stdin>") {
+        let tokens = match lexer::tokenize(source_code, SOURCE_NAME) {
             Ok(tokens) => tokens,
             Err(err) => {
                 println!("{err}");
