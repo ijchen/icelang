@@ -62,8 +62,9 @@ expr_bitshift = expr_additive , {op_bitshift , expr_additive};
 expr_additive = expr_multiplicative , {op_additive , expr_multiplicative};
 expr_multiplicative = expr_unary_prefix , {op_multiplicative , expr_unary_prefix};
 expr_unary_prefix = (op_unary_prefix , expr_unary_prefix) | expr_exponentiation;
-expr_exponentiation = expr_usage_suffix , {op_exponentiation , expr_usage_suffix};
-expr_usage_suffix = expr_type_cast , {
+expr_exponentiation = expr_type_cast , {op_exponentiation , expr_type_cast};
+expr_type_cast = (type , lparen , expression , rparen) | expr_usage_suffix;
+expr_usage_suffix = expr_atomic , {
                           usage_suffix_member_access
                         | usage_suffix_computed_member_access
                         | usage_suffix_function_call
@@ -71,7 +72,6 @@ expr_usage_suffix = expr_type_cast , {
 usage_suffix_member_access = dot , identifier;
 usage_suffix_computed_member_access = lbracket , expression , rbracket;
 usage_suffix_function_call = lparen , [expression , {comma , expression} , [comma]] , rparen;
-expr_type_cast = (type , lparen , expression , rparen) | expr_atomic;
 expr_atomic = parenthesized_expression | literal | identifier;
 parenthesized_expression = lparen , expression , rparen;
 
