@@ -93,7 +93,7 @@ fn parse_function_declaration_parameters<'source>(
                             }
                             Some(token) => {
                                 return Err(ParseError::new_unexpected_token(
-                                    "invalid function parameter".to_string(),
+                                    "expected function parameter name".to_string(),
                                     token.pos().clone(),
                                 ));
                             }
@@ -131,8 +131,7 @@ fn parse_function_declaration_parameters<'source>(
 /// Parses a function declaration statement from a token stream
 ///
 /// # Panics
-/// - If the token stream doesn't immediately start with a function declaration
-/// statement
+/// - If the token stream doesn't immediately start with a "fn" keyword token
 fn parse_function_declaration<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
