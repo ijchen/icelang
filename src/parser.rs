@@ -82,6 +82,7 @@ fn parse_function_declaration_parameters<'source>(
                         match token_stream.front() {
                             Some(Token::Ident(next_parameter_token)) => {
                                 parameters.push(next_parameter_token.ident().to_string());
+                                token_stream.pop_front();
                             }
                             // If this was the optional comma after the last
                             // parameter, we're done
@@ -290,7 +291,7 @@ fn parse_statement<'source>(
 ) -> Result<AstNode<'source>, ParseError<'source>> {
     assert!(!token_stream.is_empty());
 
-    match token_stream.pop_front().unwrap() {
+    match token_stream.front().unwrap() {
         // Function declaration
         Token::Keyword(token) if token.keyword() == Keyword::Fn => {
             parse_function_declaration(token_stream)
