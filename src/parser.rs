@@ -3,7 +3,10 @@
 use std::collections::VecDeque;
 
 use crate::{
-    ast::{Ast, AstNode, AstNodeFunctionDeclaration, FunctionParameters},
+    ast::{
+        Ast, AstNode, AstNodeFunctionDeclaration, AstNodeLiteral, AstNodeVariableAccess,
+        FunctionParameters,
+    },
     error::ParseError,
     keyword::Keyword,
     source_range::SourceRange,
@@ -273,12 +276,119 @@ fn parse_match_statement<'source>(
     todo!()
 }
 
-/// Parses an expression from a token stream
-fn parse_expression<'source>(
+/// Parses a parenthesized expression from a token stream
+///
+/// # Panics
+/// - If the token stream doesn't immediately start with an opening parenthesis
+fn parse_parenthesized_expression<'source>(
+    token_stream: &mut VecDeque<&Token<'source>>,
+) -> Result<AstNode<'source>, ParseError<'source>> {
+    // Expect an opening parenthesis
+    let start_pos = match token_stream.pop_front() {
+        Some(Token::Punctuator(token)) if token.punctuator() == "(" => token.pos(),
+        _ => panic!("invalid function declaration"),
+    };
+
+    // Parse the expression
+    let mut expression = parse_expression(token_stream)?;
+
+    // Expect a closing parenthesis
+    let end_pos = match token_stream.pop_front() {
+        Some(Token::Punctuator(token)) if token.punctuator() == ")" => token.pos(),
+        Some(token) => {
+            return Err(ParseError::new_unexpected_token(
+                "expected closing parenthesis in parenthesized expression".to_string(),
+                token.pos().clone(),
+            ));
+        }
+        None => {
+            return Err(ParseError::new_unexpected_eof(
+                "incomplete parenthesized expression".to_string(),
+                start_pos.extended_to_end(),
+            ));
+        }
+    };
+
+    // Update the position of the expression
+    let new_pos = start_pos.extended_to(end_pos);
+    *expression.pos_mut() = new_pos;
+
+    Ok(expression)
+}
+
+/// Parses a type cast expression from a token stream
+///
+/// # Panics
+/// - If the token stream doesn't immediately start with a valid type keyword
+fn parse_type_cast_expression<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
     let _ = token_stream;
     todo!()
+}
+
+/// Parses an atomic expression from a token stream
+///
+/// # Panics
+/// - If the token stream is empty
+fn parse_atomic<'source>(
+    token_stream: &mut VecDeque<&Token<'source>>,
+) -> Result<AstNode<'source>, ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
+    match token_stream.front().unwrap() {
+        // Parenthesized expression
+        Token::Punctuator(token) if token.punctuator() == "(" => {
+            parse_parenthesized_expression(token_stream)
+        }
+
+        // Type cast expression
+        Token::Keyword(token) if token.keyword().can_be_type() => {
+            parse_type_cast_expression(token_stream)
+        }
+
+        // Literal
+        Token::Literal(token) => {
+            // Consume the literal token
+            token_stream.pop_front();
+
+            Ok(AstNodeLiteral::new(
+                token.raw().to_string(),
+                token.icelang_type(),
+                token.pos().clone(),
+            )
+            .into())
+        }
+
+        // Identifier
+        Token::Ident(token) => {
+            // Consume the identifier token
+            token_stream.pop_front();
+
+            Ok(AstNodeVariableAccess::new(token.ident().to_string(), token.pos().clone()).into())
+        }
+
+        // Anything else is a syntax error
+        token => Err(ParseError::UnexpectedToken {
+            why: "expected atomic expression".to_string(),
+            pos: token.pos().clone(),
+        }),
+    }
+}
+
+/// Parses an expression from a token stream
+///
+/// # Panics
+/// - If the token stream is empty
+fn parse_expression<'source>(
+    token_stream: &mut VecDeque<&Token<'source>>,
+) -> Result<AstNode<'source>, ParseError<'source>> {
+    // TODO this should eventually parse all the way up to assignment
+    // expressions
+
+    assert!(!token_stream.is_empty());
+
+    parse_atomic(token_stream)
 }
 
 /// Parses exactly one statement from a token stream

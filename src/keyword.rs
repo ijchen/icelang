@@ -33,6 +33,30 @@ pub enum Keyword {
     Fn,
     /// The "let" keyword
     Let,
+    /// The "int" keyword
+    Int,
+    /// The "byte" keyword
+    Byte,
+    /// The "float" keyword
+    Float,
+    /// The "bool" keyword
+    Bool,
+    /// The "string" keyword
+    String,
+    /// The "list" keyword
+    List,
+    /// The "dict" keyword
+    Dict,
+    /// The "true" bool keyword literal
+    True,
+    /// The "false" bool keyword literal
+    False,
+    /// The "null" keyword
+    Null,
+    /// The "infinity" float keyword literal
+    Infinity,
+    /// The "nan" float keyword literal
+    Nan,
 }
 
 impl TryFrom<&str> for Keyword {
@@ -52,6 +76,18 @@ impl TryFrom<&str> for Keyword {
             "return" => Ok(Self::Return),
             "fn" => Ok(Self::Fn),
             "let" => Ok(Self::Let),
+            "int" => Ok(Self::Int),
+            "byte" => Ok(Self::Byte),
+            "float" => Ok(Self::Float),
+            "bool" => Ok(Self::Bool),
+            "string" => Ok(Self::String),
+            "list" => Ok(Self::List),
+            "dict" => Ok(Self::Dict),
+            "true" => Ok(Self::True),
+            "false" => Ok(Self::False),
+            "null" => Ok(Self::Null),
+            "Infinity" => Ok(Self::Infinity),
+            "NaN" => Ok(Self::Nan),
             _ => Err(()),
         }
     }
@@ -75,60 +111,13 @@ impl Display for Keyword {
                 Self::Return => "return",
                 Self::Fn => "fn",
                 Self::Let => "let",
-            }
-        )
-    }
-}
-
-/// Represents an icelang keyword literal
-#[derive(Debug, Clone, Copy, Sequence, PartialEq, Eq)]
-pub enum KeywordLiteral {
-    /// The "true" bool keyword literal
-    True,
-    /// The "false" bool keyword literal
-    False,
-    /// The "null" null keyword literal
-    Null,
-    /// The "infinity" float keyword literal
-    Infinity,
-    /// The "nan" float keyword literal
-    Nan,
-}
-
-impl KeywordLiteral {
-    /// Returns the icelang type of the keyword literal
-    pub fn icelang_type(&self) -> IcelangType {
-        match self {
-            Self::True => IcelangType::Bool,
-            Self::False => IcelangType::Bool,
-            Self::Null => IcelangType::Null,
-            Self::Infinity => IcelangType::Float,
-            Self::Nan => IcelangType::Float,
-        }
-    }
-}
-
-impl TryFrom<&str> for KeywordLiteral {
-    type Error = ();
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        match value {
-            "true" => Ok(Self::True),
-            "false" => Ok(Self::False),
-            "null" => Ok(Self::Null),
-            "Infinity" => Ok(Self::Infinity),
-            "NaN" => Ok(Self::Nan),
-            _ => Err(()),
-        }
-    }
-}
-
-impl Display for KeywordLiteral {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
+                Self::Int => "int",
+                Self::Byte => "byte",
+                Self::Float => "float",
+                Self::Bool => "bool",
+                Self::String => "string",
+                Self::List => "list",
+                Self::Dict => "dict",
                 Self::True => "true",
                 Self::False => "false",
                 Self::Null => "null",
@@ -136,6 +125,135 @@ impl Display for KeywordLiteral {
                 Self::Nan => "NaN",
             }
         )
+    }
+}
+
+impl Keyword {
+    /// Returns whether or not this keyword can be a keyword literal (null isn't
+    /// always, but can be a literal, so returns true)
+    pub fn can_be_literal(&self) -> bool {
+        match self {
+            Keyword::If => false,
+            Keyword::Else => false,
+            Keyword::Loop => false,
+            Keyword::While => false,
+            Keyword::For => false,
+            Keyword::In => false,
+            Keyword::Match => false,
+            Keyword::Break => false,
+            Keyword::Continue => false,
+            Keyword::Return => false,
+            Keyword::Fn => false,
+            Keyword::Let => false,
+            Keyword::Int => false,
+            Keyword::Byte => false,
+            Keyword::Float => false,
+            Keyword::Bool => false,
+            Keyword::String => false,
+            Keyword::List => false,
+            Keyword::Dict => false,
+            Keyword::True => true,
+            Keyword::False => true,
+            Keyword::Null => true,
+            Keyword::Infinity => true,
+            Keyword::Nan => true,
+        }
+    }
+
+    /// Returns whether or not this keyword can only be a keyword literal (null
+    /// isn't always a literal, so returns false)
+    pub fn can_only_be_literal(&self) -> bool {
+        match self {
+            Keyword::If => false,
+            Keyword::Else => false,
+            Keyword::Loop => false,
+            Keyword::While => false,
+            Keyword::For => false,
+            Keyword::In => false,
+            Keyword::Match => false,
+            Keyword::Break => false,
+            Keyword::Continue => false,
+            Keyword::Return => false,
+            Keyword::Fn => false,
+            Keyword::Let => false,
+            Keyword::Int => false,
+            Keyword::Byte => false,
+            Keyword::Float => false,
+            Keyword::Bool => false,
+            Keyword::String => false,
+            Keyword::List => false,
+            Keyword::Dict => false,
+            Keyword::True => true,
+            Keyword::False => true,
+            Keyword::Null => false,
+            Keyword::Infinity => true,
+            Keyword::Nan => true,
+        }
+    }
+
+    /// Returns whether or not this keyword can be a type (null isn't always,
+    /// but can be a type, so returns true)
+    pub fn can_be_type(&self) -> bool {
+        match self {
+            Keyword::If => false,
+            Keyword::Else => false,
+            Keyword::Loop => false,
+            Keyword::While => false,
+            Keyword::For => false,
+            Keyword::In => false,
+            Keyword::Match => false,
+            Keyword::Break => false,
+            Keyword::Continue => false,
+            Keyword::Return => false,
+            Keyword::Fn => false,
+            Keyword::Let => false,
+            Keyword::Int => false,
+            Keyword::Byte => false,
+            Keyword::Float => false,
+            Keyword::Bool => false,
+            Keyword::String => false,
+            Keyword::List => false,
+            Keyword::Dict => false,
+            Keyword::True => true,
+            Keyword::False => true,
+            Keyword::Null => true,
+            Keyword::Infinity => true,
+            Keyword::Nan => true,
+        }
+    }
+
+    /// Returns the icelang type associated with this keyword, or None if there
+    /// isn't an icelang type meaningfully associated with this keyword
+    ///
+    /// This returns Some(...) for literal keywords like "true" and for type
+    /// keywords like "bool"
+    pub fn icelang_type(&self) -> Option<IcelangType> {
+        match self {
+            Keyword::If => None,
+            Keyword::Else => None,
+            Keyword::Loop => None,
+            Keyword::While => None,
+            Keyword::For => None,
+            Keyword::In => None,
+            Keyword::Match => None,
+            Keyword::Break => None,
+            Keyword::Continue => None,
+            Keyword::Return => None,
+            Keyword::Fn => None,
+            Keyword::Let => None,
+            Keyword::Int => Some(IcelangType::Int),
+            Keyword::Byte => Some(IcelangType::Byte),
+            Keyword::Float => Some(IcelangType::Float),
+            Keyword::Bool => Some(IcelangType::Bool),
+            Keyword::String => Some(IcelangType::String),
+            Keyword::List => Some(IcelangType::List),
+            Keyword::Dict => Some(IcelangType::Dict),
+            Keyword::True => Some(IcelangType::Bool),
+            Keyword::False => Some(IcelangType::Bool),
+            Keyword::Null => Some(IcelangType::Null),
+            Keyword::Infinity => Some(IcelangType::Float),
+            Keyword::Nan => Some(IcelangType::Float),
+        }
     }
 }
 
@@ -157,63 +275,81 @@ mod tests {
         assert_eq!(Keyword::Return.to_string(), "return");
         assert_eq!(Keyword::Fn.to_string(), "fn");
         assert_eq!(Keyword::Let.to_string(), "let");
+        assert_eq!(Keyword::Int.to_string(), "int");
+        assert_eq!(Keyword::Byte.to_string(), "byte");
+        assert_eq!(Keyword::Bool.to_string(), "bool");
+        assert_eq!(Keyword::Float.to_string(), "float");
+        assert_eq!(Keyword::String.to_string(), "string");
+        assert_eq!(Keyword::List.to_string(), "list");
+        assert_eq!(Keyword::Dict.to_string(), "dict");
+        assert_eq!(Keyword::True.to_string(), "true");
+        assert_eq!(Keyword::False.to_string(), "false");
+        assert_eq!(Keyword::Null.to_string(), "null");
+        assert_eq!(Keyword::Infinity.to_string(), "Infinity");
+        assert_eq!(Keyword::Nan.to_string(), "NaN");
     }
 
     #[test]
     fn test_keyword_from_str() {
-        assert_eq!(Ok(Keyword::If), "if".try_into());
-        assert_eq!(Ok(Keyword::Else), "else".try_into());
-        assert_eq!(Ok(Keyword::Loop), "loop".try_into());
-        assert_eq!(Ok(Keyword::While), "while".try_into());
-        assert_eq!(Ok(Keyword::For), "for".try_into());
-        assert_eq!(Ok(Keyword::In), "in".try_into());
-        assert_eq!(Ok(Keyword::Match), "match".try_into());
-        assert_eq!(Ok(Keyword::Break), "break".try_into());
-        assert_eq!(Ok(Keyword::Continue), "continue".try_into());
-        assert_eq!(Ok(Keyword::Return), "return".try_into());
-        assert_eq!(Ok(Keyword::Fn), "fn".try_into());
-        assert_eq!(Ok(Keyword::Let), "let".try_into());
-        assert_eq!(Err::<Keyword, ()>(()), "asdf".try_into());
-        assert_eq!(Err::<Keyword, ()>(()), "".try_into());
-        assert_eq!(Err::<Keyword, ()>(()), "looop".try_into());
-        assert_eq!(Err::<Keyword, ()>(()), "reutrn".try_into());
-    }
-
-    #[test]
-    fn test_keyword_literal_display() {
-        assert_eq!(KeywordLiteral::True.to_string(), "true");
-        assert_eq!(KeywordLiteral::False.to_string(), "false");
-        assert_eq!(KeywordLiteral::Null.to_string(), "null");
-        assert_eq!(KeywordLiteral::Infinity.to_string(), "Infinity");
-        assert_eq!(KeywordLiteral::Nan.to_string(), "NaN");
+        assert_eq!(Ok(Keyword::If), Keyword::try_from("if"));
+        assert_eq!(Ok(Keyword::Else), Keyword::try_from("else"));
+        assert_eq!(Ok(Keyword::Loop), Keyword::try_from("loop"));
+        assert_eq!(Ok(Keyword::While), Keyword::try_from("while"));
+        assert_eq!(Ok(Keyword::For), Keyword::try_from("for"));
+        assert_eq!(Ok(Keyword::In), Keyword::try_from("in"));
+        assert_eq!(Ok(Keyword::Match), Keyword::try_from("match"));
+        assert_eq!(Ok(Keyword::Break), Keyword::try_from("break"));
+        assert_eq!(Ok(Keyword::Continue), Keyword::try_from("continue"));
+        assert_eq!(Ok(Keyword::Return), Keyword::try_from("return"));
+        assert_eq!(Ok(Keyword::Fn), Keyword::try_from("fn"));
+        assert_eq!(Ok(Keyword::Let), Keyword::try_from("let"));
+        assert_eq!(Ok(Keyword::Int), Keyword::try_from("int"));
+        assert_eq!(Ok(Keyword::Byte), Keyword::try_from("byte"));
+        assert_eq!(Ok(Keyword::Float), Keyword::try_from("float"));
+        assert_eq!(Ok(Keyword::Bool), Keyword::try_from("bool"));
+        assert_eq!(Ok(Keyword::String), Keyword::try_from("string"));
+        assert_eq!(Ok(Keyword::List), Keyword::try_from("list"));
+        assert_eq!(Ok(Keyword::Dict), Keyword::try_from("dict"));
+        assert_eq!(Ok(Keyword::True), Keyword::try_from("true"));
+        assert_eq!(Ok(Keyword::False), Keyword::try_from("false"));
+        assert_eq!(Ok(Keyword::Null), Keyword::try_from("null"));
+        assert_eq!(Ok(Keyword::Infinity), Keyword::try_from("Infinity"));
+        assert_eq!(Ok(Keyword::Nan), Keyword::try_from("NaN"));
+        assert_eq!(Err(()), Keyword::try_from("asdf"));
+        assert_eq!(Err(()), Keyword::try_from(""));
+        assert_eq!(Err(()), Keyword::try_from("looop"));
+        assert_eq!(Err(()), Keyword::try_from("reutrn"));
+        assert_eq!(Err(()), Keyword::try_from("functino"));
+        assert_eq!(Err(()), Keyword::try_from("flase"));
+        assert_eq!(Err(()), Keyword::try_from("True"));
+        assert_eq!(Err(()), Keyword::try_from("False"));
+        assert_eq!(Err(()), Keyword::try_from("TRUE"));
+        assert_eq!(Err(()), Keyword::try_from("FALSE"));
+        assert_eq!(Err(()), Keyword::try_from("infinity"));
+        assert_eq!(Err(()), Keyword::try_from("INFINITY"));
+        assert_eq!(Err(()), Keyword::try_from("nan"));
+        assert_eq!(Err(()), Keyword::try_from("NAN"));
+        assert_eq!(Err(()), Keyword::try_from("Nan"));
     }
 
     #[test]
     fn test_keyword_literal_icelang_type() {
-        assert_eq!(KeywordLiteral::True.icelang_type(), IcelangType::Bool);
-        assert_eq!(KeywordLiteral::False.icelang_type(), IcelangType::Bool);
-        assert_eq!(KeywordLiteral::Null.icelang_type(), IcelangType::Null);
-        assert_eq!(KeywordLiteral::Infinity.icelang_type(), IcelangType::Float);
-        assert_eq!(KeywordLiteral::Nan.icelang_type(), IcelangType::Float);
+        assert_eq!(Keyword::True.icelang_type(), Some(IcelangType::Bool));
+        assert_eq!(Keyword::False.icelang_type(), Some(IcelangType::Bool));
+        assert_eq!(Keyword::Null.icelang_type(), Some(IcelangType::Null));
+        assert_eq!(Keyword::Infinity.icelang_type(), Some(IcelangType::Float));
+        assert_eq!(Keyword::Nan.icelang_type(), Some(IcelangType::Float));
     }
 
     #[test]
-    fn test_keyword_literal_from_str() {
-        assert_eq!(Ok(KeywordLiteral::True), "true".try_into());
-        assert_eq!(Ok(KeywordLiteral::False), "false".try_into());
-        assert_eq!(Ok(KeywordLiteral::Null), "null".try_into());
-        assert_eq!(Ok(KeywordLiteral::Infinity), "Infinity".try_into());
-        assert_eq!(Ok(KeywordLiteral::Nan), "NaN".try_into());
-        assert_eq!(Err::<KeywordLiteral, ()>(()), "asdf".try_into());
-        assert_eq!(Err::<KeywordLiteral, ()>(()), "".try_into());
-        assert_eq!(Err::<KeywordLiteral, ()>(()), "flase".try_into());
-        assert_eq!(Err::<KeywordLiteral, ()>(()), "True".try_into());
-        assert_eq!(Err::<KeywordLiteral, ()>(()), "False".try_into());
-        assert_eq!(Err::<KeywordLiteral, ()>(()), "TRUE".try_into());
-        assert_eq!(Err::<KeywordLiteral, ()>(()), "FALSE".try_into());
-        assert_eq!(Err::<KeywordLiteral, ()>(()), "infinity".try_into());
-        assert_eq!(Err::<KeywordLiteral, ()>(()), "nan".try_into());
-        assert_eq!(Err::<KeywordLiteral, ()>(()), "NAN".try_into());
-        assert_eq!(Err::<KeywordLiteral, ()>(()), "Nan".try_into());
+    fn test_keyword_type_icelang_type() {
+        assert_eq!(Keyword::Int.icelang_type(), Some(IcelangType::Int));
+        assert_eq!(Keyword::Byte.icelang_type(), Some(IcelangType::Byte));
+        assert_eq!(Keyword::Float.icelang_type(), Some(IcelangType::Float));
+        assert_eq!(Keyword::Bool.icelang_type(), Some(IcelangType::Bool));
+        assert_eq!(Keyword::String.icelang_type(), Some(IcelangType::String));
+        assert_eq!(Keyword::List.icelang_type(), Some(IcelangType::List));
+        assert_eq!(Keyword::Dict.icelang_type(), Some(IcelangType::Dict));
+        assert_eq!(Keyword::Null.icelang_type(), Some(IcelangType::Null));
     }
 }

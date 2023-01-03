@@ -61,6 +61,12 @@ impl<'source> AstNodeFunctionDeclaration<'source> {
     pub fn pos(&self) -> &SourceRange<'source> {
         &self.pos
     }
+
+    /// Returns a mutable reference to the position in the source code of this
+    /// function declaration
+    pub fn pos_mut(&mut self) -> &mut SourceRange<'source> {
+        &mut self.pos
+    }
 }
 
 impl PartialEq for AstNodeFunctionDeclaration<'_> {

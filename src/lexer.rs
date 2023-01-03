@@ -3,7 +3,7 @@
 use crate::{
     error::LexerError,
     icelang_type::IcelangType,
-    keyword::KeywordLiteral,
+    keyword::Keyword,
     source_range::SourceRange,
     token::{
         FormattedStringLiteralSectionKind, Token, TokenFormattedStringLiteralSection, TokenIdent,
@@ -1185,17 +1185,22 @@ pub fn tokenize<'source>(
             }
 
             // Check if the string we've built matches a keyword literal
-            if let Ok(keyword_literal) = <&str as TryInto<KeywordLiteral>>::try_into(raw.as_str()) {
-                tokens.push(
-                    TokenLiteral::new(
-                        keyword_literal.to_string(),
-                        keyword_literal.icelang_type(),
-                        SourceRange::new(source_code, source_file_name, start_index, index - 1),
-                    )
-                    .into(),
-                );
-                continue;
-            };
+            // Can't use if-let here because if let PAT = EXPR && EXPR is
+            // unstable :sob:
+            match Keyword::try_from(raw.as_str()) {
+                Ok(keyword_literal) if keyword_literal.can_only_be_literal() => {
+                    tokens.push(
+                        TokenLiteral::new(
+                            keyword_literal.to_string(),
+                            keyword_literal.icelang_type().unwrap(),
+                            SourceRange::new(source_code, source_file_name, start_index, index - 1),
+                        )
+                        .into(),
+                    );
+                    continue;
+                }
+                _ => {}
+            }
 
             // Check if the string we've built matches a keyword
             if let Ok(keyword) = raw.as_str().try_into() {
@@ -1363,7 +1368,7 @@ f\"{9} + {10} = {2 + 2} is a {true} fact, {name}\"
             "[Token] Identifier: foo",
             "[Token] Identifier: bar",
             "[Token] Keyword: if",
-            "[Token] Literal (null): null",
+            "[Token] Keyword: null",
             "[Token] Literal (bool): true",
             "[Token] Keyword: while",
             "[Token] Keyword: loop",
@@ -1412,7 +1417,7 @@ f\"{9} + {10} = {2 + 2} is a {true} fact, {name}\"
             "[Token] Literal (float): Infinity",
             "[Token] Literal (bool): true",
             "[Token] Literal (bool): false",
-            "[Token] Literal (null): null",
+            "[Token] Keyword: null",
             "[Token] Literal (string): \"Hello, world!\"",
             "[Token] Literal (string): \"This string has lots of non-ASCII characters like 你好 and 🦀\"",
             "[Token] Literal (string): \"This string contains a newline...\nsee, new line!\"",
@@ -2159,9 +2164,9 @@ f\"{9} + {10} = {2 + 2} is a {true} fact, {name}\"
         fn gen_float_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
             let raw: String = if rng.gen_bool(0.1) {
                 if rng.gen() {
-                    KeywordLiteral::Infinity
+                    Keyword::Infinity
                 } else {
-                    KeywordLiteral::Nan
+                    Keyword::Nan
                 }
                 .to_string()
             } else {
@@ -2325,8 +2330,6 @@ f\"{9} + {10} = {2 + 2} is a {true} fact, {name}\"
             let mut ident = String::with_capacity(len);
             while ident.is_empty()
                 || enum_iterator::all::<Keyword>().any(|keyword| keyword.to_string() == ident)
-                || enum_iterator::all::<KeywordLiteral>()
-                    .any(|keyword_literal| keyword_literal.to_string() == ident)
             {
                 ident.clear();
                 for i in 0..len {
@@ -2352,9 +2355,9 @@ f\"{9} + {10} = {2 + 2} is a {true} fact, {name}\"
 
         fn gen_bool_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
             let literal = if rng.gen() {
-                KeywordLiteral::True
+                Keyword::True
             } else {
-                KeywordLiteral::False
+                Keyword::False
             };
 
             let raw = literal.to_string();
@@ -2505,10 +2508,10 @@ f\"{9} + {10} = {2 + 2} is a {true} fact, {name}\"
         }
 
         fn gen_null_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
-            let literal = KeywordLiteral::Null;
+            let literal = Keyword::Null;
 
             let raw = literal.to_string();
-            let expected = format!("[Token] Literal (null): {literal}");
+            let expected = format!("[Token] Keyword: {literal}");
             let whitespace_after = gen_whitespace(rng, true);
             TokenSample {
                 raw,
@@ -2530,7 +2533,10 @@ f\"{9} + {10} = {2 + 2} is a {true} fact, {name}\"
         }
 
         fn gen_keyword_token_sample(rng: &mut impl Rng) -> TokenSample {
-            let keyword = enum_iterator::all::<Keyword>().choose(rng).unwrap();
+            let keyword = enum_iterator::all::<Keyword>()
+                .filter(|kw| !kw.can_be_literal())
+                .choose(rng)
+                .unwrap();
 
             let expected = format!("[Token] Keyword: {keyword}");
             let raw = keyword.to_string();

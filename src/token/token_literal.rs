@@ -11,7 +11,7 @@ pub struct TokenLiteral<'source> {
 }
 
 impl<'source> TokenLiteral<'source> {
-    /// Constructs a new TokeTokenLiteralnIdent
+    /// Constructs a new TokenLiteral
     pub fn new(raw: String, icelang_type: IcelangType, pos: SourceRange<'source>) -> Self {
         Self {
             raw,
