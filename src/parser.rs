@@ -5,7 +5,8 @@ use std::collections::VecDeque;
 use crate::{
     ast::{
         Ast, AstNode, AstNodeFunctionDeclaration, AstNodeLiteral, AstNodeTypeCast,
-        AstNodeVariableAccess, FunctionParameters,
+        AstNodeUsageSuffix, AstNodeVariableAccess, FunctionParameters, UsageSuffix,
+        UsageSuffixComputedMemberAccess, UsageSuffixDotMemberAccess, UsageSuffixFunctionCall,
     },
     error::ParseError,
     keyword::Keyword,
@@ -46,7 +47,7 @@ fn parse_function_declaration_parameters<'source>(
                 Some(Token::Punctuator(token)) if token.punctuator() == "]" => {}
                 Some(token) => {
                     return Err(ParseError::new_unexpected_token(
-                        "expected closing bracket in function parameters".to_string(),
+                        "expected closing square bracket in function parameters".to_string(),
                         token.pos().clone(),
                     ));
                 }
@@ -420,6 +421,204 @@ fn parse_atomic<'source>(
     }
 }
 
+/// Parses a usage suffix expression from a token stream
+///
+/// # Panics
+/// - If the token stream is empty
+fn parse_expr_usage_suffix<'source>(
+    token_stream: &mut VecDeque<&Token<'source>>,
+) -> Result<AstNode<'source>, ParseError<'source>> {
+    // Parse the root atomic expression
+    let root = parse_atomic(token_stream)?;
+
+    let mut suffixes: Vec<UsageSuffix> = Vec::new();
+
+    // Parse any usage suffixes
+    loop {
+        match token_stream.front() {
+            // Dot member access
+            Some(Token::Punctuator(token)) if token.punctuator() == "." => {
+                let start_pos = token.pos();
+
+                // Consume the "."
+                token_stream.pop_front();
+
+                // Expect an identifier
+                let (ident, ident_pos) = match token_stream.pop_front() {
+                    Some(Token::Ident(token)) => (token.ident(), token.pos()),
+                    Some(token) => {
+                        return Err(ParseError::new_unexpected_token(
+                            "expected identifier in dot member access suffix".to_string(),
+                            token.pos().clone(),
+                        ));
+                    }
+                    None => {
+                        return Err(ParseError::new_unexpected_eof(
+                            "incomplete dot member access suffix".to_string(),
+                            root.pos().extended_to_end(),
+                        ));
+                    }
+                };
+
+                // Append the new UsageSuffix
+                suffixes.push(
+                    UsageSuffixDotMemberAccess::new(
+                        ident.to_string(),
+                        start_pos.extended_to(ident_pos),
+                    )
+                    .into(),
+                );
+            }
+
+            // Computed (square bracket) member access
+            Some(Token::Punctuator(token)) if token.punctuator() == "[" => {
+                let start_pos = token.pos();
+
+                // Consume the "["
+                token_stream.pop_front();
+
+                // Ensure the token stream isn't empty
+                if token_stream.is_empty() {
+                    return Err(ParseError::new_unexpected_eof(
+                        "incomplete computed member access suffix".to_string(),
+                        root.pos().extended_to_end(),
+                    ));
+                };
+
+                // Parse the expression inside the brackets
+                let body = parse_expression(token_stream)?;
+
+                // Expect a "]"
+                let end_pos = match token_stream.pop_front() {
+                    Some(Token::Punctuator(token)) if token.punctuator() == "]" => token.pos(),
+                    Some(token) => {
+                        return Err(ParseError::new_unexpected_token(
+                            "expected closing square bracket in computed member access suffix"
+                                .to_string(),
+                            token.pos().clone(),
+                        ));
+                    }
+                    None => {
+                        return Err(ParseError::new_unexpected_eof(
+                            "incomplete computed member access suffix".to_string(),
+                            start_pos.extended_to_end(),
+                        ));
+                    }
+                };
+
+                // Append the new UsageSuffix
+                suffixes.push(
+                    UsageSuffixComputedMemberAccess::new(body, start_pos.extended_to(end_pos))
+                        .into(),
+                );
+            }
+
+            // Function call
+            Some(Token::Punctuator(token)) if token.punctuator() == "(" => {
+                let start_pos = token.pos();
+
+                // Consume the "("
+                token_stream.pop_front();
+
+                // Parse the function arguments
+                let mut arguments = Vec::new();
+                let end_pos = match token_stream.front() {
+                    // No arguments
+                    Some(Token::Punctuator(token)) if token.punctuator() == ")" => {
+                        // Consume the ")"
+                        token_stream.pop_front();
+
+                        token.pos()
+                    }
+
+                    // One or more arguments
+                    Some(_) => {
+                        // Parse the first argument
+                        arguments.push(parse_expression(token_stream)?);
+
+                        // Parse any subsequent parameters
+                        loop {
+                            match token_stream.front() {
+                                Some(Token::Punctuator(token)) if token.punctuator() == "," => {
+                                    // Consume the ","
+                                    token_stream.pop_front();
+
+                                    // Parse the next argument
+                                    match token_stream.front() {
+                                        // If this was the optional comma after
+                                        // the last argument, we're done
+                                        Some(Token::Punctuator(closing_paren_token))
+                                            if closing_paren_token.punctuator() == ")" =>
+                                        {
+                                            // Consume the ")"
+                                            token_stream.pop_front();
+
+                                            break closing_paren_token.pos();
+                                        }
+                                        Some(_) => {
+                                            // Parse the next argument
+                                            arguments.push(parse_expression(token_stream)?);
+                                        }
+                                        None => {
+                                            return Err(ParseError::new_unexpected_eof(
+                                                "incomplete function declaration".to_string(),
+                                                start_pos.extended_to_end(),
+                                            ));
+                                        }
+                                    };
+                                }
+                                Some(Token::Punctuator(token)) if token.punctuator() == ")" => {
+                                    // Consume the ")"
+                                    token_stream.pop_front();
+
+                                    break token.pos();
+                                }
+                                Some(token) => {
+                                    return Err(ParseError::new_unexpected_token(
+                                        "unexpected token in function arguments".to_string(),
+                                        token.pos().clone(),
+                                    ));
+                                }
+                                None => {
+                                    return Err(ParseError::UnexpectedEOF {
+                                        why: "expected closing parenthesis in function arguments"
+                                            .to_string(),
+                                        pos: start_pos.extended_to_end(),
+                                    });
+                                }
+                            }
+                        }
+                    }
+
+                    // EOF (without a closing parenthesis)
+                    None => {
+                        return Err(ParseError::UnexpectedEOF {
+                            why: "expected closing parenthesis in function arguments".to_string(),
+                            pos: start_pos.extended_to_end(),
+                        });
+                    }
+                };
+
+                // Append the new UsageSuffix
+                suffixes.push(
+                    UsageSuffixFunctionCall::new(arguments, start_pos.extended_to(end_pos)).into(),
+                );
+            }
+
+            // Anything else is not a usage suffix
+            _ => break,
+        }
+    }
+
+    // Return a new AstNodeUsageSuffix if we have suffixes, otherwise just
+    // return the root
+    Ok(if suffixes.is_empty() {
+        root
+    } else {
+        AstNodeUsageSuffix::new(root, suffixes).into()
+    })
+}
+
 /// Parses an expression from a token stream
 ///
 /// # Panics
@@ -432,7 +631,7 @@ fn parse_expression<'source>(
 
     assert!(!token_stream.is_empty());
 
-    parse_atomic(token_stream)
+    parse_expr_usage_suffix(token_stream)
 }
 
 /// Parses exactly one statement from a token stream

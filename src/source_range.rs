@@ -106,6 +106,12 @@ impl<'source> SourceRange<'source> {
         self.col_of(self.end_index)
     }
 
+    /// Extends the end of this SourceRange to match the end position of the
+    /// other SourceRange
+    pub fn extend_to(&mut self, other: &SourceRange) {
+        self.end_index = other.end_index;
+    }
+
     /// Returns a clone of this SourceRange with the end position extended to
     /// the end of the source
     pub fn extended_to_end(&self) -> Self {
@@ -118,7 +124,7 @@ impl<'source> SourceRange<'source> {
     }
 
     /// Returns a clone of this SourceRange with the end position extended to
-    /// the end of the source
+    /// match the end of the other SourceRange
     pub fn extended_to(&self, other: &SourceRange) -> Self {
         SourceRange {
             entire_source: self.entire_source,
