@@ -25,6 +25,8 @@ pub enum AstNode<'source> {
     Comparison(AstNodeComparison<'source>),
     /// An inline conditional node
     InlineConditional(AstNodeInlineConditional<'source>),
+    /// An assignment node
+    Assignment(AstNodeAssignment<'source>),
 }
 
 impl<'source> AstNode<'source> {
@@ -40,6 +42,7 @@ impl<'source> AstNode<'source> {
             AstNode::UnaryOperation(node) => node.pos(),
             AstNode::Comparison(node) => node.pos(),
             AstNode::InlineConditional(node) => node.pos(),
+            AstNode::Assignment(node) => node.pos(),
         }
     }
     /// Returns a mutable reference to the position in the source code of this
@@ -55,6 +58,7 @@ impl<'source> AstNode<'source> {
             AstNode::UnaryOperation(node) => node.pos_mut(),
             AstNode::Comparison(node) => node.pos_mut(),
             AstNode::InlineConditional(node) => node.pos_mut(),
+            AstNode::Assignment(node) => node.pos_mut(),
         }
     }
 }
@@ -74,6 +78,7 @@ impl Display for AstNode<'_> {
                 AstNode::UnaryOperation(node) => node.to_string(),
                 AstNode::Comparison(node) => node.to_string(),
                 AstNode::InlineConditional(node) => node.to_string(),
+                AstNode::Assignment(node) => node.to_string(),
             }
         )
     }
@@ -97,3 +102,4 @@ impl_from_specific_ast_node!(AstNodeBinaryOperation, BinaryOperation);
 impl_from_specific_ast_node!(AstNodeUnaryOperation, UnaryOperation);
 impl_from_specific_ast_node!(AstNodeComparison, Comparison);
 impl_from_specific_ast_node!(AstNodeInlineConditional, InlineConditional);
+impl_from_specific_ast_node!(AstNodeAssignment, Assignment);

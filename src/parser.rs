@@ -4,11 +4,11 @@ use std::collections::VecDeque;
 
 use crate::{
     ast::{
-        Ast, AstNode, AstNodeBinaryOperation, AstNodeComparison, AstNodeFunctionDeclaration,
-        AstNodeInlineConditional, AstNodeLiteral, AstNodeTypeCast, AstNodeUnaryOperation,
-        AstNodeUsageSuffix, AstNodeVariableAccess, BinaryOperationKind, ComparisonKind,
-        FunctionParameters, UnaryOperationKind, UsageSuffix, UsageSuffixComputedMemberAccess,
-        UsageSuffixDotMemberAccess, UsageSuffixFunctionCall,
+        AssignmentKind, Ast, AstNode, AstNodeAssignment, AstNodeBinaryOperation, AstNodeComparison,
+        AstNodeFunctionDeclaration, AstNodeInlineConditional, AstNodeLiteral, AstNodeTypeCast,
+        AstNodeUnaryOperation, AstNodeUsageSuffix, AstNodeVariableAccess, BinaryOperationKind,
+        ComparisonKind, FunctionParameters, UnaryOperationKind, UsageSuffix,
+        UsageSuffixComputedMemberAccess, UsageSuffixDotMemberAccess, UsageSuffixFunctionCall,
     },
     error::ParseError,
     keyword::Keyword,
@@ -966,6 +966,57 @@ fn parse_expr_inline_cond<'source>(
     Ok(AstNodeInlineConditional::new(condition, truthy_case, falsey_case).into())
 }
 
+/// Parses an assignment expression from a token stream
+///
+/// # Panics
+/// - If the token stream is empty
+fn parse_expr_assignment<'source>(
+    token_stream: &mut VecDeque<&Token<'source>>,
+) -> Result<AstNode<'source>, ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
+    // Parse the left-hand side
+    let lhs = parse_expr_inline_cond(token_stream)?;
+
+    // If this actually isn't an assignment expression, just return the "lhs"
+    let assignment_kind = match token_stream.front() {
+        Some(Token::Punctuator(token)) if token.punctuator() == "=" => AssignmentKind::Normal,
+        Some(Token::Punctuator(token)) if token.punctuator() == "+=" => AssignmentKind::Plus,
+        Some(Token::Punctuator(token)) if token.punctuator() == "-=" => AssignmentKind::Minus,
+        Some(Token::Punctuator(token)) if token.punctuator() == "*=" => AssignmentKind::Times,
+        Some(Token::Punctuator(token)) if token.punctuator() == "/=" => AssignmentKind::Div,
+        Some(Token::Punctuator(token)) if token.punctuator() == "%=" => AssignmentKind::Mod,
+        Some(Token::Punctuator(token)) if token.punctuator() == "**=" => AssignmentKind::Exp,
+        Some(Token::Punctuator(token)) if token.punctuator() == "<<=" => AssignmentKind::Shl,
+        Some(Token::Punctuator(token)) if token.punctuator() == ">>=" => AssignmentKind::Shr,
+        Some(Token::Punctuator(token)) if token.punctuator() == "&=" => AssignmentKind::BitAnd,
+        Some(Token::Punctuator(token)) if token.punctuator() == "^=" => AssignmentKind::BitXor,
+        Some(Token::Punctuator(token)) if token.punctuator() == "|=" => AssignmentKind::BitOr,
+        Some(Token::Punctuator(token)) if token.punctuator() == "&&=" => AssignmentKind::LogAnd,
+        Some(Token::Punctuator(token)) if token.punctuator() == "||=" => AssignmentKind::LogOr,
+        _ => {
+            return Ok(lhs);
+        }
+    };
+
+    // Consume the assignment operator
+    token_stream.pop_front();
+
+    // Ensure the token stream isn't empty
+    if token_stream.is_empty() {
+        return Err(ParseError::new_unexpected_eof(
+            "incomplete assignment expression".to_string(),
+            lhs.pos().extended_to_end(),
+        ));
+    };
+
+    // Parse the right-hand side
+    let rhs = parse_expr_assignment(token_stream)?;
+
+    // Construct and return the assignment node
+    Ok(AstNodeAssignment::new(lhs, rhs, assignment_kind).into())
+}
+
 /// Parses an expression from a token stream
 ///
 /// # Panics
@@ -973,12 +1024,9 @@ fn parse_expr_inline_cond<'source>(
 fn parse_expression<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
-    // TODO this should eventually parse all the way up to assignment
-    // expressions
-
     assert!(!token_stream.is_empty());
 
-    parse_expr_inline_cond(token_stream)
+    parse_expr_assignment(token_stream)
 }
 
 /// Parses exactly one statement from a token stream

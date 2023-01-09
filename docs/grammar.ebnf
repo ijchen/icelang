@@ -45,7 +45,7 @@ single_var_declaration = identifier , [equals , expression];
 
 (* Expressions *)
 expression = expr_assignment;
-expr_assignment = expr_inline_cond , [op_assignment , expr_inline_cond];
+expr_assignment = expr_inline_cond , [op_assignment , expr_assignment];
 expr_inline_cond = expr_logical_or , [
                          op_inline_conditional_start
                        , expr_inline_cond

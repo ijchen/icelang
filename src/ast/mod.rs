@@ -1,5 +1,7 @@
 //! Contains code related to AST nodes
 
+mod assignment_kind;
+mod ast_node_assignment;
 mod ast_node_binary_operation;
 mod ast_node_comparison;
 mod ast_node_format;
@@ -17,6 +19,8 @@ mod generic_ast_node;
 mod unary_operation_kind;
 mod usage_suffix;
 
+pub use assignment_kind::AssignmentKind;
+pub use ast_node_assignment::AstNodeAssignment;
 pub use ast_node_binary_operation::AstNodeBinaryOperation;
 pub use ast_node_comparison::AstNodeComparison;
 pub use ast_node_function_declaration::{AstNodeFunctionDeclaration, FunctionParameters};
