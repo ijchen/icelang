@@ -5,10 +5,11 @@ use std::collections::VecDeque;
 use crate::{
     ast::{
         AssignmentKind, Ast, AstNode, AstNodeAssignment, AstNodeBinaryOperation, AstNodeComparison,
-        AstNodeFunctionDeclaration, AstNodeInlineConditional, AstNodeLiteral, AstNodeTypeCast,
-        AstNodeUnaryOperation, AstNodeUsageSuffix, AstNodeVariableAccess, BinaryOperationKind,
-        ComparisonKind, FunctionParameters, UnaryOperationKind, UsageSuffix,
-        UsageSuffixComputedMemberAccess, UsageSuffixDotMemberAccess, UsageSuffixFunctionCall,
+        AstNodeFunctionDeclaration, AstNodeInlineConditional, AstNodeJumpStatement, AstNodeLiteral,
+        AstNodeTypeCast, AstNodeUnaryOperation, AstNodeUsageSuffix, AstNodeVariableAccess,
+        BinaryOperationKind, ComparisonKind, FunctionParameters, JumpStatementKind,
+        UnaryOperationKind, UsageSuffix, UsageSuffixComputedMemberAccess,
+        UsageSuffixDotMemberAccess, UsageSuffixFunctionCall,
     },
     error::ParseError,
     keyword::Keyword,
@@ -1074,17 +1075,43 @@ fn parse_statement<'source>(
 
         // Break statement
         Token::Keyword(token) if token.keyword() == Keyword::Break => {
-            todo!()
+            let pos = token.pos().clone();
+
+            // Consume the "break" keyword
+            token_stream.pop_front();
+
+            Ok(AstNodeJumpStatement::new(None, JumpStatementKind::Break, pos).into())
         }
 
         // Continue statement
         Token::Keyword(token) if token.keyword() == Keyword::Continue => {
-            todo!()
+            let pos = token.pos().clone();
+
+            // Consume the "continue" keyword
+            token_stream.pop_front();
+
+            Ok(AstNodeJumpStatement::new(None, JumpStatementKind::Continue, pos).into())
         }
 
         // Return statement
         Token::Keyword(token) if token.keyword() == Keyword::Return => {
-            todo!()
+            let pos = token.pos().clone();
+
+            // Consume the "return" keyword
+            token_stream.pop_front();
+
+            // Parse the expression following the return keyword
+            let body = match token_stream.front() {
+                Some(Token::Punctuator(token))
+                    if token.punctuator() == ";" || token.punctuator() == "}" =>
+                {
+                    None
+                }
+                None => None,
+                Some(_) => Some(parse_expression(token_stream)?),
+            };
+
+            Ok(AstNodeJumpStatement::new(body, JumpStatementKind::Return, pos).into())
         }
 
         // Otherwise, assume it's an expression
