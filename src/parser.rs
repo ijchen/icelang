@@ -5,9 +5,9 @@ use std::collections::VecDeque;
 use crate::{
     ast::{
         Ast, AstNode, AstNodeBinaryOperation, AstNodeComparison, AstNodeFunctionDeclaration,
-        AstNodeLiteral, AstNodeTypeCast, AstNodeUnaryOperation, AstNodeUsageSuffix,
-        AstNodeVariableAccess, BinaryOperationKind, ComparisonKind, FunctionParameters,
-        UnaryOperationKind, UsageSuffix, UsageSuffixComputedMemberAccess,
+        AstNodeInlineConditional, AstNodeLiteral, AstNodeTypeCast, AstNodeUnaryOperation,
+        AstNodeUsageSuffix, AstNodeVariableAccess, BinaryOperationKind, ComparisonKind,
+        FunctionParameters, UnaryOperationKind, UsageSuffix, UsageSuffixComputedMemberAccess,
         UsageSuffixDotMemberAccess, UsageSuffixFunctionCall,
     },
     error::ParseError,
@@ -898,6 +898,74 @@ left_associative_bin_op!(
     }
 );
 
+/// Parses an inline conditional (often called a
+/// ["ternary operator"](https://en.wikipedia.org/wiki/Ternary_conditional_operator))
+/// expression from a token stream
+///
+/// # Panics
+/// - If the token stream is empty
+fn parse_expr_inline_cond<'source>(
+    token_stream: &mut VecDeque<&Token<'source>>,
+) -> Result<AstNode<'source>, ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
+    // Parse the condition
+    let condition = parse_expr_logical_or(token_stream)?;
+
+    // If this actually isn't an inline conditional, just return the "condition"
+    if !matches!(
+        token_stream.front(),
+        Some(Token::Punctuator(token)) if token.punctuator() == "?"
+    ) {
+        return Ok(condition);
+    }
+
+    // Consume the "?"
+    token_stream.pop_front();
+
+    // Ensure the token stream isn't empty
+    if token_stream.is_empty() {
+        return Err(ParseError::new_unexpected_eof(
+            "incomplete inline conditional expression".to_string(),
+            condition.pos().extended_to_end(),
+        ));
+    };
+
+    // Parse the truthy case
+    let truthy_case = parse_expr_inline_cond(token_stream)?;
+
+    // Expect a ":"
+    match token_stream.pop_front() {
+        Some(Token::Punctuator(token)) if token.punctuator() == ":" => {}
+        Some(token) => {
+            return Err(ParseError::new_unexpected_token(
+                "expected colon in inline conditional expression".to_string(),
+                token.pos().clone(),
+            ))
+        }
+        None => {
+            return Err(ParseError::UnexpectedEOF {
+                why: "expected colon in inline conditional expression".to_string(),
+                pos: condition.pos().extended_to_end(),
+            });
+        }
+    }
+
+    // Ensure the token stream isn't empty
+    if token_stream.is_empty() {
+        return Err(ParseError::new_unexpected_eof(
+            "incomplete inline conditional expression".to_string(),
+            condition.pos().extended_to_end(),
+        ));
+    };
+
+    // Parse the falsey case
+    let falsey_case = parse_expr_inline_cond(token_stream)?;
+
+    // Construct and return the conditional node
+    Ok(AstNodeInlineConditional::new(condition, truthy_case, falsey_case).into())
+}
+
 /// Parses an expression from a token stream
 ///
 /// # Panics
@@ -910,7 +978,7 @@ fn parse_expression<'source>(
 
     assert!(!token_stream.is_empty());
 
-    parse_expr_logical_or(token_stream)
+    parse_expr_inline_cond(token_stream)
 }
 
 /// Parses exactly one statement from a token stream
