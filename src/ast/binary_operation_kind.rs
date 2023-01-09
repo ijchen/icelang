@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-/// A usage suffix
+/// The kind of a binary operation
 #[derive(Debug, PartialEq, Eq)]
 pub enum BinaryOperationKind {
     /// The logical or (||) binary operation
