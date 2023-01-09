@@ -73,4 +73,4 @@ impl PartialEq for AstNodeBinaryOperation<'_> {
         self.operation == other.operation && self.lhs == other.lhs && self.rhs == other.rhs
     }
 }
-impl Eq for AstNodeUsageSuffix<'_> {}
+impl Eq for AstNodeBinaryOperation<'_> {}

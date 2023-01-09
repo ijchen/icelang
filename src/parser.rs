@@ -5,9 +5,9 @@ use std::collections::VecDeque;
 use crate::{
     ast::{
         Ast, AstNode, AstNodeBinaryOperation, AstNodeFunctionDeclaration, AstNodeLiteral,
-        AstNodeTypeCast, AstNodeUsageSuffix, AstNodeVariableAccess, BinaryOperationKind,
-        FunctionParameters, UsageSuffix, UsageSuffixComputedMemberAccess,
-        UsageSuffixDotMemberAccess, UsageSuffixFunctionCall,
+        AstNodeTypeCast, AstNodeUnaryOperation, AstNodeUsageSuffix, AstNodeVariableAccess,
+        BinaryOperationKind, FunctionParameters, UnaryOperationKind, UsageSuffix,
+        UsageSuffixComputedMemberAccess, UsageSuffixDotMemberAccess, UsageSuffixFunctionCall,
     },
     error::ParseError,
     keyword::Keyword,
@@ -643,7 +643,7 @@ fn parse_expr_exponentiation<'source>(
 
                 // Parse the rhs
                 operands.push(match token_stream.front() {
-                    Some(_) => parse_expr_usage_suffix(token_stream)?,
+                    Some(_) => parse_expr_unary_prefix(token_stream)?,
                     None => {
                         return Err(ParseError::UnexpectedEOF {
                             why: "expected right-hand side of exponential binary operation"
@@ -667,6 +667,49 @@ fn parse_expr_exponentiation<'source>(
     Ok(root)
 }
 
+/// Parses a unary prefix expression from a token stream
+///
+/// # Panics
+/// - If the token stream is empty
+fn parse_expr_unary_prefix<'source>(
+    token_stream: &mut VecDeque<&Token<'source>>,
+) -> Result<AstNode<'source>, ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
+    match token_stream.front().unwrap() {
+        Token::Punctuator(token)
+            if token.punctuator() == "!"
+                || token.punctuator() == "+"
+                || token.punctuator() == "-" =>
+        {
+            // Consume the prefix
+            token_stream.pop_front();
+
+            // Ensure the token stream isn't empty
+            if token_stream.is_empty() {
+                return Err(ParseError::new_unexpected_eof(
+                    "incomplete unary prefix operation".to_string(),
+                    token.pos().extended_to_end(),
+                ));
+            };
+
+            // Parse the operand
+            let operand = parse_expr_unary_prefix(token_stream)?;
+
+            // Return the new unary operation node
+            let pos = token.pos().extended_to(operand.pos());
+            let operation = match token.punctuator() {
+                "!" => UnaryOperationKind::Not,
+                "+" => UnaryOperationKind::Identity,
+                "-" => UnaryOperationKind::Negation,
+                _ => unreachable!(),
+            };
+            Ok(AstNodeUnaryOperation::new(operand, operation, pos).into())
+        }
+        _ => parse_expr_exponentiation(token_stream),
+    }
+}
+
 /// Parses an expression from a token stream
 ///
 /// # Panics
@@ -679,7 +722,7 @@ fn parse_expression<'source>(
 
     assert!(!token_stream.is_empty());
 
-    parse_expr_exponentiation(token_stream)
+    parse_expr_unary_prefix(token_stream)
 }
 
 /// Parses exactly one statement from a token stream

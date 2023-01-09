@@ -62,7 +62,7 @@ expr_bitshift = expr_additive , {op_bitshift , expr_additive};
 expr_additive = expr_multiplicative , {op_additive , expr_multiplicative};
 expr_multiplicative = expr_unary_prefix , {op_multiplicative , expr_unary_prefix};
 expr_unary_prefix = (op_unary_prefix , expr_unary_prefix) | expr_exponentiation;
-expr_exponentiation = expr_usage_suffix , {op_exponentiation , expr_usage_suffix};
+expr_exponentiation = expr_usage_suffix , {op_exponentiation , expr_unary_prefix};
 expr_usage_suffix = expr_atomic , {
                           usage_suffix_member_access
                         | usage_suffix_computed_member_access
