@@ -17,6 +17,8 @@ pub enum AstNode<'source> {
     TypeCast(AstNodeTypeCast<'source>),
     /// A usage suffix node
     UsageSuffix(AstNodeUsageSuffix<'source>),
+    /// A binary operation node
+    BinaryOperation(AstNodeBinaryOperation<'source>),
 }
 
 impl<'source> AstNode<'source> {
@@ -28,6 +30,7 @@ impl<'source> AstNode<'source> {
             AstNode::Literal(node) => node.pos(),
             AstNode::TypeCast(node) => node.pos(),
             AstNode::UsageSuffix(node) => node.pos(),
+            AstNode::BinaryOperation(node) => node.pos(),
         }
     }
     /// Returns a mutable reference to the position in the source code of this
@@ -39,6 +42,7 @@ impl<'source> AstNode<'source> {
             AstNode::Literal(node) => node.pos_mut(),
             AstNode::TypeCast(node) => node.pos_mut(),
             AstNode::UsageSuffix(node) => node.pos_mut(),
+            AstNode::BinaryOperation(node) => node.pos_mut(),
         }
     }
 }
@@ -54,6 +58,7 @@ impl Display for AstNode<'_> {
                 AstNode::Literal(node) => node.to_string(),
                 AstNode::TypeCast(node) => node.to_string(),
                 AstNode::UsageSuffix(node) => node.to_string(),
+                AstNode::BinaryOperation(node) => node.to_string(),
             }
         )
     }
@@ -73,3 +78,4 @@ impl_from_specific_ast_node!(AstNodeVariableAccess, VariableAccess);
 impl_from_specific_ast_node!(AstNodeLiteral, Literal);
 impl_from_specific_ast_node!(AstNodeTypeCast, TypeCast);
 impl_from_specific_ast_node!(AstNodeUsageSuffix, UsageSuffix);
+impl_from_specific_ast_node!(AstNodeBinaryOperation, BinaryOperation);

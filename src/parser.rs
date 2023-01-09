@@ -4,9 +4,10 @@ use std::collections::VecDeque;
 
 use crate::{
     ast::{
-        Ast, AstNode, AstNodeFunctionDeclaration, AstNodeLiteral, AstNodeTypeCast,
-        AstNodeUsageSuffix, AstNodeVariableAccess, FunctionParameters, UsageSuffix,
-        UsageSuffixComputedMemberAccess, UsageSuffixDotMemberAccess, UsageSuffixFunctionCall,
+        Ast, AstNode, AstNodeBinaryOperation, AstNodeFunctionDeclaration, AstNodeLiteral,
+        AstNodeTypeCast, AstNodeUsageSuffix, AstNodeVariableAccess, BinaryOperationKind,
+        FunctionParameters, UsageSuffix, UsageSuffixComputedMemberAccess,
+        UsageSuffixDotMemberAccess, UsageSuffixFunctionCall,
     },
     error::ParseError,
     keyword::Keyword,
@@ -619,6 +620,53 @@ fn parse_expr_usage_suffix<'source>(
     })
 }
 
+/// Parses an exponentiation expression from a token stream
+///
+/// # Panics
+/// - If the token stream is empty
+fn parse_expr_exponentiation<'source>(
+    token_stream: &mut VecDeque<&Token<'source>>,
+) -> Result<AstNode<'source>, ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
+    // Parse the first (and possibly only) operand
+    let mut operands = vec![parse_expr_usage_suffix(token_stream)?];
+
+    // Parse any additional operations
+    loop {
+        match token_stream.front() {
+            Some(Token::Punctuator(token)) if token.punctuator() == "**" => {
+                let start_pos = token.pos();
+
+                // Consume the "**"
+                token_stream.pop_front();
+
+                // Parse the rhs
+                operands.push(match token_stream.front() {
+                    Some(_) => parse_expr_usage_suffix(token_stream)?,
+                    None => {
+                        return Err(ParseError::UnexpectedEOF {
+                            why: "expected right-hand side of exponential binary operation"
+                                .to_string(),
+                            pos: start_pos.extended_to_end(),
+                        });
+                    }
+                });
+            }
+            _ => break,
+        }
+    }
+
+    // Construct the binary operation node(s) from the operands
+    // Exponentiation is right-associative, so build from the right
+    let mut root = operands.pop().unwrap();
+    while let Some(lhs) = operands.pop() {
+        root = AstNodeBinaryOperation::new(lhs, root, BinaryOperationKind::Exponentiation).into();
+    }
+
+    Ok(root)
+}
+
 /// Parses an expression from a token stream
 ///
 /// # Panics
@@ -631,7 +679,7 @@ fn parse_expression<'source>(
 
     assert!(!token_stream.is_empty());
 
-    parse_expr_usage_suffix(token_stream)
+    parse_expr_exponentiation(token_stream)
 }
 
 /// Parses exactly one statement from a token stream

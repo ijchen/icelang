@@ -91,4 +91,4 @@ impl PartialEq for AstNodeUsageSuffix<'_> {
         self.root == other.root && self.suffixes == other.suffixes
     }
 }
-impl Eq for AstNodeUsageSuffix<'_> {}
+impl Eq for AstNodeBinaryOperation<'_> {}
