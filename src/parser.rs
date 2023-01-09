@@ -646,8 +646,7 @@ fn parse_expr_exponentiation<'source>(
                     Some(_) => parse_expr_unary_prefix(token_stream)?,
                     None => {
                         return Err(ParseError::UnexpectedEOF {
-                            why: "expected right-hand side of exponential binary operation"
-                                .to_string(),
+                            why: "expected right-hand side of binary operation".to_string(),
                             pos: start_pos.extended_to_end(),
                         });
                     }
@@ -710,6 +709,107 @@ fn parse_expr_unary_prefix<'source>(
     }
 }
 
+/// Parses a multiplicative expression from a token stream
+///
+/// # Panics
+/// - If the token stream is empty
+fn parse_expr_multiplicative<'source>(
+    token_stream: &mut VecDeque<&Token<'source>>,
+) -> Result<AstNode<'source>, ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
+    // Parse the first (and possibly only) operand
+    let mut root = parse_expr_unary_prefix(token_stream)?;
+
+    // Parse any additional operations
+    loop {
+        match token_stream.front() {
+            Some(Token::Punctuator(token))
+                if token.punctuator() == "*"
+                    || token.punctuator() == "/"
+                    || token.punctuator() == "%" =>
+            {
+                let start_pos = token.pos();
+
+                // Consume the operator
+                token_stream.pop_front();
+
+                // Parse the rhs
+                let rhs = match token_stream.front() {
+                    Some(_) => parse_expr_unary_prefix(token_stream)?,
+                    None => {
+                        return Err(ParseError::UnexpectedEOF {
+                            why: "expected right-hand side of binary operation".to_string(),
+                            pos: start_pos.extended_to_end(),
+                        });
+                    }
+                };
+
+                // Update the root
+                let operation = match token.punctuator() {
+                    "*" => BinaryOperationKind::Multiplication,
+                    "/" => BinaryOperationKind::Division,
+                    "%" => BinaryOperationKind::Modulo,
+                    _ => unreachable!(),
+                };
+                root = AstNodeBinaryOperation::new(root, rhs, operation).into();
+            }
+            _ => break,
+        }
+    }
+
+    Ok(root)
+}
+
+/// Parses an additive expression from a token stream
+///
+/// # Panics
+/// - If the token stream is empty
+fn parse_expr_additive<'source>(
+    token_stream: &mut VecDeque<&Token<'source>>,
+) -> Result<AstNode<'source>, ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
+    // Parse the first (and possibly only) operand
+    let mut root = parse_expr_multiplicative(token_stream)?;
+
+    // Parse any additional operations
+    loop {
+        match token_stream.front() {
+            Some(Token::Punctuator(token))
+                if token.punctuator() == "+" || token.punctuator() == "-" =>
+            {
+                let start_pos = token.pos();
+
+                // Consume the operator
+                token_stream.pop_front();
+
+                // Parse the rhs
+                let rhs = match token_stream.front() {
+                    Some(_) => parse_expr_multiplicative(token_stream)?,
+                    None => {
+                        return Err(ParseError::UnexpectedEOF {
+                            why: "expected right-hand side of binary operation".to_string(),
+                            pos: start_pos.extended_to_end(),
+                        });
+                    }
+                };
+
+                // Update the root
+                let operation = match token.punctuator() {
+                    "+" => BinaryOperationKind::Addition,
+                    "-" => BinaryOperationKind::Subtraction,
+                    _ => unreachable!(),
+                };
+                root = AstNodeBinaryOperation::new(root, rhs, operation).into();
+            }
+            _ => break,
+        }
+    }
+
+    Ok(root)
+}
+
 /// Parses an expression from a token stream
 ///
 /// # Panics
@@ -722,7 +822,7 @@ fn parse_expression<'source>(
 
     assert!(!token_stream.is_empty());
 
-    parse_expr_unary_prefix(token_stream)
+    parse_expr_additive(token_stream)
 }
 
 /// Parses exactly one statement from a token stream
