@@ -21,6 +21,8 @@ pub enum AstNode<'source> {
     BinaryOperation(AstNodeBinaryOperation<'source>),
     /// A unary operation node
     UnaryOperation(AstNodeUnaryOperation<'source>),
+    /// A comparison node
+    Comparison(AstNodeComparison<'source>),
 }
 
 impl<'source> AstNode<'source> {
@@ -34,6 +36,7 @@ impl<'source> AstNode<'source> {
             AstNode::UsageSuffix(node) => node.pos(),
             AstNode::BinaryOperation(node) => node.pos(),
             AstNode::UnaryOperation(node) => node.pos(),
+            AstNode::Comparison(node) => node.pos(),
         }
     }
     /// Returns a mutable reference to the position in the source code of this
@@ -47,6 +50,7 @@ impl<'source> AstNode<'source> {
             AstNode::UsageSuffix(node) => node.pos_mut(),
             AstNode::BinaryOperation(node) => node.pos_mut(),
             AstNode::UnaryOperation(node) => node.pos_mut(),
+            AstNode::Comparison(node) => node.pos_mut(),
         }
     }
 }
@@ -64,6 +68,7 @@ impl Display for AstNode<'_> {
                 AstNode::UsageSuffix(node) => node.to_string(),
                 AstNode::BinaryOperation(node) => node.to_string(),
                 AstNode::UnaryOperation(node) => node.to_string(),
+                AstNode::Comparison(node) => node.to_string(),
             }
         )
     }
@@ -85,3 +90,4 @@ impl_from_specific_ast_node!(AstNodeTypeCast, TypeCast);
 impl_from_specific_ast_node!(AstNodeUsageSuffix, UsageSuffix);
 impl_from_specific_ast_node!(AstNodeBinaryOperation, BinaryOperation);
 impl_from_specific_ast_node!(AstNodeUnaryOperation, UnaryOperation);
+impl_from_specific_ast_node!(AstNodeComparison, Comparison);

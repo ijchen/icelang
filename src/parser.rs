@@ -4,10 +4,11 @@ use std::collections::VecDeque;
 
 use crate::{
     ast::{
-        Ast, AstNode, AstNodeBinaryOperation, AstNodeFunctionDeclaration, AstNodeLiteral,
-        AstNodeTypeCast, AstNodeUnaryOperation, AstNodeUsageSuffix, AstNodeVariableAccess,
-        BinaryOperationKind, FunctionParameters, UnaryOperationKind, UsageSuffix,
-        UsageSuffixComputedMemberAccess, UsageSuffixDotMemberAccess, UsageSuffixFunctionCall,
+        Ast, AstNode, AstNodeBinaryOperation, AstNodeComparison, AstNodeFunctionDeclaration,
+        AstNodeLiteral, AstNodeTypeCast, AstNodeUnaryOperation, AstNodeUsageSuffix,
+        AstNodeVariableAccess, BinaryOperationKind, ComparisonKind, FunctionParameters,
+        UnaryOperationKind, UsageSuffix, UsageSuffixComputedMemberAccess,
+        UsageSuffixDotMemberAccess, UsageSuffixFunctionCall,
     },
     error::ParseError,
     keyword::Keyword,
@@ -815,6 +816,88 @@ left_associative_bin_op!(
     }
 );
 
+/// Parses a comparison expression from a token stream
+///
+/// # Panics
+/// - If the token stream is empty
+fn parse_expr_comparison<'source>(
+    token_stream: &mut VecDeque<&Token<'source>>,
+) -> Result<AstNode<'source>, ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
+    // Parse the first operand
+    let first = parse_expr_bitwise_or(token_stream)?;
+
+    // Parse any additional comparisons
+    let mut comparisons = Vec::new();
+    loop {
+        match token_stream.front() {
+            Some(Token::Punctuator(token))
+                if token.punctuator() == "=="
+                    || token.punctuator() == "!="
+                    || token.punctuator() == "<"
+                    || token.punctuator() == ">"
+                    || token.punctuator() == "<="
+                    || token.punctuator() == ">=" =>
+            {
+                let start_pos = token.pos();
+
+                // Consume the operator
+                token_stream.pop_front();
+
+                // Parse the rhs
+                let rhs = match token_stream.front() {
+                    Some(_) => parse_expr_bitwise_or(token_stream)?,
+                    None => {
+                        return Err(ParseError::UnexpectedEOF {
+                            why: "expected right-hand side of comparison".to_string(),
+                            pos: start_pos.extended_to_end(),
+                        });
+                    }
+                };
+
+                comparisons.push((
+                    match token.punctuator() {
+                        "==" => ComparisonKind::Equal,
+                        "!=" => ComparisonKind::NotEqual,
+                        "<" => ComparisonKind::LessThan,
+                        ">" => ComparisonKind::GreaterThan,
+                        "<=" => ComparisonKind::LessThanOrEqual,
+                        ">=" => ComparisonKind::GreaterThanOrEqual,
+                        _ => unreachable!(),
+                    },
+                    rhs,
+                ));
+            }
+            _ => break,
+        }
+    }
+
+    // If there were no additional comparisons, just return the first operand
+    Ok(if comparisons.is_empty() {
+        first
+    } else {
+        AstNodeComparison::new(first, comparisons).into()
+    })
+}
+
+left_associative_bin_op!(
+    parse_expr_logical_and,
+    child: parse_expr_comparison,
+    "a logical and",
+    {
+        "&&" => BinaryOperationKind::LogicalAnd
+    }
+);
+left_associative_bin_op!(
+    parse_expr_logical_or,
+    child: parse_expr_logical_and,
+    "a logical or",
+    {
+        "||" => BinaryOperationKind::LogicalOr
+    }
+);
+
 /// Parses an expression from a token stream
 ///
 /// # Panics
@@ -827,7 +910,7 @@ fn parse_expression<'source>(
 
     assert!(!token_stream.is_empty());
 
-    parse_expr_bitwise_or(token_stream)
+    parse_expr_logical_or(token_stream)
 }
 
 /// Parses exactly one statement from a token stream
