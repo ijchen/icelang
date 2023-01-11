@@ -341,6 +341,8 @@ fn parse_if_else_statement<'source>(
 fn parse_simple_loop<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
     // Expect a "loop" keyword
     let start_pos = match token_stream.pop_front().unwrap() {
         Token::Keyword(token) if token.keyword() == Keyword::Loop => token.pos(),
@@ -386,6 +388,8 @@ fn parse_simple_loop<'source>(
 fn parse_while_loop<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
     // Expect a "while" keyword
     let start_pos = match token_stream.pop_front().unwrap() {
         Token::Keyword(token) if token.keyword() == Keyword::While => token.pos(),
@@ -428,8 +432,76 @@ fn parse_while_loop<'source>(
 fn parse_for_loop<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
-    let _ = token_stream;
-    todo!()
+    assert!(!token_stream.is_empty());
+
+    // Expect a "for" keyword
+    let start_pos = match token_stream.pop_front().unwrap() {
+        Token::Keyword(token) if token.keyword() == Keyword::For => token.pos(),
+        token => {
+            return Err(ParseError::new_unexpected_token(
+                "expected `for` keyword in for loop".to_string(),
+                token.pos().clone(),
+            ));
+        }
+    };
+
+    // Expect an identifier
+    let ident = match token_stream.pop_front() {
+        Some(Token::Ident(token)) => token.ident().to_string(),
+        Some(token) => {
+            return Err(ParseError::new_unexpected_token(
+                "expected identifier in for loop".to_string(),
+                token.pos().clone(),
+            ));
+        }
+        None => {
+            return Err(ParseError::new_unexpected_eof(
+                "expected identifier in for loop".to_string(),
+                start_pos.extended_to_end(),
+            ));
+        }
+    };
+
+    // Expect an "in" keyword
+    match token_stream.pop_front() {
+        Some(Token::Keyword(token)) if token.keyword() == Keyword::In => token.pos(),
+        Some(token) => {
+            return Err(ParseError::new_unexpected_token(
+                "expected `in` keyword in for loop".to_string(),
+                token.pos().clone(),
+            ));
+        }
+        None => {
+            return Err(ParseError::new_unexpected_eof(
+                "expected `in` keyword in for loop".to_string(),
+                start_pos.extended_to_end(),
+            ));
+        }
+    };
+
+    // Ensure the token stream isn't empty
+    if token_stream.is_empty() {
+        return Err(ParseError::new_unexpected_eof(
+            "incomplete for loop".to_string(),
+            start_pos.extended_to_end(),
+        ));
+    };
+
+    // Parse the iterable expression
+    let iterable = parse_expression(token_stream)?;
+
+    // Ensure the token stream isn't empty
+    if token_stream.is_empty() {
+        return Err(ParseError::new_unexpected_eof(
+            "incomplete for loop".to_string(),
+            start_pos.extended_to_end(),
+        ));
+    };
+
+    let (body, end_pos) = parse_code_block(token_stream)?;
+    let pos = start_pos.extended_to(&end_pos);
+
+    Ok(AstNodeForLoop::new(ident, iterable, body, pos).into())
 }
 
 /// Parses a match statement from a token stream
@@ -581,7 +653,7 @@ fn parse_atomic<'source>(
 
         // Anything else is a syntax error
         token => Err(ParseError::UnexpectedToken {
-            why: "expected atomic expression".to_string(),
+            why: "expected expression".to_string(),
             pos: token.pos().clone(),
         }),
     }
