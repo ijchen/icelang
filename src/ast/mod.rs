@@ -10,6 +10,7 @@ mod ast_node_function_declaration;
 mod ast_node_inline_conditional;
 mod ast_node_jump_statement;
 mod ast_node_literal;
+mod ast_node_match_statement;
 mod ast_node_simple_loop;
 mod ast_node_type_cast;
 mod ast_node_unary_operation;
@@ -22,6 +23,7 @@ mod binary_operation_kind;
 mod comparison_kind;
 mod generic_ast_node;
 mod jump_statement_kind;
+mod match_arm;
 mod unary_operation_kind;
 mod usage_suffix;
 
@@ -34,6 +36,7 @@ pub use ast_node_function_declaration::{AstNodeFunctionDeclaration, FunctionPara
 pub use ast_node_inline_conditional::AstNodeInlineConditional;
 pub use ast_node_jump_statement::AstNodeJumpStatement;
 pub use ast_node_literal::AstNodeLiteral;
+pub use ast_node_match_statement::AstNodeMatchStatement;
 pub use ast_node_simple_loop::AstNodeSimpleLoop;
 pub use ast_node_type_cast::AstNodeTypeCast;
 pub use ast_node_unary_operation::AstNodeUnaryOperation;
@@ -46,6 +49,7 @@ pub use binary_operation_kind::BinaryOperationKind;
 pub use comparison_kind::ComparisonKind;
 pub use generic_ast_node::AstNode;
 pub use jump_statement_kind::JumpStatementKind;
+pub use match_arm::MatchArm;
 pub use unary_operation_kind::UnaryOperationKind;
 pub use usage_suffix::{
     UsageSuffix, UsageSuffixComputedMemberAccess, UsageSuffixDotMemberAccess,

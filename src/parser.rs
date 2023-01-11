@@ -504,15 +504,169 @@ fn parse_for_loop<'source>(
     Ok(AstNodeForLoop::new(ident, iterable, body, pos).into())
 }
 
+/// Parses a single match arm from a token stream
+///
+/// # Panics
+/// - If the token stream is empty
+fn parse_match_arm<'source>(
+    token_stream: &mut VecDeque<&Token<'source>>,
+) -> Result<MatchArm<'source>, ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
+    // Parse the pattern to match
+    let pattern = parse_expression(token_stream)?;
+
+    // Expect a fat-arrow
+    match token_stream.pop_front() {
+        Some(Token::Punctuator(token)) if token.punctuator() == "=>" => {}
+        Some(token) => {
+            return Err(ParseError::new_unexpected_token(
+                "expected fat arrow in match arm".to_string(),
+                token.pos().clone(),
+            ));
+        }
+        None => {
+            return Err(ParseError::new_unexpected_eof(
+                "expected fat arrow in match arm".to_string(),
+                pattern.pos().extended_to_end(),
+            ))
+        }
+    };
+
+    // Parse the body of the match arm
+    let (body, body_pos) = parse_code_block(token_stream)?;
+    let pos = pattern.pos().extended_to(&body_pos);
+
+    Ok(MatchArm::new(pattern, body, pos))
+}
+
 /// Parses a match statement from a token stream
 ///
 /// # Panics
-/// - If the token stream doesn't immediately start with a match statement
+/// - If the token stream is empty
 fn parse_match_statement<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
-    let _ = token_stream;
-    todo!()
+    assert!(!token_stream.is_empty());
+
+    // Expect a "match" keyword
+    let start_pos = match token_stream.pop_front().unwrap() {
+        Token::Keyword(token) if token.keyword() == Keyword::Match => token.pos(),
+        token => {
+            return Err(ParseError::new_unexpected_token(
+                "expected `match` keyword in match statement".to_string(),
+                token.pos().clone(),
+            ));
+        }
+    };
+
+    // Ensure the token stream isn't empty
+    if token_stream.is_empty() {
+        return Err(ParseError::new_unexpected_eof(
+            "incomplete match statement".to_string(),
+            start_pos.extended_to_end(),
+        ));
+    };
+
+    // Parse the matched expression
+    let matched_expression = parse_expression(token_stream)?;
+
+    // Expect an opening curly brace
+    match token_stream.pop_front() {
+        Some(Token::Punctuator(token)) if token.punctuator() == "{" => token.pos(),
+        Some(token) => {
+            return Err(ParseError::new_unexpected_token(
+                "expected opening curly brace in match statement".to_string(),
+                token.pos().clone(),
+            ));
+        }
+        None => {
+            return Err(ParseError::new_unexpected_eof(
+                "expected opening curly brace in match statement".to_string(),
+                start_pos.extended_to_end(),
+            ))
+        }
+    };
+
+    // Ensure the token stream isn't empty
+    if token_stream.is_empty() {
+        return Err(ParseError::new_unexpected_eof(
+            "incomplete match statement".to_string(),
+            start_pos.extended_to_end(),
+        ));
+    };
+
+    // Parse the body of the match statement
+    let mut arms = Vec::new();
+    let pos;
+    match token_stream.front().unwrap() {
+        // Empty match statement body
+        Token::Punctuator(token) if token.punctuator() == "}" => {
+            // Consume the "}"
+            token_stream.pop_front();
+
+            // Update pos
+            pos = start_pos.extended_to(token.pos());
+        }
+        // Non-empty match statement body
+        _ => {
+            // Parse the first match arm
+            arms.push(parse_match_arm(token_stream)?);
+
+            // Ensure the token stream isn't empty
+            if token_stream.is_empty() {
+                return Err(ParseError::new_unexpected_eof(
+                    "incomplete match statement".to_string(),
+                    start_pos.extended_to_end(),
+                ));
+            };
+
+            // Parse any subsequent match arms
+            loop {
+                match token_stream.front().unwrap() {
+                    Token::Punctuator(token) if token.punctuator() == "," => {
+                        // Consume the ","
+                        token_stream.pop_front();
+
+                        // Check if this was the trailing comma after the last
+                        // match arm
+                        match token_stream.front() {
+                            Some(Token::Punctuator(token)) if token.punctuator() == "}" => {
+                                // Consume the "}"
+                                token_stream.pop_front();
+
+                                // Update pos
+                                pos = start_pos.extended_to(token.pos());
+
+                                break;
+                            }
+                            _ => {}
+                        };
+
+                        // Parse the next match arm
+                        arms.push(parse_match_arm(token_stream)?);
+                    }
+                    Token::Punctuator(token) if token.punctuator() == "}" => {
+                        // Consume the "}"
+                        token_stream.pop_front();
+
+                        // Update pos
+                        pos = start_pos.extended_to(token.pos());
+
+                        break;
+                    }
+                    token => {
+                        return Err(ParseError::new_unexpected_token(
+                            "expected closing curly brace or comma in match expression".to_string(),
+                            token.pos().clone(),
+                        ));
+                    }
+                }
+            }
+        }
+    };
+
+    Ok(AstNodeMatchStatement::new(matched_expression, arms, pos).into())
 }
 
 /// Parses a parenthesized expression from a token stream
