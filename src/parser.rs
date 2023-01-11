@@ -129,7 +129,7 @@ fn parse_function_declaration_parameters<'source>(
 fn parse_function_declaration<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
-    // Expect a "fn" token
+    // Expect a "fn" keyword
     let start_pos = match token_stream.pop_front() {
         Some(Token::Keyword(token)) if token.keyword() == Keyword::Fn => token.pos(),
         _ => panic!("invalid function declaration"),
@@ -352,8 +352,39 @@ fn parse_simple_loop<'source>(
 fn parse_while_loop<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
-    let _ = token_stream;
-    todo!()
+    // Expect a "while" keyword
+    let start_pos = match token_stream.pop_front().unwrap() {
+        Token::Keyword(token) if token.keyword() == Keyword::While => token.pos(),
+        token => {
+            return Err(ParseError::new_unexpected_token(
+                "expected `while` keyword in variable declaration".to_string(),
+                token.pos().clone(),
+            ));
+        }
+    };
+
+    // Ensure the token stream isn't empty
+    if token_stream.is_empty() {
+        return Err(ParseError::new_unexpected_eof(
+            "incomplete while loop".to_string(),
+            start_pos.extended_to_end(),
+        ));
+    };
+
+    let condition = parse_expression(token_stream)?;
+
+    // Ensure the token stream isn't empty
+    if token_stream.is_empty() {
+        return Err(ParseError::new_unexpected_eof(
+            "incomplete while loop".to_string(),
+            start_pos.extended_to_end(),
+        ));
+    };
+
+    let (body, end_pos) = parse_code_block(token_stream)?;
+    let pos = start_pos.extended_to(&end_pos);
+
+    Ok(AstNodeWhileLoop::new(condition, body, pos).into())
 }
 
 /// Parses a for loop from a token stream
