@@ -2,20 +2,7 @@
 
 use std::collections::VecDeque;
 
-use crate::{
-    ast::{
-        AssignmentKind, Ast, AstNode, AstNodeAssignment, AstNodeBinaryOperation, AstNodeComparison,
-        AstNodeFunctionDeclaration, AstNodeInlineConditional, AstNodeJumpStatement, AstNodeLiteral,
-        AstNodeTypeCast, AstNodeUnaryOperation, AstNodeUsageSuffix, AstNodeVariableAccess,
-        BinaryOperationKind, ComparisonKind, FunctionParameters, JumpStatementKind,
-        UnaryOperationKind, UsageSuffix, UsageSuffixComputedMemberAccess,
-        UsageSuffixDotMemberAccess, UsageSuffixFunctionCall,
-    },
-    error::ParseError,
-    keyword::Keyword,
-    source_range::SourceRange,
-    token::Token,
-};
+use crate::{ast::*, error::ParseError, keyword::Keyword, source_range::SourceRange, token::Token};
 
 /// Parses a function declaration's parameters from a token stream
 fn parse_function_declaration_parameters<'source>(
@@ -221,8 +208,119 @@ fn parse_function_declaration<'source>(
 fn parse_variable_declaration<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
-    let _ = token_stream;
-    todo!()
+    assert!(!token_stream.is_empty());
+
+    // Expect a "let" keyword
+    let start_pos = match token_stream.pop_front().unwrap() {
+        Token::Keyword(token) if token.keyword() == Keyword::Let => token.pos(),
+        token => {
+            return Err(ParseError::new_unexpected_token(
+                "expected `let` keyword in variable declaration".to_string(),
+                token.pos().clone(),
+            ));
+        }
+    };
+
+    // Parse the first variable declaration
+    let mut declarations = Vec::new();
+    let mut pos = start_pos.clone();
+    match token_stream.pop_front() {
+        Some(Token::Ident(token)) => {
+            // Save the identifier and update pos
+            let ident = token.ident().to_string();
+            pos.extend_to(token.pos());
+
+            // Check if this declaration has an initialization value, and
+            // if so parse it
+            let value = match token_stream.front() {
+                Some(Token::Punctuator(token)) if token.punctuator() == "=" => {
+                    // Consume the "="
+                    token_stream.pop_front();
+
+                    // Ensure the token stream isn't empty
+                    if token_stream.is_empty() {
+                        return Err(ParseError::new_unexpected_eof(
+                            "incomplete variable declaration".to_string(),
+                            start_pos.extended_to_end(),
+                        ));
+                    };
+
+                    let value = parse_expression(token_stream)?;
+                    pos.extend_to(value.pos());
+                    Some(value)
+                }
+                _ => None,
+            };
+
+            declarations.push((ident, value));
+        }
+        Some(token) => {
+            return Err(ParseError::new_unexpected_token(
+                "expected identifier in variable declaration".to_string(),
+                token.pos().clone(),
+            ))
+        }
+        None => {
+            return Err(ParseError::new_unexpected_eof(
+                "expected identifier in variable declaration".to_string(),
+                start_pos.extended_to_end(),
+            ))
+        }
+    }
+
+    // Parse any subsequent variable declarations
+    loop {
+        match token_stream.front() {
+            Some(Token::Punctuator(token)) if token.punctuator() == "," => {
+                // Consume the ","
+                token_stream.pop_front();
+
+                // Expect an identifier
+                let ident = match token_stream.front() {
+                    Some(Token::Ident(token)) => {
+                        // Consume the identifier
+                        token_stream.pop_front();
+
+                        // Save the identifier and update pos
+                        pos.extend_to(token.pos());
+                        token.ident().to_string()
+                    }
+                    _ => {
+                        // This must have been the optional trailing comma after
+                        // the last variable declaration - we're done here
+                        break;
+                    }
+                };
+
+                // Check if this declaration has an initialization value, and
+                // if so parse it
+                let value = match token_stream.front() {
+                    Some(Token::Punctuator(token)) if token.punctuator() == "=" => {
+                        // Consume the "="
+                        token_stream.pop_front();
+
+                        // Ensure the token stream isn't empty
+                        if token_stream.is_empty() {
+                            return Err(ParseError::new_unexpected_eof(
+                                "incomplete variable declaration".to_string(),
+                                start_pos.extended_to_end(),
+                            ));
+                        };
+
+                        let value = parse_expression(token_stream)?;
+                        pos.extend_to(value.pos());
+                        Some(value)
+                    }
+                    _ => None,
+                };
+
+                declarations.push((ident, value));
+            }
+            _ => break,
+        }
+    }
+
+    Ok(AstNodeVariableDeclaration::new(declarations, pos).into())
 }
 
 /// Parses an if-else statement from a token stream
@@ -764,6 +862,7 @@ macro_rules! left_associative_bin_op {
         }
     };
 }
+
 left_associative_bin_op!(
     parse_expr_multiplicative,
     child: parse_expr_unary_prefix,
@@ -1234,7 +1333,7 @@ pub fn parse<'token, 'source: 'token>(
             Some(token) => {
                 return Err(ParseError::new_unexpected_token(
                     // Very generic error message for a very generic error
-                    "unexpected token".to_string(),
+                    "invalid token following statement".to_string(),
                     token.pos().clone(),
                 ));
             }

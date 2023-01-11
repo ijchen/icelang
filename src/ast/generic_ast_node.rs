@@ -9,6 +9,8 @@ use super::*;
 pub enum AstNode<'source> {
     /// A function declaration node
     FunctionDeclaration(AstNodeFunctionDeclaration<'source>),
+    /// A variable declaration node
+    VariableDeclaration(AstNodeVariableDeclaration<'source>),
     /// A variable access node
     VariableAccess(AstNodeVariableAccess<'source>),
     /// A literal node
@@ -36,6 +38,7 @@ impl<'source> AstNode<'source> {
     pub fn pos(&self) -> &SourceRange<'source> {
         match self {
             AstNode::FunctionDeclaration(node) => node.pos(),
+            AstNode::VariableDeclaration(node) => node.pos(),
             AstNode::VariableAccess(node) => node.pos(),
             AstNode::Literal(node) => node.pos(),
             AstNode::TypeCast(node) => node.pos(),
@@ -53,6 +56,7 @@ impl<'source> AstNode<'source> {
     pub fn pos_mut(&mut self) -> &mut SourceRange<'source> {
         match self {
             AstNode::FunctionDeclaration(node) => node.pos_mut(),
+            AstNode::VariableDeclaration(node) => node.pos_mut(),
             AstNode::VariableAccess(node) => node.pos_mut(),
             AstNode::Literal(node) => node.pos_mut(),
             AstNode::TypeCast(node) => node.pos_mut(),
@@ -74,6 +78,7 @@ impl Display for AstNode<'_> {
             "{}",
             match self {
                 AstNode::FunctionDeclaration(node) => node.to_string(),
+                AstNode::VariableDeclaration(node) => node.to_string(),
                 AstNode::VariableAccess(node) => node.to_string(),
                 AstNode::Literal(node) => node.to_string(),
                 AstNode::TypeCast(node) => node.to_string(),
@@ -99,6 +104,7 @@ macro_rules! impl_from_specific_ast_node {
     };
 }
 impl_from_specific_ast_node!(AstNodeFunctionDeclaration, FunctionDeclaration);
+impl_from_specific_ast_node!(AstNodeVariableDeclaration, VariableDeclaration);
 impl_from_specific_ast_node!(AstNodeVariableAccess, VariableAccess);
 impl_from_specific_ast_node!(AstNodeLiteral, Literal);
 impl_from_specific_ast_node!(AstNodeTypeCast, TypeCast);
