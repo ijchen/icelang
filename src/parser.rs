@@ -125,14 +125,21 @@ fn parse_function_declaration_parameters<'source>(
 /// Parses a function declaration statement from a token stream
 ///
 /// # Panics
-/// - If the token stream doesn't immediately start with a "fn" keyword token
+/// - If the token stream is empty
 fn parse_function_declaration<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
     // Expect a "fn" keyword
-    let start_pos = match token_stream.pop_front() {
-        Some(Token::Keyword(token)) if token.keyword() == Keyword::Fn => token.pos(),
-        _ => panic!("invalid function declaration"),
+    let start_pos = match token_stream.pop_front().unwrap() {
+        Token::Keyword(token) if token.keyword() == Keyword::Fn => token.pos(),
+        token => {
+            return Err(ParseError::new_unexpected_token(
+                "expected `fn` keyword in function declaration".to_string(),
+                token.pos().clone(),
+            ))
+        }
     };
 
     // Read the function name
@@ -204,7 +211,7 @@ fn parse_function_declaration<'source>(
 /// Parses a variable declaration statement from a token stream
 ///
 /// # Panics
-/// - If the token stream doesn't immediately start with a variable declaration statement
+/// - If the token stream is empty
 fn parse_variable_declaration<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
@@ -326,7 +333,7 @@ fn parse_variable_declaration<'source>(
 /// Parses an if-else statement from a token stream
 ///
 /// # Panics
-/// - If the token stream doesn't immediately start with an if-else statement
+/// - If the token stream is empty
 fn parse_if_else_statement<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
@@ -337,7 +344,7 @@ fn parse_if_else_statement<'source>(
 /// Parses a simple loop from a token stream
 ///
 /// # Panics
-/// - If the token stream doesn't immediately start with a simple loop
+/// - If the token stream is empty
 fn parse_simple_loop<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
@@ -384,7 +391,7 @@ fn parse_simple_loop<'source>(
 /// Parses a while loop from a token stream
 ///
 /// # Panics
-/// - If the token stream doesn't immediately start with a while loop
+/// - If the token stream is empty
 fn parse_while_loop<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
@@ -428,7 +435,7 @@ fn parse_while_loop<'source>(
 /// Parses a for loop from a token stream
 ///
 /// # Panics
-/// - If the token stream doesn't immediately start with a for loop
+/// - If the token stream is empty
 fn parse_for_loop<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
@@ -679,7 +686,7 @@ fn parse_parenthesized_expression<'source>(
     // Expect an opening parenthesis
     let start_pos = match token_stream.pop_front() {
         Some(Token::Punctuator(token)) if token.punctuator() == "(" => token.pos(),
-        _ => panic!("invalid function declaration"),
+        _ => panic!("invalid parenthesized expression"),
     };
 
     // Parse the expression
@@ -712,16 +719,23 @@ fn parse_parenthesized_expression<'source>(
 /// Parses a type cast expression from a token stream
 ///
 /// # Panics
-/// - If the token stream doesn't immediately start with a valid type keyword
+/// - If the token stream is empty
 fn parse_type_cast_expression<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
     // Expect a type keyword
-    let (start_pos, new_type) = match token_stream.pop_front() {
-        Some(Token::Keyword(token)) if token.keyword().can_be_type() => {
+    let (start_pos, new_type) = match token_stream.pop_front().unwrap() {
+        Token::Keyword(token) if token.keyword().can_be_type() => {
             (token.pos(), token.keyword().icelang_type().unwrap())
         }
-        _ => panic!("invalid type cast expression"),
+        token => {
+            return Err(ParseError::new_unexpected_token(
+                "expected type keyword in type cast expression".to_string(),
+                token.pos().clone(),
+            ))
+        }
     };
 
     // Expect an opening parenthesis
