@@ -39,6 +39,8 @@ pub enum AstNode<'source> {
     ForLoop(AstNodeForLoop<'source>),
     /// A match statement node
     MatchStatement(AstNodeMatchStatement<'source>),
+    /// An if-else statement node
+    IfElseStatement(AstNodeIfElseStatement<'source>),
 }
 
 impl<'source> AstNode<'source> {
@@ -61,6 +63,7 @@ impl<'source> AstNode<'source> {
             AstNode::WhileLoop(node) => node.pos(),
             AstNode::ForLoop(node) => node.pos(),
             AstNode::MatchStatement(node) => node.pos(),
+            AstNode::IfElseStatement(node) => node.pos(),
         }
     }
     /// Returns a mutable reference to the position in the source code of this
@@ -83,6 +86,7 @@ impl<'source> AstNode<'source> {
             AstNode::WhileLoop(node) => node.pos_mut(),
             AstNode::ForLoop(node) => node.pos_mut(),
             AstNode::MatchStatement(node) => node.pos_mut(),
+            AstNode::IfElseStatement(node) => node.pos_mut(),
         }
     }
 }
@@ -109,6 +113,7 @@ impl Display for AstNode<'_> {
                 AstNode::WhileLoop(node) => node.to_string(),
                 AstNode::ForLoop(node) => node.to_string(),
                 AstNode::MatchStatement(node) => node.to_string(),
+                AstNode::IfElseStatement(node) => node.to_string(),
             }
         )
     }
@@ -139,3 +144,4 @@ impl_from_specific_ast_node!(AstNodeSimpleLoop, SimpleLoop);
 impl_from_specific_ast_node!(AstNodeWhileLoop, WhileLoop);
 impl_from_specific_ast_node!(AstNodeForLoop, ForLoop);
 impl_from_specific_ast_node!(AstNodeMatchStatement, MatchStatement);
+impl_from_specific_ast_node!(AstNodeIfElseStatement, IfElseStatement);

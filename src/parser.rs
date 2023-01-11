@@ -337,8 +337,108 @@ fn parse_variable_declaration<'source>(
 fn parse_if_else_statement<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
-    let _ = token_stream;
-    todo!()
+    assert!(!token_stream.is_empty());
+
+    // Expect an "if" keyword
+    let mut pos = match token_stream.pop_front().unwrap() {
+        Token::Keyword(token) if token.keyword() == Keyword::If => token.pos().clone(),
+        token => {
+            return Err(ParseError::new_unexpected_token(
+                "expected `if` keyword in if statement".to_string(),
+                token.pos().clone(),
+            ));
+        }
+    };
+
+    // Ensure the token stream isn't empty
+    if token_stream.is_empty() {
+        return Err(ParseError::new_unexpected_eof(
+            "incomplete if statement".to_string(),
+            pos.extended_to_end(),
+        ));
+    };
+
+    // Parse the condition of the if statement
+    let condition = parse_expression(token_stream)?;
+
+    // Ensure the token stream isn't empty
+    if token_stream.is_empty() {
+        return Err(ParseError::new_unexpected_eof(
+            "incomplete if statement".to_string(),
+            pos.extended_to_end(),
+        ));
+    };
+
+    // Parse the body of the if statement
+    let (body, body_pos) = parse_code_block(token_stream)?;
+    pos.extend_to(&body_pos);
+
+    // Keep track of all the conditional branches of this if-else statement
+    let mut conditional_branches = vec![(condition, body)];
+
+    // Parse any else-if statements
+    loop {
+        match (token_stream.get(0), token_stream.get(1)) {
+            (Some(Token::Keyword(token_else)), Some(Token::Keyword(token_if)))
+                if token_else.keyword() == Keyword::Else && token_if.keyword() == Keyword::If =>
+            {
+                // Consume the "else" and "if" tokens
+                token_stream.pop_front();
+                token_stream.pop_front();
+
+                // Ensure the token stream isn't empty
+                if token_stream.is_empty() {
+                    return Err(ParseError::new_unexpected_eof(
+                        "incomplete else-if statement".to_string(),
+                        pos.extended_to_end(),
+                    ));
+                };
+
+                // Parse the condition of the else-if statement
+                let condition = parse_expression(token_stream)?;
+
+                // Ensure the token stream isn't empty
+                if token_stream.is_empty() {
+                    return Err(ParseError::new_unexpected_eof(
+                        "incomplete else-if statement".to_string(),
+                        pos.extended_to_end(),
+                    ));
+                };
+
+                // Parse the body of the else-if statement
+                let (body, body_pos) = parse_code_block(token_stream)?;
+                pos.extend_to(&body_pos);
+
+                conditional_branches.push((condition, body));
+            }
+            _ => break,
+        }
+    }
+
+    // Parse an optional else branch
+    let else_branch = match token_stream.front() {
+        Some(Token::Keyword(token)) if token.keyword() == Keyword::Else => {
+            // Consume the "else" token
+            token_stream.pop_front();
+
+            // Ensure the token stream isn't empty
+            if token_stream.is_empty() {
+                return Err(ParseError::new_unexpected_eof(
+                    "incomplete else statement".to_string(),
+                    pos.extended_to_end(),
+                ));
+            };
+
+            // Parse the body of the else statement
+            let (body, body_pos) = parse_code_block(token_stream)?;
+            pos.extend_to(&body_pos);
+
+            Some(body)
+        }
+        _ => None,
+    };
+
+    Ok(AstNodeIfElseStatement::new(conditional_branches, else_branch, pos).into())
 }
 
 /// Parses a simple loop from a token stream
