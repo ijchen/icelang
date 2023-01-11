@@ -341,8 +341,42 @@ fn parse_if_else_statement<'source>(
 fn parse_simple_loop<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
-    let _ = token_stream;
-    todo!()
+    // Expect a "loop" keyword
+    let start_pos = match token_stream.pop_front().unwrap() {
+        Token::Keyword(token) if token.keyword() == Keyword::Loop => token.pos(),
+        token => {
+            return Err(ParseError::new_unexpected_token(
+                "expected `loop` keyword in simple loop".to_string(),
+                token.pos().clone(),
+            ));
+        }
+    };
+
+    // Ensure the token stream isn't empty
+    if token_stream.is_empty() {
+        return Err(ParseError::new_unexpected_eof(
+            "incomplete simple loop".to_string(),
+            start_pos.extended_to_end(),
+        ));
+    };
+
+    let condition = match token_stream.front() {
+        Some(Token::Punctuator(token)) if token.punctuator() == "{" => None,
+        _ => Some(parse_expression(token_stream)?),
+    };
+
+    // Ensure the token stream isn't empty
+    if token_stream.is_empty() {
+        return Err(ParseError::new_unexpected_eof(
+            "incomplete simple loop".to_string(),
+            start_pos.extended_to_end(),
+        ));
+    };
+
+    let (body, end_pos) = parse_code_block(token_stream)?;
+    let pos = start_pos.extended_to(&end_pos);
+
+    Ok(AstNodeSimpleLoop::new(condition, body, pos).into())
 }
 
 /// Parses a while loop from a token stream
@@ -357,7 +391,7 @@ fn parse_while_loop<'source>(
         Token::Keyword(token) if token.keyword() == Keyword::While => token.pos(),
         token => {
             return Err(ParseError::new_unexpected_token(
-                "expected `while` keyword in variable declaration".to_string(),
+                "expected `while` keyword in while loop".to_string(),
                 token.pos().clone(),
             ));
         }

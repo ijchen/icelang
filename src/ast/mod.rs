@@ -9,6 +9,7 @@ mod ast_node_function_declaration;
 mod ast_node_inline_conditional;
 mod ast_node_jump_statement;
 mod ast_node_literal;
+mod ast_node_simple_loop;
 mod ast_node_type_cast;
 mod ast_node_unary_operation;
 mod ast_node_usage_suffix;
@@ -31,6 +32,7 @@ pub use ast_node_function_declaration::{AstNodeFunctionDeclaration, FunctionPara
 pub use ast_node_inline_conditional::AstNodeInlineConditional;
 pub use ast_node_jump_statement::AstNodeJumpStatement;
 pub use ast_node_literal::AstNodeLiteral;
+pub use ast_node_simple_loop::AstNodeSimpleLoop;
 pub use ast_node_type_cast::AstNodeTypeCast;
 pub use ast_node_unary_operation::AstNodeUnaryOperation;
 pub use ast_node_usage_suffix::AstNodeUsageSuffix;

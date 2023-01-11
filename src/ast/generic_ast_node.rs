@@ -33,6 +33,8 @@ pub enum AstNode<'source> {
     JumpStatement(AstNodeJumpStatement<'source>),
     /// A while loop node
     WhileLoop(AstNodeWhileLoop<'source>),
+    /// A simple (`loop`) loop node
+    SimpleLoop(AstNodeSimpleLoop<'source>),
 }
 
 impl<'source> AstNode<'source> {
@@ -52,6 +54,7 @@ impl<'source> AstNode<'source> {
             AstNode::Assignment(node) => node.pos(),
             AstNode::JumpStatement(node) => node.pos(),
             AstNode::WhileLoop(node) => node.pos(),
+            AstNode::SimpleLoop(node) => node.pos(),
         }
     }
     /// Returns a mutable reference to the position in the source code of this
@@ -71,6 +74,7 @@ impl<'source> AstNode<'source> {
             AstNode::Assignment(node) => node.pos_mut(),
             AstNode::JumpStatement(node) => node.pos_mut(),
             AstNode::WhileLoop(node) => node.pos_mut(),
+            AstNode::SimpleLoop(node) => node.pos_mut(),
         }
     }
 }
@@ -94,6 +98,7 @@ impl Display for AstNode<'_> {
                 AstNode::Assignment(node) => node.to_string(),
                 AstNode::JumpStatement(node) => node.to_string(),
                 AstNode::WhileLoop(node) => node.to_string(),
+                AstNode::SimpleLoop(node) => node.to_string(),
             }
         )
     }
@@ -121,3 +126,4 @@ impl_from_specific_ast_node!(AstNodeInlineConditional, InlineConditional);
 impl_from_specific_ast_node!(AstNodeAssignment, Assignment);
 impl_from_specific_ast_node!(AstNodeJumpStatement, JumpStatement);
 impl_from_specific_ast_node!(AstNodeWhileLoop, WhileLoop);
+impl_from_specific_ast_node!(AstNodeSimpleLoop, SimpleLoop);
