@@ -827,7 +827,7 @@ fn parse_type_cast_expression<'source>(
 
     // Expect a type keyword
     let (start_pos, new_type) = match token_stream.pop_front().unwrap() {
-        Token::Keyword(token) if token.keyword().can_be_type() => {
+        Token::Keyword(token) if token.keyword().can_only_be_type() => {
             (token.pos(), token.keyword().icelang_type().unwrap())
         }
         token => {
@@ -894,7 +894,7 @@ fn parse_atomic<'source>(
         }
 
         // Type cast expression
-        Token::Keyword(token) if token.keyword().can_be_type() => {
+        Token::Keyword(token) if token.keyword().can_only_be_type() => {
             parse_type_cast_expression(token_stream)
         }
 
@@ -911,6 +911,25 @@ fn parse_atomic<'source>(
             .into())
         }
 
+        // Null literal
+        Token::Keyword(token) if token.keyword() == Keyword::Null => {
+            // Consume the null keyword token
+            token_stream.pop_front();
+
+            Ok(AstNodeLiteral::new(
+                token.keyword().to_string(),
+                token.keyword().icelang_type().unwrap(),
+                token.pos().clone(),
+            )
+            .into())
+        }
+
+        // List literal
+        Token::Punctuator(token) if token.punctuator() == "[" => parse_list_literal(token_stream),
+
+        // Dict literal
+        // Token::Punctuator(token) if token.punctuator() == "{" => parse_dict_literal(token_stream),
+
         // Identifier
         Token::Ident(token) => {
             // Consume the identifier token
@@ -925,6 +944,102 @@ fn parse_atomic<'source>(
             pos: token.pos().clone(),
         }),
     }
+}
+
+/// Parses a list literal from a token stream
+///
+/// # Panics
+/// - If the token stream is empty
+fn parse_list_literal<'source>(
+    token_stream: &mut VecDeque<&Token<'source>>,
+) -> Result<AstNode<'source>, ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
+    // Expect an opening square bracket
+    let start_pos = match token_stream.pop_front().unwrap() {
+        Token::Punctuator(token) if token.punctuator() == "[" => token.pos(),
+        token => {
+            return Err(ParseError::new_unexpected_token(
+                "expected opening square bracket in list literal".to_string(),
+                token.pos().clone(),
+            ));
+        }
+    };
+
+    // Parse any elements in the list literal
+    let mut elements = Vec::new();
+    let pos;
+    loop {
+        match token_stream.front() {
+            Some(Token::Punctuator(token)) if token.punctuator() == "]" => {
+                // Consume the "]"
+                token_stream.pop_front();
+
+                pos = start_pos.extended_to(token.pos());
+
+                break;
+            }
+            Some(_) => {
+                // Parse the next element
+                elements.push(parse_expression(token_stream)?);
+
+                match token_stream.front() {
+                    Some(Token::Punctuator(token)) if token.punctuator() == "," => {
+                        // Consume the ","
+                        token_stream.pop_front();
+
+                        match token_stream.front() {
+                            Some(Token::Punctuator(token)) if token.punctuator() == "]" => {
+                                // Consume the "]"
+                                token_stream.pop_front();
+
+                                pos = start_pos.extended_to(token.pos());
+
+                                break;
+                            }
+                            Some(_) => {
+                                continue;
+                            }
+                            None => {
+                                return Err(ParseError::new_unexpected_eof(
+                                    "incomplete list literal".to_string(),
+                                    start_pos.extended_to_end(),
+                                ))
+                            }
+                        }
+                    }
+                    Some(Token::Punctuator(token)) if token.punctuator() == "]" => {
+                        // Consume the "]"
+                        token_stream.pop_front();
+
+                        pos = start_pos.extended_to(token.pos());
+
+                        break;
+                    }
+                    Some(token) => {
+                        return Err(ParseError::new_unexpected_token(
+                            "unexpected token in list literal".to_string(),
+                            token.pos().clone(),
+                        ))
+                    }
+                    None => {
+                        return Err(ParseError::new_unexpected_eof(
+                            "incomplete list literal".to_string(),
+                            start_pos.extended_to_end(),
+                        ))
+                    }
+                }
+            }
+            None => {
+                return Err(ParseError::new_unexpected_eof(
+                    "incomplete list literal".to_string(),
+                    start_pos.extended_to_end(),
+                ))
+            }
+        }
+    }
+
+    Ok(AstNodeListLiteral::new(elements, pos).into())
 }
 
 /// Parses a usage suffix expression from a token stream

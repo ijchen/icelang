@@ -10,6 +10,7 @@ mod ast_node_function_declaration;
 mod ast_node_if_else_statement;
 mod ast_node_inline_conditional;
 mod ast_node_jump_statement;
+mod ast_node_list_literal;
 mod ast_node_literal;
 mod ast_node_match_statement;
 mod ast_node_simple_loop;
@@ -37,6 +38,7 @@ pub use ast_node_function_declaration::{AstNodeFunctionDeclaration, FunctionPara
 pub use ast_node_if_else_statement::AstNodeIfElseStatement;
 pub use ast_node_inline_conditional::AstNodeInlineConditional;
 pub use ast_node_jump_statement::AstNodeJumpStatement;
+pub use ast_node_list_literal::AstNodeListLiteral;
 pub use ast_node_literal::AstNodeLiteral;
 pub use ast_node_match_statement::AstNodeMatchStatement;
 pub use ast_node_simple_loop::AstNodeSimpleLoop;

@@ -15,6 +15,8 @@ pub enum AstNode<'source> {
     VariableAccess(AstNodeVariableAccess<'source>),
     /// A literal node
     Literal(AstNodeLiteral<'source>),
+    /// A list literal node
+    ListLiteral(AstNodeListLiteral<'source>),
     /// A type cast node
     TypeCast(AstNodeTypeCast<'source>),
     /// A usage suffix node
@@ -51,6 +53,7 @@ impl<'source> AstNode<'source> {
             AstNode::VariableDeclaration(node) => node.pos(),
             AstNode::VariableAccess(node) => node.pos(),
             AstNode::Literal(node) => node.pos(),
+            AstNode::ListLiteral(node) => node.pos(),
             AstNode::TypeCast(node) => node.pos(),
             AstNode::UsageSuffix(node) => node.pos(),
             AstNode::BinaryOperation(node) => node.pos(),
@@ -74,6 +77,7 @@ impl<'source> AstNode<'source> {
             AstNode::VariableDeclaration(node) => node.pos_mut(),
             AstNode::VariableAccess(node) => node.pos_mut(),
             AstNode::Literal(node) => node.pos_mut(),
+            AstNode::ListLiteral(node) => node.pos_mut(),
             AstNode::TypeCast(node) => node.pos_mut(),
             AstNode::UsageSuffix(node) => node.pos_mut(),
             AstNode::BinaryOperation(node) => node.pos_mut(),
@@ -101,6 +105,7 @@ impl Display for AstNode<'_> {
                 AstNode::VariableDeclaration(node) => node.to_string(),
                 AstNode::VariableAccess(node) => node.to_string(),
                 AstNode::Literal(node) => node.to_string(),
+                AstNode::ListLiteral(node) => node.to_string(),
                 AstNode::TypeCast(node) => node.to_string(),
                 AstNode::UsageSuffix(node) => node.to_string(),
                 AstNode::BinaryOperation(node) => node.to_string(),
@@ -132,6 +137,7 @@ impl_from_specific_ast_node!(AstNodeFunctionDeclaration, FunctionDeclaration);
 impl_from_specific_ast_node!(AstNodeVariableDeclaration, VariableDeclaration);
 impl_from_specific_ast_node!(AstNodeVariableAccess, VariableAccess);
 impl_from_specific_ast_node!(AstNodeLiteral, Literal);
+impl_from_specific_ast_node!(AstNodeListLiteral, ListLiteral);
 impl_from_specific_ast_node!(AstNodeTypeCast, TypeCast);
 impl_from_specific_ast_node!(AstNodeUsageSuffix, UsageSuffix);
 impl_from_specific_ast_node!(AstNodeBinaryOperation, BinaryOperation);

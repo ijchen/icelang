@@ -222,6 +222,37 @@ impl Keyword {
         }
     }
 
+    /// Returns whether or not this keyword can only be a type (null isn't
+    /// always a type, so returns false)
+    pub fn can_only_be_type(&self) -> bool {
+        match self {
+            Keyword::If => false,
+            Keyword::Else => false,
+            Keyword::Loop => false,
+            Keyword::While => false,
+            Keyword::For => false,
+            Keyword::In => false,
+            Keyword::Match => false,
+            Keyword::Break => false,
+            Keyword::Continue => false,
+            Keyword::Return => false,
+            Keyword::Fn => false,
+            Keyword::Let => false,
+            Keyword::Int => true,
+            Keyword::Byte => true,
+            Keyword::Float => true,
+            Keyword::Bool => true,
+            Keyword::String => true,
+            Keyword::List => true,
+            Keyword::Dict => true,
+            Keyword::True => false,
+            Keyword::False => false,
+            Keyword::Null => false,
+            Keyword::Infinity => false,
+            Keyword::Nan => false,
+        }
+    }
+
     /// Returns the icelang type associated with this keyword, or None if there
     /// isn't an icelang type meaningfully associated with this keyword
     ///
