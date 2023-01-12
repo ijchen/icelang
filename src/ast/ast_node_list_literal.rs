@@ -4,7 +4,7 @@ use crate::source_range::SourceRange;
 
 use super::{ast_node_format::format_as_node, *};
 
-/// A while loop AST node
+/// A list literal AST node
 #[derive(Debug)]
 pub struct AstNodeListLiteral<'source> {
     elements: Vec<AstNode<'source>>,

@@ -928,7 +928,7 @@ fn parse_atomic<'source>(
         Token::Punctuator(token) if token.punctuator() == "[" => parse_list_literal(token_stream),
 
         // Dict literal
-        // Token::Punctuator(token) if token.punctuator() == "{" => parse_dict_literal(token_stream),
+        Token::Punctuator(token) if token.punctuator() == "{" => parse_dict_literal(token_stream),
 
         // Identifier
         Token::Ident(token) => {
@@ -1040,6 +1040,145 @@ fn parse_list_literal<'source>(
     }
 
     Ok(AstNodeListLiteral::new(elements, pos).into())
+}
+
+/// Parses a single entry in a dict literal from a token stream
+///
+/// # Panics
+/// - If the token stream is empty
+fn parse_dict_entry<'source>(
+    token_stream: &mut VecDeque<&Token<'source>>,
+) -> Result<(AstNode<'source>, AstNode<'source>), ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
+    // Parse the key
+    let key = parse_expression(token_stream)?;
+
+    // Expect a colon
+    match token_stream.pop_front() {
+        Some(Token::Punctuator(token)) if token.punctuator() == ":" => {}
+        Some(token) => {
+            return Err(ParseError::new_unexpected_token(
+                "expected colon in dict literal entry".to_string(),
+                token.pos().clone(),
+            ));
+        }
+        None => {
+            return Err(ParseError::new_unexpected_eof(
+                "expected colon in dict literal entry".to_string(),
+                key.pos().extended_to_end(),
+            ));
+        }
+    };
+
+    // Ensure the token stream isn't empty
+    if token_stream.is_empty() {
+        return Err(ParseError::new_unexpected_eof(
+            "incomplete dict literal entry".to_string(),
+            key.pos().extended_to_end(),
+        ));
+    };
+
+    // Parse the value
+    let value = parse_expression(token_stream)?;
+
+    Ok((key, value))
+}
+
+/// Parses a dict literal from a token stream
+///
+/// # Panics
+/// - If the token stream is empty
+fn parse_dict_literal<'source>(
+    token_stream: &mut VecDeque<&Token<'source>>,
+) -> Result<AstNode<'source>, ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
+    // Expect an opening curly brace
+    let start_pos = match token_stream.pop_front().unwrap() {
+        Token::Punctuator(token) if token.punctuator() == "{" => token.pos(),
+        token => {
+            return Err(ParseError::new_unexpected_token(
+                "expected opening curly brace in dict literal".to_string(),
+                token.pos().clone(),
+            ));
+        }
+    };
+
+    // Parse any entries in the dict literal
+    let mut entries = Vec::new();
+    let pos;
+    loop {
+        match token_stream.front() {
+            Some(Token::Punctuator(token)) if token.punctuator() == "}" => {
+                // Consume the "}"
+                token_stream.pop_front();
+
+                pos = start_pos.extended_to(token.pos());
+
+                break;
+            }
+            Some(_) => {
+                // Parse the next entry
+                entries.push(parse_dict_entry(token_stream)?);
+
+                match token_stream.front() {
+                    Some(Token::Punctuator(token)) if token.punctuator() == "," => {
+                        // Consume the ","
+                        token_stream.pop_front();
+
+                        match token_stream.front() {
+                            Some(Token::Punctuator(token)) if token.punctuator() == "}" => {
+                                // Consume the "}"
+                                token_stream.pop_front();
+
+                                pos = start_pos.extended_to(token.pos());
+
+                                break;
+                            }
+                            Some(_) => {
+                                continue;
+                            }
+                            None => {
+                                return Err(ParseError::new_unexpected_eof(
+                                    "incomplete dict literal".to_string(),
+                                    start_pos.extended_to_end(),
+                                ))
+                            }
+                        }
+                    }
+                    Some(Token::Punctuator(token)) if token.punctuator() == "}" => {
+                        // Consume the "}"
+                        token_stream.pop_front();
+
+                        pos = start_pos.extended_to(token.pos());
+
+                        break;
+                    }
+                    Some(token) => {
+                        return Err(ParseError::new_unexpected_token(
+                            "unexpected token in dict literal".to_string(),
+                            token.pos().clone(),
+                        ))
+                    }
+                    None => {
+                        return Err(ParseError::new_unexpected_eof(
+                            "incomplete dict literal".to_string(),
+                            start_pos.extended_to_end(),
+                        ))
+                    }
+                }
+            }
+            None => {
+                return Err(ParseError::new_unexpected_eof(
+                    "incomplete dict literal".to_string(),
+                    start_pos.extended_to_end(),
+                ))
+            }
+        }
+    }
+
+    Ok(AstNodeDictLiteral::new(entries, pos).into())
 }
 
 /// Parses a usage suffix expression from a token stream
