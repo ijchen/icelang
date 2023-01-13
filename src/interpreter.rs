@@ -13,21 +13,29 @@ use crate::{
 ///
 /// # Panics
 /// - If the AstNodeLiteral isn't an int
-fn interpret_literal_int<'source, 'ast>(
-    node: &AstNodeLiteral,
-) -> Result<Value, RuntimeError<'source, 'ast>> {
+/// - If the literal is not a valid int
+fn interpret_literal_int<'source>(node: &AstNodeLiteral) -> Result<Value, RuntimeError<'source>> {
     assert!(node.icelang_type() == IcelangType::Int);
 
-    todo!()
+    use std::num::IntErrorKind;
+    let value = match str::parse::<i64>(node.raw()) {
+        Ok(value) => value,
+        Err(err) => match err.kind() {
+            IntErrorKind::Empty | IntErrorKind::InvalidDigit => panic!("invalid int literal"),
+            IntErrorKind::PosOverflow | IntErrorKind::NegOverflow => todo!(),
+            IntErrorKind::Zero => unreachable!(),
+            _ => panic!("Unexpected error parsing integer"),
+        },
+    };
+
+    Ok(Value::Int(value))
 }
 
 /// Interprets a byte literal AstNodeLiteral
 ///
 /// # Panics
 /// - If the AstNodeLiteral isn't a byte
-fn interpret_literal_byte<'source, 'ast>(
-    node: &AstNodeLiteral,
-) -> Result<Value, RuntimeError<'source, 'ast>> {
+fn interpret_literal_byte<'source>(node: &AstNodeLiteral) -> Result<Value, RuntimeError<'source>> {
     assert!(node.icelang_type() == IcelangType::Byte);
 
     todo!()
@@ -37,9 +45,7 @@ fn interpret_literal_byte<'source, 'ast>(
 ///
 /// # Panics
 /// - If the AstNodeLiteral isn't a float
-fn interpret_literal_float<'source, 'ast>(
-    node: &AstNodeLiteral,
-) -> Result<Value, RuntimeError<'source, 'ast>> {
+fn interpret_literal_float<'source>(node: &AstNodeLiteral) -> Result<Value, RuntimeError<'source>> {
     assert!(node.icelang_type() == IcelangType::Float);
 
     todo!()
@@ -49,9 +55,7 @@ fn interpret_literal_float<'source, 'ast>(
 ///
 /// # Panics
 /// - If the AstNodeLiteral isn't a bool
-fn interpret_literal_bool<'source, 'ast>(
-    node: &AstNodeLiteral,
-) -> Result<Value, RuntimeError<'source, 'ast>> {
+fn interpret_literal_bool<'source>(node: &AstNodeLiteral) -> Result<Value, RuntimeError<'source>> {
     assert!(node.icelang_type() == IcelangType::Bool);
 
     match node.raw() {
@@ -65,9 +69,9 @@ fn interpret_literal_bool<'source, 'ast>(
 ///
 /// # Panics
 /// - If the AstNodeLiteral isn't a string
-fn interpret_literal_string<'source, 'ast>(
+fn interpret_literal_string<'source>(
     node: &AstNodeLiteral,
-) -> Result<Value, RuntimeError<'source, 'ast>> {
+) -> Result<Value, RuntimeError<'source>> {
     assert!(node.icelang_type() == IcelangType::String);
 
     todo!()
@@ -77,9 +81,9 @@ fn interpret_literal_string<'source, 'ast>(
 ///
 /// # Panics
 /// - If the AstNodeLiteral isn't a list
-fn interpret_literal_list<'source, 'ast>(
+fn interpret_literal_list<'source>(
     node: &AstNodeListLiteral,
-) -> Result<Value, RuntimeError<'source, 'ast>> {
+) -> Result<Value, RuntimeError<'source>> {
     let _ = node;
     todo!()
 }
@@ -88,9 +92,9 @@ fn interpret_literal_list<'source, 'ast>(
 ///
 /// # Panics
 /// - If the AstNodeLiteral isn't a dict
-fn interpret_literal_dict<'source, 'ast>(
+fn interpret_literal_dict<'source>(
     node: &AstNodeDictLiteral,
-) -> Result<Value, RuntimeError<'source, 'ast>> {
+) -> Result<Value, RuntimeError<'source>> {
     let _ = node;
     todo!()
 }
@@ -99,9 +103,7 @@ fn interpret_literal_dict<'source, 'ast>(
 ///
 /// # Panics
 /// - If the AstNodeLiteral isn't a null
-fn interpret_literal_null<'source, 'ast>(
-    node: &AstNodeLiteral,
-) -> Result<Value, RuntimeError<'source, 'ast>> {
+fn interpret_literal_null<'source>(node: &AstNodeLiteral) -> Result<Value, RuntimeError<'source>> {
     assert!(node.icelang_type() == IcelangType::Null);
 
     if node.raw() != "null" {
@@ -112,9 +114,10 @@ fn interpret_literal_null<'source, 'ast>(
 }
 
 /// Interprets an AstNodeLiteral into a Value
-fn interpret_literal<'source, 'ast>(
-    node: &AstNodeLiteral,
-) -> Result<Value, RuntimeError<'source, 'ast>> {
+///
+/// # Panics
+/// - If the literal is invalid
+fn interpret_literal<'source>(node: &AstNodeLiteral) -> Result<Value, RuntimeError<'source>> {
     match node.icelang_type() {
         IcelangType::Int => interpret_literal_int(node),
         IcelangType::Byte => interpret_literal_byte(node),
@@ -128,10 +131,13 @@ fn interpret_literal<'source, 'ast>(
 }
 
 /// Interprets an expression AstNode
-pub fn interpret_expression<'source, 'ast>(
-    expression: &'ast AstNode<'source>,
+///
+/// # Panics
+/// - if the AstNode isn't a valid expression
+pub fn interpret_expression<'source>(
+    expression: &AstNode<'source>,
     state: &mut RuntimeState,
-) -> Result<Value, RuntimeError<'source, 'ast>> {
+) -> Result<Value, RuntimeError<'source>> {
     let _ = state; // TODO
     match expression {
         AstNode::VariableAccess(_) => todo!(),
@@ -146,17 +152,12 @@ pub fn interpret_expression<'source, 'ast>(
         AstNode::Comparison(_) => todo!(),
         AstNode::InlineConditional(_) => todo!(),
         AstNode::Assignment(_) => todo!(),
-        node => Err(RuntimeError::new_malformed_ast_node_error(
-            node,
-            "expected expression".to_string(),
-        )),
+        _ => panic!("expected expression"),
     }
 }
 
 /// Interprets an AST
-pub fn interpret<'source, 'ast>(
-    ast: &'ast Ast<'source>,
-) -> Result<RuntimeState, RuntimeError<'source, 'ast>> {
+pub fn interpret<'source>(ast: &Ast<'source>) -> Result<RuntimeState, RuntimeError<'source>> {
     let mut state = RuntimeState::new();
 
     for statement in &ast.statements {
