@@ -7,7 +7,7 @@ fn execute(program) {
     let data = [];
     loop 30000 {
         push(data, 8x00);
-    }
+    };
     let data_ptr = 0;
     let instruction_ptr = 0;
     let bracket_stack = [];
@@ -21,7 +21,7 @@ fn execute(program) {
                 data_ptr += 1;
                 while data_ptr >= len(data) {
                     push(data, 0);
-                }
+                };
             },
             "<" => {
                 data_ptr -= 1;
@@ -29,7 +29,7 @@ fn execute(program) {
                     println();
                     println("Something went wrong: memory underflow");
                     return;
-                }
+                };
             },
             "+" => { data[data_ptr] += 8d1 },
             "-" => { data[data_ptr] -= 8d1 },
@@ -43,10 +43,10 @@ fn execute(program) {
                     else {
                         for character in next_line {
                             push(stdin_buff, character);
-                        }
+                        };
                         push(stdin_buff, "\n");
-                    }
-                }
+                    };
+                };
                 // If we've reached the end of stdin, leave the data unchanged
                 if stdin_buff != null {
                     let next_char = to_codepoint(pop_start(stdin_buff));
@@ -54,9 +54,9 @@ fn execute(program) {
                         println();
                         println("Something went wrong: non-ASCII input character");
                         return;
-                    }
+                    };
                     data[data_ptr] = byte(next_char);
-                }
+                };
             },
             "[" => {
                 if data[data_ptr] == 8b0 {
@@ -69,7 +69,7 @@ fn execute(program) {
                             println();
                             println("Something went wrong: unbalanced brackets");
                             return;
-                        }
+                        };
 
                         match program[instruction_ptr] {
                             "[" => { bracket_depth += 1 },
@@ -78,14 +78,14 @@ fn execute(program) {
 
                                 if bracket_depth == 0 {
                                     break;
-                                }
+                                };
                             },
-                        }
+                        };
                     }
                 }
                 else {
                     push(bracket_stack, instruction_ptr);
-                }
+                };
             },
             "]" => {
                 match pop(bracket_stack) {
@@ -117,20 +117,20 @@ fn execute(program) {
                         // the "[" and not the next instruction after it)
                         continue;
                     },
-                }
+                };
             },
-        }
+        };
 
         // Advance to the next instruction
         instruction_ptr += 1;
-    }
+    };
 
     if len(bracket_stack) > 0 {
         println();
         println("Something went wrong: unbalanced brackets");
         return;
-    }
-}
+    };
+};
 
 fn main() {
     // Ask the user for a brainfuck source file
@@ -139,16 +139,16 @@ fn main() {
     if file_path == null {
         println("Failed to read file path from stdin");
         return;
-    }
+    };
 
     // Read the brainfuck source file into a string
     let code = read_file(file_path);
     if code == null {
         println(f"Failed to read file: {file_path}");
         return;
-    }
+    };
 
     // Interpret the brainfuck code
     execute(code);
-}
+};
 main();
