@@ -12,8 +12,7 @@ use crate::{
 /// Interprets an int literal AstNodeLiteral
 ///
 /// # Panics
-/// - If the AstNodeLiteral isn't an int
-/// - If the literal is not a valid int
+/// - If the AstNodeLiteral isn't a valid int literal
 fn interpret_literal_int<'source>(node: &AstNodeLiteral) -> Result<Value, RuntimeError<'source>> {
     assert!(node.icelang_type() == IcelangType::Int);
 
@@ -34,7 +33,7 @@ fn interpret_literal_int<'source>(node: &AstNodeLiteral) -> Result<Value, Runtim
 /// Interprets a byte literal AstNodeLiteral
 ///
 /// # Panics
-/// - If the AstNodeLiteral isn't a byte
+/// - If the AstNodeLiteral isn't a valid byte literal
 fn interpret_literal_byte<'source>(node: &AstNodeLiteral) -> Result<Value, RuntimeError<'source>> {
     assert!(node.icelang_type() == IcelangType::Byte);
 
@@ -44,7 +43,7 @@ fn interpret_literal_byte<'source>(node: &AstNodeLiteral) -> Result<Value, Runti
 /// Interprets a float literal AstNodeLiteral
 ///
 /// # Panics
-/// - If the AstNodeLiteral isn't a float
+/// - If the AstNodeLiteral isn't a valid float literal
 fn interpret_literal_float<'source>(node: &AstNodeLiteral) -> Result<Value, RuntimeError<'source>> {
     assert!(node.icelang_type() == IcelangType::Float);
 
@@ -54,7 +53,7 @@ fn interpret_literal_float<'source>(node: &AstNodeLiteral) -> Result<Value, Runt
 /// Interprets a bool literal AstNodeLiteral
 ///
 /// # Panics
-/// - If the AstNodeLiteral isn't a bool
+/// - If the AstNodeLiteral isn't a valid bool literal
 fn interpret_literal_bool<'source>(node: &AstNodeLiteral) -> Result<Value, RuntimeError<'source>> {
     assert!(node.icelang_type() == IcelangType::Bool);
 
@@ -80,7 +79,7 @@ fn interpret_literal_string<'source>(
 /// Interprets a list literal AstNodeLiteral
 ///
 /// # Panics
-/// - If the AstNodeLiteral isn't a list
+/// - If the AstNodeListLiteral isn't a valid list literal
 fn interpret_literal_list<'source>(
     node: &AstNodeListLiteral,
 ) -> Result<Value, RuntimeError<'source>> {
@@ -91,7 +90,7 @@ fn interpret_literal_list<'source>(
 /// Interprets a dict literal AstNodeLiteral
 ///
 /// # Panics
-/// - If the AstNodeLiteral isn't a dict
+/// - If the AstNodeDictLiteral isn't a valid dict literal
 fn interpret_literal_dict<'source>(
     node: &AstNodeDictLiteral,
 ) -> Result<Value, RuntimeError<'source>> {
@@ -102,12 +101,12 @@ fn interpret_literal_dict<'source>(
 /// Interprets a null literal AstNodeLiteral
 ///
 /// # Panics
-/// - If the AstNodeLiteral isn't a null
+/// - If the AstNodeLiteral isn't a valid null literal
 fn interpret_literal_null<'source>(node: &AstNodeLiteral) -> Result<Value, RuntimeError<'source>> {
     assert!(node.icelang_type() == IcelangType::Null);
 
     if node.raw() != "null" {
-        todo!();
+        panic!("invalid null literal")
     }
 
     Ok(Value::Null)
