@@ -147,7 +147,7 @@ pub fn interpret_expression<'source, 'ast>(
         AstNode::InlineConditional(_) => todo!(),
         AstNode::Assignment(_) => todo!(),
         node => Err(RuntimeError::new_malformed_ast_node_error(
-            &node,
+            node,
             "expected expression".to_string(),
         )),
     }
