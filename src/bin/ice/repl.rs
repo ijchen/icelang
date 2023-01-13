@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use icelang::{lexer, parser};
+use icelang::{interpreter, lexer, parser};
 use rustyline::{error::ReadlineError, Editor};
 use typed_arena::Arena;
 
@@ -144,6 +144,21 @@ pub fn enter_repl(mut show_debug_info: bool) {
             println!();
         }
 
-        // TODO interpreting
+        // Interpreting
+        let state = match interpreter::interpret(&ast) {
+            Ok(state) => state,
+            Err(err) => {
+                println!("{err}");
+                continue;
+            }
+        };
+
+        // If debug info is enabled, print the state
+        // TODO think about how I want to display/handle this
+        if show_debug_info {
+            println!("Interpreter State:");
+            println!("{state:?}");
+            println!();
+        }
     }
 }

@@ -3,6 +3,7 @@
 mod error_formatting;
 mod lexer_error;
 mod parse_error;
+pub mod runtime_error;
 
 use error_formatting::IcelangErrorKind;
 pub use lexer_error::LexerError;
