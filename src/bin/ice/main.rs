@@ -57,7 +57,7 @@ fn interpret_file(file_path: &str, show_debug_info: bool) {
         println!();
     }
 
-    // TODO lexing
+    // TODO interpreting
 }
 
 fn main() {
