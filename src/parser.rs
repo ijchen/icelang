@@ -2,7 +2,14 @@
 
 use std::collections::VecDeque;
 
-use crate::{ast::*, error::ParseError, keyword::Keyword, source_range::SourceRange, token::Token};
+use crate::{
+    ast::*,
+    error::ParseError,
+    icelang_type::IcelangType,
+    keyword::Keyword,
+    source_range::SourceRange,
+    token::{FormattedStringLiteralSectionKind, Token},
+};
 
 /// Parses a function declaration's parameters from a token stream
 fn parse_function_declaration_parameters<'source>(
@@ -911,6 +918,9 @@ fn parse_atomic<'source>(
             .into())
         }
 
+        // Formatted string literal
+        Token::FormattedStringLiteralSection(_) => parse_formatted_string_literal(token_stream),
+
         // Null literal
         Token::Keyword(token) if token.keyword() == Keyword::Null => {
             // Consume the null keyword token
@@ -944,6 +954,91 @@ fn parse_atomic<'source>(
             pos: token.pos().clone(),
         }),
     }
+}
+
+/// Parses a formatted string literal from a token stream
+///
+/// # Panics
+/// - If the token stream is empty
+fn parse_formatted_string_literal<'source>(
+    token_stream: &mut VecDeque<&Token<'source>>,
+) -> Result<AstNode<'source>, ParseError<'source>> {
+    assert!(!token_stream.is_empty());
+
+    let (start, start_pos) = match token_stream.pop_front().unwrap() {
+        Token::FormattedStringLiteralSection(token)
+            if token.kind() == FormattedStringLiteralSectionKind::Complete =>
+        {
+            return Ok(AstNodeLiteral::new(
+                token.raw().to_string(),
+                IcelangType::String,
+                token.pos().clone(),
+            )
+            .into());
+        }
+        Token::FormattedStringLiteralSection(token)
+            if token.kind() == FormattedStringLiteralSectionKind::Start =>
+        {
+            // Ensure the token stream isn't empty
+            if token_stream.is_empty() {
+                return Err(ParseError::new_unexpected_eof(
+                    "incomplete formatted string literal".to_string(),
+                    token.pos().extended_to_end(),
+                ));
+            };
+
+            (
+                (token.raw().to_string(), parse_expression(token_stream)?),
+                token.pos(),
+            )
+        }
+        token => {
+            return Err(ParseError::new_unexpected_token(
+                "unexpected token in formatted string literal".to_string(),
+                token.pos().clone(),
+            ))
+        }
+    };
+
+    // Parse any continuations and the end
+    let mut continuations = Vec::new();
+    let (end, end_pos) = loop {
+        match token_stream.pop_front() {
+            Some(Token::FormattedStringLiteralSection(token))
+                if token.kind() == FormattedStringLiteralSectionKind::Continuation =>
+            {
+                // Ensure the token stream isn't empty
+                if token_stream.is_empty() {
+                    return Err(ParseError::new_unexpected_eof(
+                        "incomplete formatted string literal".to_string(),
+                        start_pos.extended_to_end(),
+                    ));
+                };
+
+                continuations.push((token.raw().to_string(), parse_expression(token_stream)?));
+            }
+            Some(Token::FormattedStringLiteralSection(token))
+                if token.kind() == FormattedStringLiteralSectionKind::End =>
+            {
+                break (token.raw().to_string(), token.pos());
+            }
+            Some(token) => {
+                return Err(ParseError::new_unexpected_token(
+                    "unexpected token in formatted string literal".to_string(),
+                    token.pos().clone(),
+                ))
+            }
+            None => {
+                return Err(ParseError::new_unexpected_eof(
+                    "incomplete formatted string literal".to_string(),
+                    start_pos.extended_to_end(),
+                ))
+            }
+        }
+    };
+
+    let pos = start_pos.extended_to(end_pos);
+    Ok(AstNodeFormattedStringLiteral::new(start, continuations, end, pos).into())
 }
 
 /// Parses a list literal from a token stream
