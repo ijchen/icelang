@@ -9,6 +9,7 @@ use crate::{
     keyword::Keyword,
     source_range::SourceRange,
     token::{FormattedStringLiteralSectionKind, Token},
+    value::Value,
 };
 
 /// Parses a function declaration's parameters from a token stream
@@ -913,6 +914,7 @@ fn parse_atomic<'source>(
             Ok(AstNodeLiteral::new(
                 token.raw().to_string(),
                 token.icelang_type(),
+                token.value().clone(),
                 token.pos().clone(),
             )
             .into())
@@ -929,6 +931,7 @@ fn parse_atomic<'source>(
             Ok(AstNodeLiteral::new(
                 token.keyword().to_string(),
                 token.keyword().icelang_type().unwrap(),
+                Value::Null,
                 token.pos().clone(),
             )
             .into())
@@ -972,6 +975,7 @@ fn parse_formatted_string_literal<'source>(
             return Ok(AstNodeLiteral::new(
                 token.raw().to_string(),
                 IcelangType::String,
+                Value::String(token.value().to_string()),
                 token.pos().clone(),
             )
             .into());

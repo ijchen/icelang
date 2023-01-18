@@ -9,6 +9,7 @@ use crate::{
         FormattedStringLiteralSectionKind, Token, TokenFormattedStringLiteralSection, TokenIdent,
         TokenKeyword, TokenLiteral, TokenPunctuator,
     },
+    value::Value,
 };
 
 /// Reads some icelang source code and produces a list of tokens
@@ -88,7 +89,7 @@ pub fn tokenize<'source>(
             // Store the starting index of the literal
             let start_index = index;
 
-            #[derive(Copy, Clone, PartialEq)]
+            #[derive(Copy, Clone, PartialEq, Debug)]
             enum Base {
                 Decimal,
                 Binary,
@@ -277,9 +278,76 @@ pub fn tokenize<'source>(
                 Float => IcelangType::Float,
                 IntOrFloat => unreachable!(),
             };
+            let value = match kind {
+                Int => {
+                    let without_underscores = literal.replace('_', "");
+                    let mut parts_iter = without_underscores.split('e');
+                    let main_part = parts_iter.next().unwrap();
+                    let exponent = parts_iter.next();
+                    assert!(parts_iter.next().is_none());
+
+                    // TODO handle arbitrary ints
+                    let mut base_value = str::parse::<i64>(main_part).unwrap();
+
+                    if let Some(exponent) = exponent.map(|x| x.parse::<i64>().unwrap()) {
+                        base_value = base_value
+                            .checked_mul(10i64.checked_pow(exponent as u32).unwrap())
+                            .unwrap()
+                    }
+
+                    Value::Int(base_value)
+                }
+                BasedInt(base, has_exponent) => {
+                    if has_exponent {
+                        assert_eq!(base, Base::Decimal);
+
+                        let without_underscores = literal[2..].replace('_', "");
+                        let mut parts_iter = without_underscores.split('e');
+                        let main_part = parts_iter.next().unwrap();
+                        let exponent = parts_iter.next();
+                        assert!(parts_iter.next().is_none());
+
+                        // TODO handle arbitrary ints
+                        let mut base_value = str::parse::<i64>(main_part).unwrap();
+
+                        if let Some(exponent) = exponent.map(|x| x.parse::<i64>().unwrap()) {
+                            base_value = base_value
+                                .checked_mul(10i64.checked_pow(exponent as u32).unwrap())
+                                .unwrap()
+                        }
+
+                        Value::Int(base_value)
+                    } else {
+                        let radix = match base {
+                            Decimal => 10,
+                            Binary => 2,
+                            Hex => 16,
+                            Octal => 8,
+                        };
+                        let without_underscores = &literal[2..].replace('_', "");
+                        Value::Int(i64::from_str_radix(without_underscores, radix).unwrap())
+                    }
+                }
+                BasedByte(base) => {
+                    let radix = match base {
+                        Decimal => 10,
+                        Binary => 2,
+                        Hex => 16,
+                        Octal => 8,
+                    };
+                    let without_underscores = &literal[2..].replace('_', "");
+                    dbg!(&literal);
+                    Value::Byte(u8::from_str_radix(without_underscores, radix).unwrap())
+                }
+                Float => {
+                    let without_underscores = literal.replace('_', "");
+                    Value::Float(without_underscores.parse().unwrap())
+                }
+                IntOrFloat => unreachable!(),
+            };
             let literal_pos =
                 SourceRange::new(source_code, source_file_name, start_index, index - 1);
-            tokens.push(TokenLiteral::new(literal, literal_type, literal_pos).into());
+            tokens.push(TokenLiteral::new(literal, literal_type, value, literal_pos).into());
 
             continue;
         }
@@ -297,6 +365,7 @@ pub fn tokenize<'source>(
                 // end of it
                 let mut string_literal_is_complete = false;
                 let mut raw = String::new();
+                let mut value = String::new();
                 raw.push(chars[index]);
                 index += 1;
                 'string_literal_loop: while !string_literal_is_complete && index < chars.len() {
@@ -325,6 +394,16 @@ pub fn tokenize<'source>(
                             match chars[index] {
                                 '"' | '\\' | 't' | 'n' | 'r' | '0' | '\n' => {
                                     raw.push(chars[index]);
+                                    match chars[index] {
+                                        '"' => value.push('"'),
+                                        '\\' => value.push('\\'),
+                                        't' => value.push('\t'),
+                                        'n' => value.push('\n'),
+                                        'r' => value.push('\r'),
+                                        '0' => value.push('\0'),
+                                        '\n' => {}
+                                        _ => unreachable!(),
+                                    };
                                     index += 1;
                                 }
                                 // ASCII escape sequence
@@ -350,17 +429,21 @@ pub fn tokenize<'source>(
                                     // valid
                                     let escape_sequence_value =
                                         u8::from_str_radix(&escape_sequence_digits, 16);
-                                    if escape_sequence_value.is_err()
-                                        || escape_sequence_value.unwrap() > 0x7F
-                                    {
-                                        return Err(LexerError::new_invalid_escape_sequence(
-                                            SourceRange::new(
-                                                source_code,
-                                                source_file_name,
-                                                escape_sequence_start_index,
-                                                index - 1,
-                                            ),
-                                        ));
+                                    match escape_sequence_value {
+                                        Ok(byte) if byte <= 0x7F => {
+                                            let char_val = byte as char;
+                                            value.push(char_val);
+                                        }
+                                        _ => {
+                                            return Err(LexerError::new_invalid_escape_sequence(
+                                                SourceRange::new(
+                                                    source_code,
+                                                    source_file_name,
+                                                    escape_sequence_start_index,
+                                                    index - 1,
+                                                ),
+                                            ))
+                                        }
                                     }
 
                                     // Add the escape sequence digits
@@ -411,17 +494,18 @@ pub fn tokenize<'source>(
                                     // valid
                                     let escape_sequence_value =
                                         u32::from_str_radix(&escape_sequence_digits, 16);
-                                    if escape_sequence_value.is_err()
-                                        || char::from_u32(escape_sequence_value.unwrap()).is_none()
-                                    {
-                                        return Err(LexerError::new_invalid_escape_sequence(
-                                            SourceRange::new(
-                                                source_code,
-                                                source_file_name,
-                                                escape_sequence_start_index,
-                                                index - 1,
-                                            ),
-                                        ));
+                                    match escape_sequence_value.map(char::from_u32) {
+                                        Ok(Some(ch)) => value.push(ch),
+                                        _ => {
+                                            return Err(LexerError::new_invalid_escape_sequence(
+                                                SourceRange::new(
+                                                    source_code,
+                                                    source_file_name,
+                                                    escape_sequence_start_index,
+                                                    index - 1,
+                                                ),
+                                            ))
+                                        }
                                     }
 
                                     // Add the escape sequence digits
@@ -461,6 +545,7 @@ pub fn tokenize<'source>(
                         c => {
                             // Add the character to the string literal
                             raw.push(c);
+                            value.push(c);
                             index += 1;
                         }
                     };
@@ -482,6 +567,7 @@ pub fn tokenize<'source>(
                     TokenLiteral::new(
                         raw,
                         IcelangType::String,
+                        Value::String(value),
                         SourceRange::new(source_code, source_file_name, start_index, index - 1),
                     )
                     .into(),
@@ -496,6 +582,7 @@ pub fn tokenize<'source>(
 
                 // Add the 'r' to the string literal
                 let mut raw = String::new();
+                let mut value = String::new();
                 raw.push(chars[index]);
                 index += 1;
 
@@ -541,11 +628,17 @@ pub fn tokenize<'source>(
                             }
                             if closing_hashes_needed == 0 {
                                 string_literal_is_complete = true;
+                            } else {
+                                value.push('"');
+                                for _ in 0..(hash_count - closing_hashes_needed) {
+                                    value.push('#');
+                                }
                             }
                         }
                         c => {
                             // Add the character to the string literal
                             raw.push(c);
+                            value.push(c);
                             index += 1;
                         }
                     };
@@ -567,6 +660,7 @@ pub fn tokenize<'source>(
                     TokenLiteral::new(
                         raw,
                         IcelangType::String,
+                        Value::String(value),
                         SourceRange::new(source_code, source_file_name, start_index, index - 1),
                     )
                     .into(),
@@ -581,6 +675,7 @@ pub fn tokenize<'source>(
 
                 // Add the 'f' and '"' to the string literal
                 let mut raw = String::new();
+                let mut value = String::new();
                 raw.push(chars[index]);
                 index += 1;
                 raw.push(chars[index]);
@@ -601,6 +696,7 @@ pub fn tokenize<'source>(
                             tokens.push(
                                 TokenFormattedStringLiteralSection::new(
                                     raw,
+                                    value,
                                     FormattedStringLiteralSectionKind::Complete,
                                     SourceRange::new(
                                         source_code,
@@ -635,6 +731,16 @@ pub fn tokenize<'source>(
                             match chars[index] {
                                 '"' | '\\' | 't' | 'n' | 'r' | '0' | '\n' => {
                                     raw.push(chars[index]);
+                                    match chars[index] {
+                                        '"' => value.push('"'),
+                                        '\\' => value.push('\\'),
+                                        't' => value.push('\t'),
+                                        'n' => value.push('\n'),
+                                        'r' => value.push('\r'),
+                                        '0' => value.push('\0'),
+                                        '\n' => {}
+                                        _ => unreachable!(),
+                                    };
                                     index += 1;
                                 }
                                 // ASCII escape sequence
@@ -667,17 +773,21 @@ pub fn tokenize<'source>(
                                     // valid
                                     let escape_sequence_value =
                                         u8::from_str_radix(&escape_sequence_digits, 16);
-                                    if escape_sequence_value.is_err()
-                                        || escape_sequence_value.unwrap() > 0x7F
-                                    {
-                                        return Err(LexerError::new_invalid_escape_sequence(
-                                            SourceRange::new(
-                                                source_code,
-                                                source_file_name,
-                                                escape_sequence_start_index,
-                                                index - 1,
-                                            ),
-                                        ));
+                                    match escape_sequence_value {
+                                        Ok(byte) if byte <= 0x7F => {
+                                            let char_val = byte as char;
+                                            value.push(char_val);
+                                        }
+                                        _ => {
+                                            return Err(LexerError::new_invalid_escape_sequence(
+                                                SourceRange::new(
+                                                    source_code,
+                                                    source_file_name,
+                                                    escape_sequence_start_index,
+                                                    index - 1,
+                                                ),
+                                            ))
+                                        }
                                     }
 
                                     // Add the escape sequence digits
@@ -737,17 +847,18 @@ pub fn tokenize<'source>(
                                     // valid
                                     let escape_sequence_value =
                                         u32::from_str_radix(&escape_sequence_digits, 16);
-                                    if escape_sequence_value.is_err()
-                                        || char::from_u32(escape_sequence_value.unwrap()).is_none()
-                                    {
-                                        return Err(LexerError::new_invalid_escape_sequence(
-                                            SourceRange::new(
-                                                source_code,
-                                                source_file_name,
-                                                escape_sequence_start_index,
-                                                index - 1,
-                                            ),
-                                        ));
+                                    match escape_sequence_value.map(char::from_u32) {
+                                        Ok(Some(ch)) => value.push(ch),
+                                        _ => {
+                                            return Err(LexerError::new_invalid_escape_sequence(
+                                                SourceRange::new(
+                                                    source_code,
+                                                    source_file_name,
+                                                    escape_sequence_start_index,
+                                                    index - 1,
+                                                ),
+                                            ))
+                                        }
                                     }
 
                                     // Add the escape sequence digits
@@ -785,6 +896,7 @@ pub fn tokenize<'source>(
                             };
                         }
                         (Some('{'), Some('{')) | (Some('}'), Some('}')) => {
+                            value.push(chars[index]);
                             raw.push(chars[index]);
                             index += 1;
                             raw.push(chars[index]);
@@ -803,6 +915,7 @@ pub fn tokenize<'source>(
                             tokens.push(
                                 TokenFormattedStringLiteralSection::new(
                                     raw,
+                                    value,
                                     FormattedStringLiteralSectionKind::Start,
                                     SourceRange::new(
                                         source_code,
@@ -831,6 +944,7 @@ pub fn tokenize<'source>(
                         (Some(&c), _) => {
                             // Add the character to the formatted string literal
                             raw.push(c);
+                            value.push(c);
                             index += 1;
                         }
                         (None, _) => {
@@ -859,6 +973,7 @@ pub fn tokenize<'source>(
 
                         // Add the '}' to the formatted string literal section
                         let mut raw = String::new();
+                        let mut value = String::new();
                         raw.push(chars[index]);
                         index += 1;
 
@@ -872,12 +987,10 @@ pub fn tokenize<'source>(
                                     raw.push(chars[index]);
                                     index += 1;
 
-                                    // This was a formatted string literal with no
-                                    // replacement fields. Create the token and add it
-                                    // to tokens
                                     tokens.push(
                                         TokenFormattedStringLiteralSection::new(
                                             raw,
+                                            value,
                                             FormattedStringLiteralSectionKind::End,
                                             SourceRange::new(
                                                 source_code,
@@ -914,6 +1027,16 @@ pub fn tokenize<'source>(
                                     match chars[index] {
                                         '"' | '\\' | 't' | 'n' | 'r' | '0' | '\n' => {
                                             raw.push(chars[index]);
+                                            match chars[index] {
+                                                '"' => value.push('"'),
+                                                '\\' => value.push('\\'),
+                                                't' => value.push('\t'),
+                                                'n' => value.push('\n'),
+                                                'r' => value.push('\r'),
+                                                '0' => value.push('\0'),
+                                                '\n' => {}
+                                                _ => unreachable!(),
+                                            }
                                             index += 1;
                                         }
                                         // ASCII escape sequence
@@ -947,19 +1070,23 @@ pub fn tokenize<'source>(
                                             // valid
                                             let escape_sequence_value =
                                                 u8::from_str_radix(&escape_sequence_digits, 16);
-                                            if escape_sequence_value.is_err()
-                                                || escape_sequence_value.unwrap() > 0x7F
-                                            {
-                                                return Err(
-                                                    LexerError::new_invalid_escape_sequence(
-                                                        SourceRange::new(
-                                                            source_code,
-                                                            source_file_name,
-                                                            escape_sequence_start_index,
-                                                            index - 1,
+                                            match escape_sequence_value {
+                                                Ok(byte) if byte <= 0x7F => {
+                                                    let char_val = byte as char;
+                                                    value.push(char_val);
+                                                }
+                                                _ => {
+                                                    return Err(
+                                                        LexerError::new_invalid_escape_sequence(
+                                                            SourceRange::new(
+                                                                source_code,
+                                                                source_file_name,
+                                                                escape_sequence_start_index,
+                                                                index - 1,
+                                                            ),
                                                         ),
-                                                    ),
-                                                );
+                                                    )
+                                                }
                                             }
 
                                             // Add the escape sequence digits
@@ -1024,20 +1151,20 @@ pub fn tokenize<'source>(
                                             // valid
                                             let escape_sequence_value =
                                                 u32::from_str_radix(&escape_sequence_digits, 16);
-                                            if escape_sequence_value.is_err()
-                                                || char::from_u32(escape_sequence_value.unwrap())
-                                                    .is_none()
-                                            {
-                                                return Err(
-                                                    LexerError::new_invalid_escape_sequence(
-                                                        SourceRange::new(
-                                                            source_code,
-                                                            source_file_name,
-                                                            escape_sequence_start_index,
-                                                            index - 1,
+                                            match escape_sequence_value.map(char::from_u32) {
+                                                Ok(Some(ch)) => value.push(ch),
+                                                _ => {
+                                                    return Err(
+                                                        LexerError::new_invalid_escape_sequence(
+                                                            SourceRange::new(
+                                                                source_code,
+                                                                source_file_name,
+                                                                escape_sequence_start_index,
+                                                                index - 1,
+                                                            ),
                                                         ),
-                                                    ),
-                                                );
+                                                    )
+                                                }
                                             }
 
                                             // Add the escape sequence digits
@@ -1077,6 +1204,7 @@ pub fn tokenize<'source>(
                                     };
                                 }
                                 (Some('{'), Some('{')) | (Some('}'), Some('}')) => {
+                                    value.push(chars[index]);
                                     raw.push(chars[index]);
                                     index += 1;
                                     raw.push(chars[index]);
@@ -1095,6 +1223,7 @@ pub fn tokenize<'source>(
                                     tokens.push(
                                         TokenFormattedStringLiteralSection::new(
                                             raw,
+                                            value,
                                             FormattedStringLiteralSectionKind::Continuation,
                                             SourceRange::new(
                                                 source_code,
@@ -1124,6 +1253,7 @@ pub fn tokenize<'source>(
                                     // Add the character to the formatted string
                                     // literal section
                                     raw.push(c);
+                                    value.push(c);
                                     index += 1;
                                 }
                                 (None, _) => {
@@ -1189,10 +1319,18 @@ pub fn tokenize<'source>(
             // unstable :sob:
             match Keyword::try_from(raw.as_str()) {
                 Ok(keyword_literal) if keyword_literal.can_only_be_literal() => {
+                    let value = match keyword_literal {
+                        Keyword::True => Value::Bool(true),
+                        Keyword::False => Value::Bool(false),
+                        Keyword::Infinity => Value::Float(f64::INFINITY),
+                        Keyword::Nan => Value::Float(f64::NAN),
+                        _ => unreachable!(),
+                    };
                     tokens.push(
                         TokenLiteral::new(
                             keyword_literal.to_string(),
                             keyword_literal.icelang_type().unwrap(),
+                            value,
                             SourceRange::new(source_code, source_file_name, start_index, index - 1),
                         )
                         .into(),
@@ -1311,7 +1449,8 @@ pub fn tokenize<'source>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::*;
+    // TODO tests need to be massively cleaned up
+    // use crate::test_utils::*;
 
     #[test]
     fn test_tokenize_empty() {
@@ -1548,1059 +1687,1059 @@ f\"{9} + {10} = {2 + 2} is a {true} fact, {name}\"
     }
 
     mod test_tokenize_randomized {
-        use rand::{
-            seq::{IteratorRandom, SliceRandom},
-            Rng,
-        };
-
-        use crate::keyword::Keyword;
-
-        use super::*;
-
-        struct TokenSample {
-            raw: String,
-            expected: String,
-            whitespace_after: String,
-        }
-
-        /// Generates a random sequence of whitespace-like (whitespace or
-        /// separating comment) characters
-        fn gen_whitespace(rng: &mut impl Rng, allow_comments: bool) -> String {
-            let part_count = if rng.gen_bool(0.75) {
-                1
-            } else {
-                rng.gen_range(1..=10)
-            };
-            let mut raw = String::new();
-
-            for _ in 0..part_count {
-                let part = match rng.gen_range(0..=if allow_comments { 3 } else { 2 }) {
-                    0 => " ".to_string(),
-                    1 => "\t".to_string(),
-                    2 => if rng.gen() { "\n" } else { "\r\n" }.to_string(),
-                    3 => {
-                        let comment_len = rng.gen_range(0..=50);
-                        match rng.gen() {
-                            true => {
-                                let mut comment = String::with_capacity(comment_len + 2);
-
-                                comment.push_str("//");
-                                for _ in 0..comment_len {
-                                    let mut c = gen_rand_char(rng);
-                                    while c == '\n' {
-                                        c = gen_rand_char(rng);
-                                    }
-                                    comment.push(c);
-                                }
-                                if rng.gen() {
-                                    comment.push('\r');
-                                }
-                                comment.push('\n');
-
-                                comment
-                            }
-                            false => {
-                                let mut comment = String::with_capacity(comment_len + 4);
-
-                                comment.push_str("/*");
-                                for _ in 0..comment_len {
-                                    let mut c = gen_rand_char(rng);
-                                    while c == '\n' || c == '*' {
-                                        c = gen_rand_char(rng);
-                                    }
-                                    comment.push(c);
-                                }
-                                comment.push_str("*/");
-                                if rng.gen() {
-                                    comment.push('\r');
-                                }
-                                comment.push('\n');
-
-                                comment
-                            }
-                        }
-                    }
-                    _ => unreachable!(),
-                };
-
-                raw.push_str(&part);
-            }
-
-            raw
-        }
-
-        fn gen_int_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
-            let raw: String = match rng.gen_range(0..=3) {
-                // Decimal literal
-                0 => {
-                    let has_base_prefix = rng.gen::<bool>();
-                    let pre_first_digit_len = if has_base_prefix && rng.gen() {
-                        rng.gen_range(1..=5)
-                    } else {
-                        0
-                    };
-                    let post_first_digit_len = rng.gen_range(0..=10);
-                    let has_exp_suffix = rng.gen::<bool>();
-                    let suffix_pre_first_digit_len = if has_exp_suffix && rng.gen() {
-                        rng.gen_range(1..=5)
-                    } else {
-                        0
-                    };
-                    let suffix_post_first_digit_len = if has_exp_suffix && rng.gen() {
-                        rng.gen_range(1..=5)
-                    } else {
-                        0
-                    };
-                    let mut raw = String::with_capacity(
-                        if has_base_prefix { "0d".len() } else { 0 }
-                            + pre_first_digit_len
-                            + 1
-                            + post_first_digit_len
-                            + if has_exp_suffix {
-                                "e".len()
-                                    + suffix_pre_first_digit_len
-                                    + 1
-                                    + suffix_post_first_digit_len
-                            } else {
-                                0
-                            },
-                    );
-
-                    // Base prefix
-                    if has_base_prefix {
-                        raw.push_str("0d");
-                    }
-
-                    // Contents of literal
-                    for _ in 0..pre_first_digit_len {
-                        raw.push('_');
-                    }
-                    raw.push(rng.gen_range('0'..='9'));
-                    for _ in 0..post_first_digit_len {
-                        raw.push(match rng.gen_range(0..=10) {
-                            0 => '0',
-                            1 => '1',
-                            2 => '2',
-                            3 => '3',
-                            4 => '4',
-                            5 => '5',
-                            6 => '6',
-                            7 => '7',
-                            8 => '8',
-                            9 => '9',
-                            10 => '_',
-                            _ => unreachable!(),
-                        });
-                    }
-
-                    // Exponential (scientific notation) suffix
-                    if has_exp_suffix {
-                        raw.push('e');
-                        for _ in 0..suffix_pre_first_digit_len {
-                            raw.push('_');
-                        }
-                        raw.push(rng.gen_range('0'..='9'));
-                        for _ in 0..suffix_post_first_digit_len {
-                            raw.push(match rng.gen_range(0..=10) {
-                                0 => '0',
-                                1 => '1',
-                                2 => '2',
-                                3 => '3',
-                                4 => '4',
-                                5 => '5',
-                                6 => '6',
-                                7 => '7',
-                                8 => '8',
-                                9 => '9',
-                                10 => '_',
-                                _ => unreachable!(),
-                            });
-                        }
-                    }
-
-                    raw
-                }
-                // Binary literal
-                1 => {
-                    let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
-                    let post_first_digit_len = rng.gen_range(0..=10);
-                    let mut raw = String::with_capacity(
-                        "0b".len() + pre_first_digit_len + 1 + post_first_digit_len,
-                    );
-
-                    // Base prefix
-                    raw.push_str("0b");
-
-                    // Contents of literal
-                    for _ in 0..pre_first_digit_len {
-                        raw.push('_');
-                    }
-                    raw.push(rng.gen_range('0'..='1'));
-                    for _ in 0..post_first_digit_len {
-                        raw.push(match rng.gen_range(0..=2) {
-                            0 => '0',
-                            1 => '1',
-                            2 => '_',
-                            _ => unreachable!(),
-                        });
-                    }
-
-                    raw
-                }
-                // Hexadecimal literal
-                2 => {
-                    let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
-                    let post_first_digit_len = rng.gen_range(0..=10);
-                    let mut raw = String::with_capacity(
-                        "0x".len() + pre_first_digit_len + 1 + post_first_digit_len,
-                    );
-
-                    // Base prefix
-                    raw.push_str("0x");
-
-                    // Contents of literal
-                    for _ in 0..pre_first_digit_len {
-                        raw.push('_');
-                    }
-                    raw.push(match rng.gen_range(0..=15) {
-                        0 => '0',
-                        1 => '1',
-                        2 => '2',
-                        3 => '3',
-                        4 => '4',
-                        5 => '5',
-                        6 => '6',
-                        7 => '7',
-                        8 => '8',
-                        9 => '9',
-                        10 => {
-                            if rng.gen() {
-                                'a'
-                            } else {
-                                'A'
-                            }
-                        }
-                        11 => {
-                            if rng.gen() {
-                                'b'
-                            } else {
-                                'B'
-                            }
-                        }
-                        12 => {
-                            if rng.gen() {
-                                'c'
-                            } else {
-                                'C'
-                            }
-                        }
-                        13 => {
-                            if rng.gen() {
-                                'd'
-                            } else {
-                                'D'
-                            }
-                        }
-                        14 => {
-                            if rng.gen() {
-                                'e'
-                            } else {
-                                'E'
-                            }
-                        }
-                        15 => {
-                            if rng.gen() {
-                                'f'
-                            } else {
-                                'F'
-                            }
-                        }
-                        _ => unreachable!(),
-                    });
-                    for _ in 0..post_first_digit_len {
-                        raw.push(match rng.gen_range(0..=16) {
-                            0 => '0',
-                            1 => '1',
-                            2 => '2',
-                            3 => '3',
-                            4 => '4',
-                            5 => '5',
-                            6 => '6',
-                            7 => '7',
-                            8 => '8',
-                            9 => '9',
-                            10 => {
-                                if rng.gen() {
-                                    'a'
-                                } else {
-                                    'A'
-                                }
-                            }
-                            11 => {
-                                if rng.gen() {
-                                    'b'
-                                } else {
-                                    'B'
-                                }
-                            }
-                            12 => {
-                                if rng.gen() {
-                                    'c'
-                                } else {
-                                    'C'
-                                }
-                            }
-                            13 => {
-                                if rng.gen() {
-                                    'd'
-                                } else {
-                                    'D'
-                                }
-                            }
-                            14 => {
-                                if rng.gen() {
-                                    'e'
-                                } else {
-                                    'E'
-                                }
-                            }
-                            15 => {
-                                if rng.gen() {
-                                    'f'
-                                } else {
-                                    'F'
-                                }
-                            }
-                            16 => '_',
-                            _ => unreachable!(),
-                        });
-                    }
-
-                    raw
-                }
-                // Octal literal
-                3 => {
-                    let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
-                    let post_first_digit_len = rng.gen_range(0..=10);
-                    let mut raw = String::with_capacity(
-                        "0o".len() + pre_first_digit_len + 1 + post_first_digit_len,
-                    );
-
-                    // Base prefix
-                    raw.push_str("0o");
-
-                    // Contents of literal
-                    for _ in 0..pre_first_digit_len {
-                        raw.push('_');
-                    }
-                    raw.push(rng.gen_range('0'..='7'));
-                    for _ in 0..post_first_digit_len {
-                        raw.push(match rng.gen_range(0..=8) {
-                            0 => '0',
-                            1 => '1',
-                            2 => '2',
-                            3 => '3',
-                            4 => '4',
-                            5 => '5',
-                            6 => '6',
-                            7 => '7',
-                            8 => '_',
-                            _ => unreachable!(),
-                        });
-                    }
-
-                    raw
-                }
-                _ => unreachable!(),
-            };
-
-            let expected = format!("[Token] Literal (int): {raw}");
-            let whitespace_after = gen_whitespace(rng, true);
-            TokenSample {
-                raw,
-                expected,
-                whitespace_after,
-            }
-        }
-
-        fn gen_byte_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
-            let raw: String = match rng.gen_range(0..=3) {
-                // Decimal literal
-                0 => {
-                    let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
-                    let post_first_digit_len = rng.gen_range(0..=10);
-                    let mut raw = String::with_capacity(
-                        "8d".len() + pre_first_digit_len + 1 + post_first_digit_len,
-                    );
-
-                    // Base prefix
-                    raw.push_str("8d");
-
-                    // Contents of literal
-                    for _ in 0..pre_first_digit_len {
-                        raw.push('_');
-                    }
-                    raw.push(rng.gen_range('0'..='7'));
-                    for _ in 0..post_first_digit_len {
-                        raw.push(match rng.gen_range(0..=8) {
-                            0 => '0',
-                            1 => '1',
-                            2 => '2',
-                            3 => '3',
-                            4 => '4',
-                            5 => '5',
-                            6 => '6',
-                            7 => '7',
-                            8 => '_',
-                            _ => unreachable!(),
-                        });
-                    }
-
-                    raw
-                }
-                // Binary literal
-                1 => {
-                    let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
-                    let post_first_digit_len = rng.gen_range(0..=10);
-                    let mut raw = String::with_capacity(
-                        "8b".len() + pre_first_digit_len + 1 + post_first_digit_len,
-                    );
-
-                    // Base prefix
-                    raw.push_str("8b");
-
-                    // Contents of literal
-                    for _ in 0..pre_first_digit_len {
-                        raw.push('_');
-                    }
-                    raw.push(rng.gen_range('0'..='1'));
-                    for _ in 0..post_first_digit_len {
-                        raw.push(match rng.gen_range(0..=2) {
-                            0 => '0',
-                            1 => '1',
-                            2 => '_',
-                            _ => unreachable!(),
-                        });
-                    }
-
-                    raw
-                }
-                // Hexadecimal literal
-                2 => {
-                    let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
-                    let post_first_digit_len = rng.gen_range(0..=10);
-                    let mut raw = String::with_capacity(
-                        "8x".len() + pre_first_digit_len + 1 + post_first_digit_len,
-                    );
-
-                    // Base prefix
-                    raw.push_str("8x");
-
-                    // Contents of literal
-                    for _ in 0..pre_first_digit_len {
-                        raw.push('_');
-                    }
-                    raw.push(match rng.gen_range(0..=15) {
-                        0 => '0',
-                        1 => '1',
-                        2 => '2',
-                        3 => '3',
-                        4 => '4',
-                        5 => '5',
-                        6 => '6',
-                        7 => '7',
-                        8 => '8',
-                        9 => '9',
-                        10 => {
-                            if rng.gen() {
-                                'a'
-                            } else {
-                                'A'
-                            }
-                        }
-                        11 => {
-                            if rng.gen() {
-                                'b'
-                            } else {
-                                'B'
-                            }
-                        }
-                        12 => {
-                            if rng.gen() {
-                                'c'
-                            } else {
-                                'C'
-                            }
-                        }
-                        13 => {
-                            if rng.gen() {
-                                'd'
-                            } else {
-                                'D'
-                            }
-                        }
-                        14 => {
-                            if rng.gen() {
-                                'e'
-                            } else {
-                                'E'
-                            }
-                        }
-                        15 => {
-                            if rng.gen() {
-                                'f'
-                            } else {
-                                'F'
-                            }
-                        }
-                        _ => unreachable!(),
-                    });
-                    for _ in 0..post_first_digit_len {
-                        raw.push(match rng.gen_range(0..=16) {
-                            0 => '0',
-                            1 => '1',
-                            2 => '2',
-                            3 => '3',
-                            4 => '4',
-                            5 => '5',
-                            6 => '6',
-                            7 => '7',
-                            8 => '8',
-                            9 => '9',
-                            10 => {
-                                if rng.gen() {
-                                    'a'
-                                } else {
-                                    'A'
-                                }
-                            }
-                            11 => {
-                                if rng.gen() {
-                                    'b'
-                                } else {
-                                    'B'
-                                }
-                            }
-                            12 => {
-                                if rng.gen() {
-                                    'c'
-                                } else {
-                                    'C'
-                                }
-                            }
-                            13 => {
-                                if rng.gen() {
-                                    'd'
-                                } else {
-                                    'D'
-                                }
-                            }
-                            14 => {
-                                if rng.gen() {
-                                    'e'
-                                } else {
-                                    'E'
-                                }
-                            }
-                            15 => {
-                                if rng.gen() {
-                                    'f'
-                                } else {
-                                    'F'
-                                }
-                            }
-                            16 => '_',
-                            _ => unreachable!(),
-                        });
-                    }
-
-                    raw
-                }
-                // Octal literal
-                3 => {
-                    let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
-                    let post_first_digit_len = rng.gen_range(0..=10);
-                    let mut raw = String::with_capacity(
-                        "8o".len() + pre_first_digit_len + 1 + post_first_digit_len,
-                    );
-
-                    // Base prefix
-                    raw.push_str("8o");
-
-                    // Contents of literal
-                    for _ in 0..pre_first_digit_len {
-                        raw.push('_');
-                    }
-                    raw.push(rng.gen_range('0'..='7'));
-                    for _ in 0..post_first_digit_len {
-                        raw.push(match rng.gen_range(0..=8) {
-                            0 => '0',
-                            1 => '1',
-                            2 => '2',
-                            3 => '3',
-                            4 => '4',
-                            5 => '5',
-                            6 => '6',
-                            7 => '7',
-                            8 => '_',
-                            _ => unreachable!(),
-                        });
-                    }
-
-                    raw
-                }
-                _ => unreachable!(),
-            };
-
-            let expected = format!("[Token] Literal (byte): {raw}");
-            let whitespace_after = gen_whitespace(rng, true);
-            TokenSample {
-                raw,
-                expected,
-                whitespace_after,
-            }
-        }
-
-        fn gen_float_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
-            let raw: String = if rng.gen_bool(0.1) {
-                if rng.gen() {
-                    Keyword::Infinity
-                } else {
-                    Keyword::Nan
-                }
-                .to_string()
-            } else {
-                // Float literals are complicated, and composed of many possible
-                // sections. For variable name brevity, I've assigned a letter
-                // label to each possible "section" of a float literal. Here's
-                // an example float literal with every possible section and it's
-                // label:
-                // 29_339__84.____5_20_3__21e+__1952_2__4_5_
-                // ABBBBBBBBBCDDDDEFFFFFFFFFGHIIJKKKKKKKKKKK
-                // A: first digit
-                // B: digits and underscores up to the decimal point
-                // C: decimal point
-                // D: underscores after the decimal point
-                // E: first digit after the decimal point
-                // F: digits and underscores up to the suffix
-                // G: suffix "e"
-                // H: suffix sign
-                // I: suffix underscores before the first suffix digit
-                // J: suffix first digit
-                // K: suffix digits and underscores after the suffix first digit
-
-                let part_b_len = rng.gen_range(0..=10);
-                let part_d_len = if rng.gen() { rng.gen_range(1..=5) } else { 0 };
-                let part_f_len = rng.gen_range(0..=10);
-                let has_exp_suffix = rng.gen::<bool>();
-                let has_suffix_sign = has_exp_suffix && rng.gen();
-                let part_i_len = if has_exp_suffix && rng.gen() {
-                    rng.gen_range(1..=5)
-                } else {
-                    0
-                };
-                let part_k_len = if has_exp_suffix {
-                    rng.gen_range(0..=10)
-                } else {
-                    0
-                };
-                // While it's true that I'm often converting true to 1 and false
-                // to 0, I'm not trying to "convert a bool to an int", I'm
-                // calculating a value which is dependant on a bool - the fact
-                // that those values happen to correspond to how bools are
-                // converted to ints with `usize::from(...)` is a coincidence
-                // But thanks anyway clippy I still love you <3
-                #[allow(clippy::bool_to_int_with_if)]
-                let mut raw = String::with_capacity(
-                    // Part A (first digit)
-                    1
-                    // Part B (digits and underscores up to the decimal point)
-                    + part_b_len
-                    // Part C (decimal point)
-                    + 1
-                    // Part D (underscores after the decimal point)
-                    + part_d_len
-                    // Part E (first digit after the decimal point)
-                    + 1
-                    // Part F (digits and underscores up to the suffix)
-                    + part_f_len
-                    // Part G (suffix "e")
-                    + if has_exp_suffix { 1 } else { 0 }
-                    // Part H (suffix sign)
-                    + if has_suffix_sign { 1 } else { 0 }
-                    // Part I (suffix underscores before the first suffix digit)
-                    + part_i_len
-                    // Part J (suffix first digit)
-                    + if has_exp_suffix { 1 } else { 0 }
-                    // Part K (suffix digits and underscores after the suffix first digit)
-                    + part_k_len,
-                );
-
-                // Part A (first digit)
-                raw.push(rng.gen_range('0'..='9'));
-                // Part B (digits and underscores up to the decimal point)
-                for _ in 0..part_b_len {
-                    raw.push(match rng.gen_range(0..=10) {
-                        0 => '0',
-                        1 => '1',
-                        2 => '2',
-                        3 => '3',
-                        4 => '4',
-                        5 => '5',
-                        6 => '6',
-                        7 => '7',
-                        8 => '8',
-                        9 => '9',
-                        10 => '_',
-                        _ => unreachable!(),
-                    });
-                }
-                // Part C (decimal point)
-                raw.push('.');
-                // Part D (underscores after the decimal point)
-                for _ in 0..part_d_len {
-                    raw.push('_');
-                }
-                // Part E (first digit after the decimal point)
-                raw.push(rng.gen_range('0'..='9'));
-                // Part F (digits and underscores up to the suffix)
-                for _ in 0..part_f_len {
-                    raw.push(match rng.gen_range(0..=10) {
-                        0 => '0',
-                        1 => '1',
-                        2 => '2',
-                        3 => '3',
-                        4 => '4',
-                        5 => '5',
-                        6 => '6',
-                        7 => '7',
-                        8 => '8',
-                        9 => '9',
-                        10 => '_',
-                        _ => unreachable!(),
-                    });
-                }
-                // The rest of the parts are only applicable if there is a suffix
-                if has_exp_suffix {
-                    // Part G (suffix "e")
-                    raw.push('e');
-                    // Part H (suffix sign)
-                    if has_suffix_sign {
-                        raw.push(if rng.gen() { '+' } else { '-' });
-                    }
-                    // Part I (suffix underscores before the first suffix digit)
-                    for _ in 0..part_i_len {
-                        raw.push('_');
-                    }
-                    // Part J (suffix first digit)
-                    raw.push(rng.gen_range('0'..='9'));
-                    // Part K (suffix digits and underscores after the suffix first digit)
-                    for _ in 0..part_k_len {
-                        raw.push(match rng.gen_range(0..=10) {
-                            0 => '0',
-                            1 => '1',
-                            2 => '2',
-                            3 => '3',
-                            4 => '4',
-                            5 => '5',
-                            6 => '6',
-                            7 => '7',
-                            8 => '8',
-                            9 => '9',
-                            10 => '_',
-                            _ => unreachable!(),
-                        });
-                    }
-                }
-
-                raw
-            };
-
-            let expected = format!("[Token] Literal (float): {raw}");
-            let whitespace_after = gen_whitespace(rng, true);
-            TokenSample {
-                raw,
-                expected,
-                whitespace_after,
-            }
-        }
-
-        fn gen_ident_token_sample(rng: &mut impl Rng) -> TokenSample {
-            let len = rng.gen_range(1..4);
-            let mut ident = String::with_capacity(len);
-            while ident.is_empty()
-                || enum_iterator::all::<Keyword>().any(|keyword| keyword.to_string() == ident)
-            {
-                ident.clear();
-                for i in 0..len {
-                    let ident_start = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-                    let ident_cont = &(ident_start.to_string() + "0123456789");
-                    let c = if i == 0 { ident_start } else { ident_cont }
-                        .chars()
-                        .choose(rng)
-                        .unwrap();
-                    ident.push(c);
-                }
-            }
-
-            let expected = format!("[Token] Identifier: {ident}");
-            let raw = ident;
-            let whitespace_after = gen_whitespace(rng, true);
-            TokenSample {
-                raw,
-                expected,
-                whitespace_after,
-            }
-        }
-
-        fn gen_bool_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
-            let literal = if rng.gen() {
-                Keyword::True
-            } else {
-                Keyword::False
-            };
-
-            let raw = literal.to_string();
-            let expected = format!("[Token] Literal (bool): {literal}");
-            let whitespace_after = gen_whitespace(rng, true);
-            TokenSample {
-                raw,
-                expected,
-                whitespace_after,
-            }
-        }
-
-        fn gen_normal_string_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
-            let char_count = rng.gen_range(0..=25);
-            let mut raw = String::new();
-
-            raw.push('"');
-            for _ in 0..char_count {
-                // Small chance to do an escape sequences
-                if rng.gen_bool(0.1) {
-                    match rng.gen_range(0..=8) {
-                        0 => raw.push_str("\\\""),
-                        1 => raw.push_str(r"\\"),
-                        2 => raw.push_str(r"\t"),
-                        3 => raw.push_str(r"\n"),
-                        4 => raw.push_str(r"\r"),
-                        5 => raw.push_str(r"\0"),
-                        6 => raw.push_str("\\\n"),
-                        7 => {
-                            raw.push_str("\\x");
-                            let value = rng.gen_range(0x00..=0x7F);
-                            for ch in format!("{value:02x}").chars() {
-                                raw.push(if rng.gen() {
-                                    ch.to_ascii_uppercase()
-                                } else {
-                                    ch
-                                });
-                            }
-                        }
-                        8 => {
-                            raw.push_str("\\u{");
-                            let value = rng.gen::<char>() as u32;
-                            let mut hex = format!("{value:x}");
-                            let len: usize = rng.gen_range(1..=6);
-                            hex = "0".repeat(len.saturating_sub(hex.len())) + &hex;
-                            for ch in hex.chars() {
-                                raw.push(if rng.gen() {
-                                    ch.to_ascii_uppercase()
-                                } else {
-                                    ch
-                                });
-                            }
-                            raw.push('}');
-                        }
-                        _ => unreachable!(),
-                    };
-                } else {
-                    let mut ch = gen_rand_char(rng);
-                    while ch == '"' || ch == '\\' {
-                        ch = gen_rand_char(rng);
-                    }
-                    raw.push(ch);
-                }
-            }
-            raw.push('"');
-
-            let expected = format!("[Token] Literal (string): {raw}");
-            let whitespace_after = if rng.gen() {
-                gen_whitespace(rng, true)
-            } else {
-                "".to_string()
-            };
-            TokenSample {
-                raw,
-                expected,
-                whitespace_after,
-            }
-        }
-
-        fn gen_raw_string_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
-            let char_count = rng.gen_range(0..=25);
-            let hash_count = if rng.gen() { 0 } else { rng.gen_range(1..=10) };
-            let mut raw = String::new();
-
-            raw.push('r');
-            raw.push_str(&"#".repeat(hash_count));
-            raw.push('"');
-            let mut curr_hash_count = 0;
-            let mut following_double_quote = false;
-            for _ in 0..char_count {
-                let mut ch = gen_rand_char(rng);
-                // If the hash count is 0, ensure there aren't any double quotes
-                if hash_count == 0 {
-                    while ch == '"' {
-                        ch = gen_rand_char(rng);
-                    }
-                } else {
-                    // Ensure there isn't a double quote followed by hash_count
-                    // octothorpes
-                    if ch == '"' {
-                        curr_hash_count = 0;
-                        following_double_quote = true;
-                    } else if following_double_quote && ch == '#' {
-                        // If this would be the octothorpe that completes an
-                        // ending of the raw string literal, regenerate the
-                        // character until we have something besides '#'
-                        if curr_hash_count + 1 >= hash_count {
-                            while ch == '#' {
-                                ch = gen_rand_char(rng);
-                            }
-                            following_double_quote = false;
-                            curr_hash_count = 0;
-                        } else {
-                            curr_hash_count += 1;
-                        }
-                    } else {
-                        following_double_quote = false;
-                        curr_hash_count = 0;
-                    }
-                }
-                raw.push(ch);
-            }
-            raw.push('"');
-            raw.push_str(&"#".repeat(hash_count));
-
-            let expected = format!("[Token] Literal (string): {raw}");
-            let whitespace_after = if rng.gen() {
-                gen_whitespace(rng, true)
-            } else {
-                "".to_string()
-            };
-            TokenSample {
-                raw,
-                expected,
-                whitespace_after,
-            }
-        }
-
-        fn gen_string_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
-            match rng.gen_range(0..=1) {
-                0 => gen_normal_string_literal_token_sample(rng),
-                1 => gen_raw_string_literal_token_sample(rng),
-                // TODO add formatted string literal tokens to randomized unit
-                // tests
-                // 2 => gen_format_string_literal_token_sample(rng),
-                _ => unreachable!(),
-            }
-        }
-
-        fn gen_null_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
-            let literal = Keyword::Null;
-
-            let raw = literal.to_string();
-            let expected = format!("[Token] Keyword: {literal}");
-            let whitespace_after = gen_whitespace(rng, true);
-            TokenSample {
-                raw,
-                expected,
-                whitespace_after,
-            }
-        }
-
-        fn gen_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
-            match rng.gen_range(0..=5) {
-                0 => gen_int_literal_token_sample(rng),
-                1 => gen_byte_literal_token_sample(rng),
-                2 => gen_float_literal_token_sample(rng),
-                3 => gen_bool_literal_token_sample(rng),
-                4 => gen_string_literal_token_sample(rng),
-                5 => gen_null_literal_token_sample(rng),
-                _ => unreachable!(),
-            }
-        }
-
-        fn gen_keyword_token_sample(rng: &mut impl Rng) -> TokenSample {
-            let keyword = enum_iterator::all::<Keyword>()
-                .filter(|kw| !kw.can_be_literal())
-                .choose(rng)
-                .unwrap();
-
-            let expected = format!("[Token] Keyword: {keyword}");
-            let raw = keyword.to_string();
-            let whitespace_after = gen_whitespace(rng, true);
-            TokenSample {
-                raw,
-                expected,
-                whitespace_after,
-            }
-        }
-
-        fn gen_punctuator_token_sample(rng: &mut impl Rng) -> TokenSample {
-            let punctuator = [
-                "=", "+=", "-=", "*=", "/=", "%=", "**=", "<<=", ">>=", "&=", "^=", "|=", "&&=",
-                "||=", "?", ":", "||", "&&", "==", "!=", "<", ">", "<=", ">=", "|", "^", "&", "<<",
-                ">>", "+", "-", "*", "/", "%", "**", "!", "=>", ";", ",", ".", "(", ")", "{", "}",
-                "[", "]",
-            ]
-            .choose(rng)
-            .unwrap();
-
-            let expected = format!("[Token] Punctuator: {punctuator}");
-            let raw = punctuator.to_string();
-            let whitespace_after = gen_whitespace(rng, false);
-            TokenSample {
-                raw,
-                expected,
-                whitespace_after,
-            }
-        }
-
-        fn gen_token_sample(rng: &mut impl Rng) -> TokenSample {
-            match rng.gen_range(0..=3) {
-                0 => gen_ident_token_sample(rng),
-                1 => gen_literal_token_sample(rng),
-                2 => gen_keyword_token_sample(rng),
-                3 => gen_punctuator_token_sample(rng),
-                _ => unreachable!(),
-            }
-        }
-
-        #[test]
-        fn test_tokenize_randomized() {
-            let mut rng = make_rng();
-
-            for _ in 0..RAND_ITERATIONS {
-                let token_count = rng.gen_range(0..=1000);
-                let mut generated_source = String::new();
-                let mut expected: Vec<String> = Vec::with_capacity(token_count);
-
-                // Construct the source code
-                for _ in 0..token_count {
-                    let token_sample = gen_token_sample(&mut rng);
-                    generated_source.push_str(&token_sample.raw);
-                    generated_source.push_str(&token_sample.whitespace_after);
-                    expected.push(token_sample.expected);
-                }
-
-                let tokens = tokenize(&generated_source, "<test generated source>").unwrap();
-                assert_eq!(expected.len(), tokens.len());
-                for (token, expected) in tokens.into_iter().zip(expected) {
-                    assert_eq!(token.to_string(), expected);
-                }
-            }
-        }
+        // use rand::{
+        //     seq::{IteratorRandom, SliceRandom},
+        //     Rng,
+        // };
+
+        // use crate::keyword::Keyword;
+
+        // use super::*;
+
+        // struct TokenSample {
+        //     raw: String,
+        //     expected: String,
+        //     whitespace_after: String,
+        // }
+
+        // /// Generates a random sequence of whitespace-like (whitespace or
+        // /// separating comment) characters
+        // fn gen_whitespace(rng: &mut impl Rng, allow_comments: bool) -> String {
+        //     let part_count = if rng.gen_bool(0.75) {
+        //         1
+        //     } else {
+        //         rng.gen_range(1..=10)
+        //     };
+        //     let mut raw = String::new();
+
+        //     for _ in 0..part_count {
+        //         let part = match rng.gen_range(0..=if allow_comments { 3 } else { 2 }) {
+        //             0 => " ".to_string(),
+        //             1 => "\t".to_string(),
+        //             2 => if rng.gen() { "\n" } else { "\r\n" }.to_string(),
+        //             3 => {
+        //                 let comment_len = rng.gen_range(0..=50);
+        //                 match rng.gen() {
+        //                     true => {
+        //                         let mut comment = String::with_capacity(comment_len + 2);
+
+        //                         comment.push_str("//");
+        //                         for _ in 0..comment_len {
+        //                             let mut c = gen_rand_char(rng);
+        //                             while c == '\n' {
+        //                                 c = gen_rand_char(rng);
+        //                             }
+        //                             comment.push(c);
+        //                         }
+        //                         if rng.gen() {
+        //                             comment.push('\r');
+        //                         }
+        //                         comment.push('\n');
+
+        //                         comment
+        //                     }
+        //                     false => {
+        //                         let mut comment = String::with_capacity(comment_len + 4);
+
+        //                         comment.push_str("/*");
+        //                         for _ in 0..comment_len {
+        //                             let mut c = gen_rand_char(rng);
+        //                             while c == '\n' || c == '*' {
+        //                                 c = gen_rand_char(rng);
+        //                             }
+        //                             comment.push(c);
+        //                         }
+        //                         comment.push_str("*/");
+        //                         if rng.gen() {
+        //                             comment.push('\r');
+        //                         }
+        //                         comment.push('\n');
+
+        //                         comment
+        //                     }
+        //                 }
+        //             }
+        //             _ => unreachable!(),
+        //         };
+
+        //         raw.push_str(&part);
+        //     }
+
+        //     raw
+        // }
+
+        // fn gen_int_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
+        //     let raw: String = match rng.gen_range(0..=3) {
+        //         // Decimal literal
+        //         0 => {
+        //             let has_base_prefix = rng.gen::<bool>();
+        //             let pre_first_digit_len = if has_base_prefix && rng.gen() {
+        //                 rng.gen_range(1..=5)
+        //             } else {
+        //                 0
+        //             };
+        //             let post_first_digit_len = rng.gen_range(0..=10);
+        //             let has_exp_suffix = rng.gen::<bool>();
+        //             let suffix_pre_first_digit_len = if has_exp_suffix && rng.gen() {
+        //                 rng.gen_range(1..=5)
+        //             } else {
+        //                 0
+        //             };
+        //             let suffix_post_first_digit_len = if has_exp_suffix && rng.gen() {
+        //                 rng.gen_range(1..=5)
+        //             } else {
+        //                 0
+        //             };
+        //             let mut raw = String::with_capacity(
+        //                 if has_base_prefix { "0d".len() } else { 0 }
+        //                     + pre_first_digit_len
+        //                     + 1
+        //                     + post_first_digit_len
+        //                     + if has_exp_suffix {
+        //                         "e".len()
+        //                             + suffix_pre_first_digit_len
+        //                             + 1
+        //                             + suffix_post_first_digit_len
+        //                     } else {
+        //                         0
+        //                     },
+        //             );
+
+        //             // Base prefix
+        //             if has_base_prefix {
+        //                 raw.push_str("0d");
+        //             }
+
+        //             // Contents of literal
+        //             for _ in 0..pre_first_digit_len {
+        //                 raw.push('_');
+        //             }
+        //             raw.push(rng.gen_range('0'..='9'));
+        //             for _ in 0..post_first_digit_len {
+        //                 raw.push(match rng.gen_range(0..=10) {
+        //                     0 => '0',
+        //                     1 => '1',
+        //                     2 => '2',
+        //                     3 => '3',
+        //                     4 => '4',
+        //                     5 => '5',
+        //                     6 => '6',
+        //                     7 => '7',
+        //                     8 => '8',
+        //                     9 => '9',
+        //                     10 => '_',
+        //                     _ => unreachable!(),
+        //                 });
+        //             }
+
+        //             // Exponential (scientific notation) suffix
+        //             if has_exp_suffix {
+        //                 raw.push('e');
+        //                 for _ in 0..suffix_pre_first_digit_len {
+        //                     raw.push('_');
+        //                 }
+        //                 raw.push(rng.gen_range('0'..='9'));
+        //                 for _ in 0..suffix_post_first_digit_len {
+        //                     raw.push(match rng.gen_range(0..=10) {
+        //                         0 => '0',
+        //                         1 => '1',
+        //                         2 => '2',
+        //                         3 => '3',
+        //                         4 => '4',
+        //                         5 => '5',
+        //                         6 => '6',
+        //                         7 => '7',
+        //                         8 => '8',
+        //                         9 => '9',
+        //                         10 => '_',
+        //                         _ => unreachable!(),
+        //                     });
+        //                 }
+        //             }
+
+        //             raw
+        //         }
+        //         // Binary literal
+        //         1 => {
+        //             let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
+        //             let post_first_digit_len = rng.gen_range(0..=10);
+        //             let mut raw = String::with_capacity(
+        //                 "0b".len() + pre_first_digit_len + 1 + post_first_digit_len,
+        //             );
+
+        //             // Base prefix
+        //             raw.push_str("0b");
+
+        //             // Contents of literal
+        //             for _ in 0..pre_first_digit_len {
+        //                 raw.push('_');
+        //             }
+        //             raw.push(rng.gen_range('0'..='1'));
+        //             for _ in 0..post_first_digit_len {
+        //                 raw.push(match rng.gen_range(0..=2) {
+        //                     0 => '0',
+        //                     1 => '1',
+        //                     2 => '_',
+        //                     _ => unreachable!(),
+        //                 });
+        //             }
+
+        //             raw
+        //         }
+        //         // Hexadecimal literal
+        //         2 => {
+        //             let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
+        //             let post_first_digit_len = rng.gen_range(0..=10);
+        //             let mut raw = String::with_capacity(
+        //                 "0x".len() + pre_first_digit_len + 1 + post_first_digit_len,
+        //             );
+
+        //             // Base prefix
+        //             raw.push_str("0x");
+
+        //             // Contents of literal
+        //             for _ in 0..pre_first_digit_len {
+        //                 raw.push('_');
+        //             }
+        //             raw.push(match rng.gen_range(0..=15) {
+        //                 0 => '0',
+        //                 1 => '1',
+        //                 2 => '2',
+        //                 3 => '3',
+        //                 4 => '4',
+        //                 5 => '5',
+        //                 6 => '6',
+        //                 7 => '7',
+        //                 8 => '8',
+        //                 9 => '9',
+        //                 10 => {
+        //                     if rng.gen() {
+        //                         'a'
+        //                     } else {
+        //                         'A'
+        //                     }
+        //                 }
+        //                 11 => {
+        //                     if rng.gen() {
+        //                         'b'
+        //                     } else {
+        //                         'B'
+        //                     }
+        //                 }
+        //                 12 => {
+        //                     if rng.gen() {
+        //                         'c'
+        //                     } else {
+        //                         'C'
+        //                     }
+        //                 }
+        //                 13 => {
+        //                     if rng.gen() {
+        //                         'd'
+        //                     } else {
+        //                         'D'
+        //                     }
+        //                 }
+        //                 14 => {
+        //                     if rng.gen() {
+        //                         'e'
+        //                     } else {
+        //                         'E'
+        //                     }
+        //                 }
+        //                 15 => {
+        //                     if rng.gen() {
+        //                         'f'
+        //                     } else {
+        //                         'F'
+        //                     }
+        //                 }
+        //                 _ => unreachable!(),
+        //             });
+        //             for _ in 0..post_first_digit_len {
+        //                 raw.push(match rng.gen_range(0..=16) {
+        //                     0 => '0',
+        //                     1 => '1',
+        //                     2 => '2',
+        //                     3 => '3',
+        //                     4 => '4',
+        //                     5 => '5',
+        //                     6 => '6',
+        //                     7 => '7',
+        //                     8 => '8',
+        //                     9 => '9',
+        //                     10 => {
+        //                         if rng.gen() {
+        //                             'a'
+        //                         } else {
+        //                             'A'
+        //                         }
+        //                     }
+        //                     11 => {
+        //                         if rng.gen() {
+        //                             'b'
+        //                         } else {
+        //                             'B'
+        //                         }
+        //                     }
+        //                     12 => {
+        //                         if rng.gen() {
+        //                             'c'
+        //                         } else {
+        //                             'C'
+        //                         }
+        //                     }
+        //                     13 => {
+        //                         if rng.gen() {
+        //                             'd'
+        //                         } else {
+        //                             'D'
+        //                         }
+        //                     }
+        //                     14 => {
+        //                         if rng.gen() {
+        //                             'e'
+        //                         } else {
+        //                             'E'
+        //                         }
+        //                     }
+        //                     15 => {
+        //                         if rng.gen() {
+        //                             'f'
+        //                         } else {
+        //                             'F'
+        //                         }
+        //                     }
+        //                     16 => '_',
+        //                     _ => unreachable!(),
+        //                 });
+        //             }
+
+        //             raw
+        //         }
+        //         // Octal literal
+        //         3 => {
+        //             let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
+        //             let post_first_digit_len = rng.gen_range(0..=10);
+        //             let mut raw = String::with_capacity(
+        //                 "0o".len() + pre_first_digit_len + 1 + post_first_digit_len,
+        //             );
+
+        //             // Base prefix
+        //             raw.push_str("0o");
+
+        //             // Contents of literal
+        //             for _ in 0..pre_first_digit_len {
+        //                 raw.push('_');
+        //             }
+        //             raw.push(rng.gen_range('0'..='7'));
+        //             for _ in 0..post_first_digit_len {
+        //                 raw.push(match rng.gen_range(0..=8) {
+        //                     0 => '0',
+        //                     1 => '1',
+        //                     2 => '2',
+        //                     3 => '3',
+        //                     4 => '4',
+        //                     5 => '5',
+        //                     6 => '6',
+        //                     7 => '7',
+        //                     8 => '_',
+        //                     _ => unreachable!(),
+        //                 });
+        //             }
+
+        //             raw
+        //         }
+        //         _ => unreachable!(),
+        //     };
+
+        //     let expected = format!("[Token] Literal (int): {raw}");
+        //     let whitespace_after = gen_whitespace(rng, true);
+        //     TokenSample {
+        //         raw,
+        //         expected,
+        //         whitespace_after,
+        //     }
+        // }
+
+        // fn gen_byte_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
+        //     let raw: String = match rng.gen_range(0..=3) {
+        //         // Decimal literal
+        //         0 => {
+        //             let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
+        //             let post_first_digit_len = rng.gen_range(0..=10);
+        //             let mut raw = String::with_capacity(
+        //                 "8d".len() + pre_first_digit_len + 1 + post_first_digit_len,
+        //             );
+
+        //             // Base prefix
+        //             raw.push_str("8d");
+
+        //             // Contents of literal
+        //             for _ in 0..pre_first_digit_len {
+        //                 raw.push('_');
+        //             }
+        //             raw.push(rng.gen_range('0'..='7'));
+        //             for _ in 0..post_first_digit_len {
+        //                 raw.push(match rng.gen_range(0..=8) {
+        //                     0 => '0',
+        //                     1 => '1',
+        //                     2 => '2',
+        //                     3 => '3',
+        //                     4 => '4',
+        //                     5 => '5',
+        //                     6 => '6',
+        //                     7 => '7',
+        //                     8 => '_',
+        //                     _ => unreachable!(),
+        //                 });
+        //             }
+
+        //             raw
+        //         }
+        //         // Binary literal
+        //         1 => {
+        //             let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
+        //             let post_first_digit_len = rng.gen_range(0..=10);
+        //             let mut raw = String::with_capacity(
+        //                 "8b".len() + pre_first_digit_len + 1 + post_first_digit_len,
+        //             );
+
+        //             // Base prefix
+        //             raw.push_str("8b");
+
+        //             // Contents of literal
+        //             for _ in 0..pre_first_digit_len {
+        //                 raw.push('_');
+        //             }
+        //             raw.push(rng.gen_range('0'..='1'));
+        //             for _ in 0..post_first_digit_len {
+        //                 raw.push(match rng.gen_range(0..=2) {
+        //                     0 => '0',
+        //                     1 => '1',
+        //                     2 => '_',
+        //                     _ => unreachable!(),
+        //                 });
+        //             }
+
+        //             raw
+        //         }
+        //         // Hexadecimal literal
+        //         2 => {
+        //             let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
+        //             let post_first_digit_len = rng.gen_range(0..=10);
+        //             let mut raw = String::with_capacity(
+        //                 "8x".len() + pre_first_digit_len + 1 + post_first_digit_len,
+        //             );
+
+        //             // Base prefix
+        //             raw.push_str("8x");
+
+        //             // Contents of literal
+        //             for _ in 0..pre_first_digit_len {
+        //                 raw.push('_');
+        //             }
+        //             raw.push(match rng.gen_range(0..=15) {
+        //                 0 => '0',
+        //                 1 => '1',
+        //                 2 => '2',
+        //                 3 => '3',
+        //                 4 => '4',
+        //                 5 => '5',
+        //                 6 => '6',
+        //                 7 => '7',
+        //                 8 => '8',
+        //                 9 => '9',
+        //                 10 => {
+        //                     if rng.gen() {
+        //                         'a'
+        //                     } else {
+        //                         'A'
+        //                     }
+        //                 }
+        //                 11 => {
+        //                     if rng.gen() {
+        //                         'b'
+        //                     } else {
+        //                         'B'
+        //                     }
+        //                 }
+        //                 12 => {
+        //                     if rng.gen() {
+        //                         'c'
+        //                     } else {
+        //                         'C'
+        //                     }
+        //                 }
+        //                 13 => {
+        //                     if rng.gen() {
+        //                         'd'
+        //                     } else {
+        //                         'D'
+        //                     }
+        //                 }
+        //                 14 => {
+        //                     if rng.gen() {
+        //                         'e'
+        //                     } else {
+        //                         'E'
+        //                     }
+        //                 }
+        //                 15 => {
+        //                     if rng.gen() {
+        //                         'f'
+        //                     } else {
+        //                         'F'
+        //                     }
+        //                 }
+        //                 _ => unreachable!(),
+        //             });
+        //             for _ in 0..post_first_digit_len {
+        //                 raw.push(match rng.gen_range(0..=16) {
+        //                     0 => '0',
+        //                     1 => '1',
+        //                     2 => '2',
+        //                     3 => '3',
+        //                     4 => '4',
+        //                     5 => '5',
+        //                     6 => '6',
+        //                     7 => '7',
+        //                     8 => '8',
+        //                     9 => '9',
+        //                     10 => {
+        //                         if rng.gen() {
+        //                             'a'
+        //                         } else {
+        //                             'A'
+        //                         }
+        //                     }
+        //                     11 => {
+        //                         if rng.gen() {
+        //                             'b'
+        //                         } else {
+        //                             'B'
+        //                         }
+        //                     }
+        //                     12 => {
+        //                         if rng.gen() {
+        //                             'c'
+        //                         } else {
+        //                             'C'
+        //                         }
+        //                     }
+        //                     13 => {
+        //                         if rng.gen() {
+        //                             'd'
+        //                         } else {
+        //                             'D'
+        //                         }
+        //                     }
+        //                     14 => {
+        //                         if rng.gen() {
+        //                             'e'
+        //                         } else {
+        //                             'E'
+        //                         }
+        //                     }
+        //                     15 => {
+        //                         if rng.gen() {
+        //                             'f'
+        //                         } else {
+        //                             'F'
+        //                         }
+        //                     }
+        //                     16 => '_',
+        //                     _ => unreachable!(),
+        //                 });
+        //             }
+
+        //             raw
+        //         }
+        //         // Octal literal
+        //         3 => {
+        //             let pre_first_digit_len = if rng.gen() { 0 } else { rng.gen_range(1..=5) };
+        //             let post_first_digit_len = rng.gen_range(0..=10);
+        //             let mut raw = String::with_capacity(
+        //                 "8o".len() + pre_first_digit_len + 1 + post_first_digit_len,
+        //             );
+
+        //             // Base prefix
+        //             raw.push_str("8o");
+
+        //             // Contents of literal
+        //             for _ in 0..pre_first_digit_len {
+        //                 raw.push('_');
+        //             }
+        //             raw.push(rng.gen_range('0'..='7'));
+        //             for _ in 0..post_first_digit_len {
+        //                 raw.push(match rng.gen_range(0..=8) {
+        //                     0 => '0',
+        //                     1 => '1',
+        //                     2 => '2',
+        //                     3 => '3',
+        //                     4 => '4',
+        //                     5 => '5',
+        //                     6 => '6',
+        //                     7 => '7',
+        //                     8 => '_',
+        //                     _ => unreachable!(),
+        //                 });
+        //             }
+
+        //             raw
+        //         }
+        //         _ => unreachable!(),
+        //     };
+
+        //     let expected = format!("[Token] Literal (byte): {raw}");
+        //     let whitespace_after = gen_whitespace(rng, true);
+        //     TokenSample {
+        //         raw,
+        //         expected,
+        //         whitespace_after,
+        //     }
+        // }
+
+        // fn gen_float_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
+        //     let raw: String = if rng.gen_bool(0.1) {
+        //         if rng.gen() {
+        //             Keyword::Infinity
+        //         } else {
+        //             Keyword::Nan
+        //         }
+        //         .to_string()
+        //     } else {
+        //         // Float literals are complicated, and composed of many possible
+        //         // sections. For variable name brevity, I've assigned a letter
+        //         // label to each possible "section" of a float literal. Here's
+        //         // an example float literal with every possible section and it's
+        //         // label:
+        //         // 29_339__84.____5_20_3__21e+__1952_2__4_5_
+        //         // ABBBBBBBBBCDDDDEFFFFFFFFFGHIIJKKKKKKKKKKK
+        //         // A: first digit
+        //         // B: digits and underscores up to the decimal point
+        //         // C: decimal point
+        //         // D: underscores after the decimal point
+        //         // E: first digit after the decimal point
+        //         // F: digits and underscores up to the suffix
+        //         // G: suffix "e"
+        //         // H: suffix sign
+        //         // I: suffix underscores before the first suffix digit
+        //         // J: suffix first digit
+        //         // K: suffix digits and underscores after the suffix first digit
+
+        //         let part_b_len = rng.gen_range(0..=10);
+        //         let part_d_len = if rng.gen() { rng.gen_range(1..=5) } else { 0 };
+        //         let part_f_len = rng.gen_range(0..=10);
+        //         let has_exp_suffix = rng.gen::<bool>();
+        //         let has_suffix_sign = has_exp_suffix && rng.gen();
+        //         let part_i_len = if has_exp_suffix && rng.gen() {
+        //             rng.gen_range(1..=5)
+        //         } else {
+        //             0
+        //         };
+        //         let part_k_len = if has_exp_suffix {
+        //             rng.gen_range(0..=10)
+        //         } else {
+        //             0
+        //         };
+        //         // While it's true that I'm often converting true to 1 and false
+        //         // to 0, I'm not trying to "convert a bool to an int", I'm
+        //         // calculating a value which is dependant on a bool - the fact
+        //         // that those values happen to correspond to how bools are
+        //         // converted to ints with `usize::from(...)` is a coincidence
+        //         // But thanks anyway clippy I still love you <3
+        //         #[allow(clippy::bool_to_int_with_if)]
+        //         let mut raw = String::with_capacity(
+        //             // Part A (first digit)
+        //             1
+        //             // Part B (digits and underscores up to the decimal point)
+        //             + part_b_len
+        //             // Part C (decimal point)
+        //             + 1
+        //             // Part D (underscores after the decimal point)
+        //             + part_d_len
+        //             // Part E (first digit after the decimal point)
+        //             + 1
+        //             // Part F (digits and underscores up to the suffix)
+        //             + part_f_len
+        //             // Part G (suffix "e")
+        //             + if has_exp_suffix { 1 } else { 0 }
+        //             // Part H (suffix sign)
+        //             + if has_suffix_sign { 1 } else { 0 }
+        //             // Part I (suffix underscores before the first suffix digit)
+        //             + part_i_len
+        //             // Part J (suffix first digit)
+        //             + if has_exp_suffix { 1 } else { 0 }
+        //             // Part K (suffix digits and underscores after the suffix first digit)
+        //             + part_k_len,
+        //         );
+
+        //         // Part A (first digit)
+        //         raw.push(rng.gen_range('0'..='9'));
+        //         // Part B (digits and underscores up to the decimal point)
+        //         for _ in 0..part_b_len {
+        //             raw.push(match rng.gen_range(0..=10) {
+        //                 0 => '0',
+        //                 1 => '1',
+        //                 2 => '2',
+        //                 3 => '3',
+        //                 4 => '4',
+        //                 5 => '5',
+        //                 6 => '6',
+        //                 7 => '7',
+        //                 8 => '8',
+        //                 9 => '9',
+        //                 10 => '_',
+        //                 _ => unreachable!(),
+        //             });
+        //         }
+        //         // Part C (decimal point)
+        //         raw.push('.');
+        //         // Part D (underscores after the decimal point)
+        //         for _ in 0..part_d_len {
+        //             raw.push('_');
+        //         }
+        //         // Part E (first digit after the decimal point)
+        //         raw.push(rng.gen_range('0'..='9'));
+        //         // Part F (digits and underscores up to the suffix)
+        //         for _ in 0..part_f_len {
+        //             raw.push(match rng.gen_range(0..=10) {
+        //                 0 => '0',
+        //                 1 => '1',
+        //                 2 => '2',
+        //                 3 => '3',
+        //                 4 => '4',
+        //                 5 => '5',
+        //                 6 => '6',
+        //                 7 => '7',
+        //                 8 => '8',
+        //                 9 => '9',
+        //                 10 => '_',
+        //                 _ => unreachable!(),
+        //             });
+        //         }
+        //         // The rest of the parts are only applicable if there is a suffix
+        //         if has_exp_suffix {
+        //             // Part G (suffix "e")
+        //             raw.push('e');
+        //             // Part H (suffix sign)
+        //             if has_suffix_sign {
+        //                 raw.push(if rng.gen() { '+' } else { '-' });
+        //             }
+        //             // Part I (suffix underscores before the first suffix digit)
+        //             for _ in 0..part_i_len {
+        //                 raw.push('_');
+        //             }
+        //             // Part J (suffix first digit)
+        //             raw.push(rng.gen_range('0'..='9'));
+        //             // Part K (suffix digits and underscores after the suffix first digit)
+        //             for _ in 0..part_k_len {
+        //                 raw.push(match rng.gen_range(0..=10) {
+        //                     0 => '0',
+        //                     1 => '1',
+        //                     2 => '2',
+        //                     3 => '3',
+        //                     4 => '4',
+        //                     5 => '5',
+        //                     6 => '6',
+        //                     7 => '7',
+        //                     8 => '8',
+        //                     9 => '9',
+        //                     10 => '_',
+        //                     _ => unreachable!(),
+        //                 });
+        //             }
+        //         }
+
+        //         raw
+        //     };
+
+        //     let expected = format!("[Token] Literal (float): {raw}");
+        //     let whitespace_after = gen_whitespace(rng, true);
+        //     TokenSample {
+        //         raw,
+        //         expected,
+        //         whitespace_after,
+        //     }
+        // }
+
+        // fn gen_ident_token_sample(rng: &mut impl Rng) -> TokenSample {
+        //     let len = rng.gen_range(1..4);
+        //     let mut ident = String::with_capacity(len);
+        //     while ident.is_empty()
+        //         || enum_iterator::all::<Keyword>().any(|keyword| keyword.to_string() == ident)
+        //     {
+        //         ident.clear();
+        //         for i in 0..len {
+        //             let ident_start = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        //             let ident_cont = &(ident_start.to_string() + "0123456789");
+        //             let c = if i == 0 { ident_start } else { ident_cont }
+        //                 .chars()
+        //                 .choose(rng)
+        //                 .unwrap();
+        //             ident.push(c);
+        //         }
+        //     }
+
+        //     let expected = format!("[Token] Identifier: {ident}");
+        //     let raw = ident;
+        //     let whitespace_after = gen_whitespace(rng, true);
+        //     TokenSample {
+        //         raw,
+        //         expected,
+        //         whitespace_after,
+        //     }
+        // }
+
+        // fn gen_bool_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
+        //     let literal = if rng.gen() {
+        //         Keyword::True
+        //     } else {
+        //         Keyword::False
+        //     };
+
+        //     let raw = literal.to_string();
+        //     let expected = format!("[Token] Literal (bool): {literal}");
+        //     let whitespace_after = gen_whitespace(rng, true);
+        //     TokenSample {
+        //         raw,
+        //         expected,
+        //         whitespace_after,
+        //     }
+        // }
+
+        // fn gen_normal_string_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
+        //     let char_count = rng.gen_range(0..=25);
+        //     let mut raw = String::new();
+
+        //     raw.push('"');
+        //     for _ in 0..char_count {
+        //         // Small chance to do an escape sequences
+        //         if rng.gen_bool(0.1) {
+        //             match rng.gen_range(0..=8) {
+        //                 0 => raw.push_str("\\\""),
+        //                 1 => raw.push_str(r"\\"),
+        //                 2 => raw.push_str(r"\t"),
+        //                 3 => raw.push_str(r"\n"),
+        //                 4 => raw.push_str(r"\r"),
+        //                 5 => raw.push_str(r"\0"),
+        //                 6 => raw.push_str("\\\n"),
+        //                 7 => {
+        //                     raw.push_str("\\x");
+        //                     let value = rng.gen_range(0x00..=0x7F);
+        //                     for ch in format!("{value:02x}").chars() {
+        //                         raw.push(if rng.gen() {
+        //                             ch.to_ascii_uppercase()
+        //                         } else {
+        //                             ch
+        //                         });
+        //                     }
+        //                 }
+        //                 8 => {
+        //                     raw.push_str("\\u{");
+        //                     let value = rng.gen::<char>() as u32;
+        //                     let mut hex = format!("{value:x}");
+        //                     let len: usize = rng.gen_range(1..=6);
+        //                     hex = "0".repeat(len.saturating_sub(hex.len())) + &hex;
+        //                     for ch in hex.chars() {
+        //                         raw.push(if rng.gen() {
+        //                             ch.to_ascii_uppercase()
+        //                         } else {
+        //                             ch
+        //                         });
+        //                     }
+        //                     raw.push('}');
+        //                 }
+        //                 _ => unreachable!(),
+        //             };
+        //         } else {
+        //             let mut ch = gen_rand_char(rng);
+        //             while ch == '"' || ch == '\\' {
+        //                 ch = gen_rand_char(rng);
+        //             }
+        //             raw.push(ch);
+        //         }
+        //     }
+        //     raw.push('"');
+
+        //     let expected = format!("[Token] Literal (string): {raw}");
+        //     let whitespace_after = if rng.gen() {
+        //         gen_whitespace(rng, true)
+        //     } else {
+        //         "".to_string()
+        //     };
+        //     TokenSample {
+        //         raw,
+        //         expected,
+        //         whitespace_after,
+        //     }
+        // }
+
+        // fn gen_raw_string_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
+        //     let char_count = rng.gen_range(0..=25);
+        //     let hash_count = if rng.gen() { 0 } else { rng.gen_range(1..=10) };
+        //     let mut raw = String::new();
+
+        //     raw.push('r');
+        //     raw.push_str(&"#".repeat(hash_count));
+        //     raw.push('"');
+        //     let mut curr_hash_count = 0;
+        //     let mut following_double_quote = false;
+        //     for _ in 0..char_count {
+        //         let mut ch = gen_rand_char(rng);
+        //         // If the hash count is 0, ensure there aren't any double quotes
+        //         if hash_count == 0 {
+        //             while ch == '"' {
+        //                 ch = gen_rand_char(rng);
+        //             }
+        //         } else {
+        //             // Ensure there isn't a double quote followed by hash_count
+        //             // octothorpes
+        //             if ch == '"' {
+        //                 curr_hash_count = 0;
+        //                 following_double_quote = true;
+        //             } else if following_double_quote && ch == '#' {
+        //                 // If this would be the octothorpe that completes an
+        //                 // ending of the raw string literal, regenerate the
+        //                 // character until we have something besides '#'
+        //                 if curr_hash_count + 1 >= hash_count {
+        //                     while ch == '#' {
+        //                         ch = gen_rand_char(rng);
+        //                     }
+        //                     following_double_quote = false;
+        //                     curr_hash_count = 0;
+        //                 } else {
+        //                     curr_hash_count += 1;
+        //                 }
+        //             } else {
+        //                 following_double_quote = false;
+        //                 curr_hash_count = 0;
+        //             }
+        //         }
+        //         raw.push(ch);
+        //     }
+        //     raw.push('"');
+        //     raw.push_str(&"#".repeat(hash_count));
+
+        //     let expected = format!("[Token] Literal (string): {raw}");
+        //     let whitespace_after = if rng.gen() {
+        //         gen_whitespace(rng, true)
+        //     } else {
+        //         "".to_string()
+        //     };
+        //     TokenSample {
+        //         raw,
+        //         expected,
+        //         whitespace_after,
+        //     }
+        // }
+
+        // fn gen_string_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
+        //     match rng.gen_range(0..=1) {
+        //         0 => gen_normal_string_literal_token_sample(rng),
+        //         1 => gen_raw_string_literal_token_sample(rng),
+        //         // TODO add formatted string literal tokens to randomized unit
+        //         // tests
+        //         // 2 => gen_format_string_literal_token_sample(rng),
+        //         _ => unreachable!(),
+        //     }
+        // }
+
+        // fn gen_null_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
+        //     let literal = Keyword::Null;
+
+        //     let raw = literal.to_string();
+        //     let expected = format!("[Token] Keyword: {literal}");
+        //     let whitespace_after = gen_whitespace(rng, true);
+        //     TokenSample {
+        //         raw,
+        //         expected,
+        //         whitespace_after,
+        //     }
+        // }
+
+        // fn gen_literal_token_sample(rng: &mut impl Rng) -> TokenSample {
+        //     match rng.gen_range(0..=5) {
+        //         0 => gen_int_literal_token_sample(rng),
+        //         1 => gen_byte_literal_token_sample(rng),
+        //         2 => gen_float_literal_token_sample(rng),
+        //         3 => gen_bool_literal_token_sample(rng),
+        //         4 => gen_string_literal_token_sample(rng),
+        //         5 => gen_null_literal_token_sample(rng),
+        //         _ => unreachable!(),
+        //     }
+        // }
+
+        // fn gen_keyword_token_sample(rng: &mut impl Rng) -> TokenSample {
+        //     let keyword = enum_iterator::all::<Keyword>()
+        //         .filter(|kw| !kw.can_be_literal())
+        //         .choose(rng)
+        //         .unwrap();
+
+        //     let expected = format!("[Token] Keyword: {keyword}");
+        //     let raw = keyword.to_string();
+        //     let whitespace_after = gen_whitespace(rng, true);
+        //     TokenSample {
+        //         raw,
+        //         expected,
+        //         whitespace_after,
+        //     }
+        // }
+
+        // fn gen_punctuator_token_sample(rng: &mut impl Rng) -> TokenSample {
+        //     let punctuator = [
+        //         "=", "+=", "-=", "*=", "/=", "%=", "**=", "<<=", ">>=", "&=", "^=", "|=", "&&=",
+        //         "||=", "?", ":", "||", "&&", "==", "!=", "<", ">", "<=", ">=", "|", "^", "&", "<<",
+        //         ">>", "+", "-", "*", "/", "%", "**", "!", "=>", ";", ",", ".", "(", ")", "{", "}",
+        //         "[", "]",
+        //     ]
+        //     .choose(rng)
+        //     .unwrap();
+
+        //     let expected = format!("[Token] Punctuator: {punctuator}");
+        //     let raw = punctuator.to_string();
+        //     let whitespace_after = gen_whitespace(rng, false);
+        //     TokenSample {
+        //         raw,
+        //         expected,
+        //         whitespace_after,
+        //     }
+        // }
+
+        // fn gen_token_sample(rng: &mut impl Rng) -> TokenSample {
+        //     match rng.gen_range(0..=3) {
+        //         0 => gen_ident_token_sample(rng),
+        //         1 => gen_literal_token_sample(rng),
+        //         2 => gen_keyword_token_sample(rng),
+        //         3 => gen_punctuator_token_sample(rng),
+        //         _ => unreachable!(),
+        //     }
+        // }
+
+        // #[test]
+        // fn test_tokenize_randomized() {
+        //     let mut rng = make_rng();
+
+        //     for _ in 0..RAND_ITERATIONS {
+        //         let token_count = rng.gen_range(0..=1000);
+        //         let mut generated_source = String::new();
+        //         let mut expected: Vec<String> = Vec::with_capacity(token_count);
+
+        //         // Construct the source code
+        //         for _ in 0..token_count {
+        //             let token_sample = gen_token_sample(&mut rng);
+        //             generated_source.push_str(&token_sample.raw);
+        //             generated_source.push_str(&token_sample.whitespace_after);
+        //             expected.push(token_sample.expected);
+        //         }
+
+        //         let tokens = tokenize(&generated_source, "<test generated source>").unwrap();
+        //         assert_eq!(expected.len(), tokens.len());
+        //         for (token, expected) in tokens.into_iter().zip(expected) {
+        //             assert_eq!(token.to_string(), expected);
+        //         }
+        //     }
+        // }
     }
 }

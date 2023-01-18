@@ -10,15 +10,15 @@ learning to code, I'd recommend you start with a language like
 [Python](https://www.python.org/) or
 [JavaScript](https://developer.mozilla.org/en-US/docs/Learn/JavaScript).
 
-If you do already have experience with another programming language, check out
-the icelang [Guidebook](/docs/Guidebook.md) for a general overview of the syntax
-and features of icelang. You can also check out the [examples](/examples/)
-folder to see some example icelang programs.
+If you do already have experience with another programming language, this
+guidebook will act as an overview and reference of the syntax and features of
+icelang, and of the icelang standard library.
 
 # Table of Contents
 1. [Introduction](#the-icelang-guidebook)
-2. [Anatomy of an icelang program](#anatomy-of-an-icelang-program)
-3. [Types](#types)
+2. [Table of Contents](#table-of-contents)
+3. [Anatomy of an icelang program](#anatomy-of-an-icelang-program)
+4. [Types](#types)
 	1. [int](#int)
 	2. [byte](#byte)
 	3. [float](#float)
@@ -28,7 +28,7 @@ folder to see some example icelang programs.
 	7. [dict](#dict)
 	8. [null](#null)
 	9. [Special type-like syntax used in The icelang Guidebook](#special-type-like-syntax)
-4. [Literals](#literals)
+5. [Literals](#literals)
 	1. [int](#int-1)
 	2. [byte](#byte-1)
 	3. [float](#float-1)
@@ -37,6 +37,23 @@ folder to see some example icelang programs.
 	6. [list](#list-1)
 	7. [dict](#dict-1)
 	8. [null](#null-1)
+6. [Expressions](#expressions)
+	1. [Atomic expressions](#atomic-expressions)
+	2. [Operator precedence](#operator-precedence)
+	3. [Assignment expressions](#assignment-expressions)
+	4. [Inline conditional expressions](#inline-conditional-expressions)
+	5. [Mathematical operations](#mathematical-operations)
+	6. [Bitwise operations](#bitwise-operations)
+	7. [Logical operations](#logical-operations)
+	8. [Comparisons](#comparisons)
+	9. [Function calls](#function-calls)
+	10. [Member access](#member-access)
+	11. [Type casting](#type-casting)
+7. Control flow (TODO)
+8. Declarations (TODO)
+9. The Standard Library (TODO)
+10. Miscellaneous
+	1. Comments (TODO)
 
 # Anatomy of an icelang program
 An icelang program consists of zero or more statements seperated by semicolons.
@@ -64,7 +81,7 @@ fn get_greeting_phrase(name) {
 
 	// Return control-flow statement with expression(s)
 	return f"{greeting}, {name}";
-}
+};
 
 // Variable declaration with expression(s)
 let names = ["Alice", "Bob", "Charlie", "Isaac"];
@@ -84,12 +101,12 @@ for name in names {
 		// Assignment expression containing a function call
 		// expression containing a variable access expression
 		message = get_greeting_phrase(name);
-	}
+	};
 
 	// Function call expression containing a variable access
 	// expression
 	println(message);
-}
+};
 ```
 
 # Types
@@ -173,10 +190,15 @@ or `false` value.
 There are two valid `bool` values: `true` and `false`
 
 ## `string`
-A `string` is a resizable collection of
+A `string` is an immutable collection of
 [UTF-8](https://en.wikipedia.org/wiki/UTF-8) encoded characters (In icelang, the
 term "character" refers to a
 [Unicode scalar value](https://www.unicode.org/glossary/#unicode_scalar_value))
+
+`string`s in icelang are immutable, meaning that the characters in a `string`
+cannot be modified after the `string` is created. In order to reproduce the
+effect of mutating a `string` in icelang, you will have to create a new `string`
+with the new value.
 
 Some examples of valid `string`s include: `"Hello, world!"`, `""` (an empty
 string), `"foaiu39pauhp"`, `"🦀 <3"` (the "Crab" emoji followed by an ASCII
@@ -207,7 +229,7 @@ let my_list = ["sharing"];
 fn add_to_list(the_list) {
 	push(the_list, "the");
 	push(the_list, "references");
-}
+};
 
 // Here, `my_list` is passed *as a shared reference* to `add_to_list(...)`
 add_to_list(my_list);
@@ -291,15 +313,15 @@ Some examples of valid `dict`s include:
 `{"weird dict": true, 4: -2, 9: null, -10: "negative ten", null: {"what is this?": ["confusion", "chaos"]}, 8b4: "not -2"}`
 
 ## `null`
-A `null` value represents a "nothing" value, or the absence of a value. All
-values of type `null` are the same - `null` is just `null`. There is no such
+A `null` value represents a "nothing" value, or the absence of a valid value.
+All values of type `null` are the same - `null` is just `null`. There is no such
 thing as "two different `null`s".
 
-A `null` value represents the absence of a value, but doesn't provide any
-additional information about *why* a value is absent, or what might have been
-expected instead. If you are providing an interface which may work with `null`,
-it is almost certainly a good idea to include additional information about
-`null` means in your context.
+A `null` value represents the absence of a valid value, but doesn't provide any
+additional information about *why* a valid value is absent, or what might have
+been expected instead. If you are providing an interface which may work with
+`null`, it is almost certainly a good idea to include additional information
+about what `null` means in your context.
 
 There is only one valid `null` value: `null`
 
@@ -703,6 +725,146 @@ There is only one `null` value:
 null
 ```
 
+# Expressions
+
+## Atomic expressions
+TODO
+
+## Operator precedence
+TODO
+
+## Assignment expressions
+TODO
+
+## Inline conditional expressions
+TODO
+
+## Mathematical operations
+TODO
+
+## Bitwise operations
+TODO
+
+## Logical operations
+TODO
+
+## Comparisons
+TODO
+
+## Function calls
+TODO
+
+## Member access
+TODO
+
+## Type casting
+Type casting expressions in icelang are used to convert a value from one type to
+another. The original type being converted from is called the *source* type, and
+the new type being converted to is called the *destination* type.
+
+The exact semantics of how a value is converted depends on the source and
+destination types, and are detailed in a list below. Additionally, many
+combinations of source and destination types are not valid for a type cast, and
+attempting to do so anyway will result in a runtime error. As an example, it is
+not possible to convert a `bool` into a `float`
+
+The syntax for a type cast is the destination type followed by parenthesis
+containing the value to be cast:
+```
+let my_number = "42"; // Note: my_number is a string, not an int (yet)
+let cast_to_int = int(my_number);
+assert(cast_to_int == 42);
+```
+
+Most combinations of source and destination types in icelang are not valid for
+casting. There are no valid type casts with `list`, `dict`, or `null` as either
+the source or destination type. Additionally, a type may not be cast to itself -
+doing so is useless, and attempting to do so usually indicates an error in the
+design or logic of the program.
+
+### A quick note on fallability
+Some combinations of source and destination types are infallible conversions,
+meaning that the conversion will always result in a valid value of the
+destination type, regardless of the value being cast. An example of an
+infallible conversion is casting a `byte` to an `int`. Every possible `byte`
+value can be converted successfully into a valid `int` value, so the cast cannot
+fail.
+
+Other combinations of source and destination types are fallible conversions,
+meaning that for some possible values of the source type, it is not possible to
+produce a valid value of the destination type. An example of a fallible
+conversion is casting an `int` to a `byte`. There are some `int` values, like
+`-5` or `300`, which are not possible to represent as a `byte`. When a fallible
+cast fails, the resulting value is `null`. When performing a fallible cast, care
+must be taken to ensure your program behaves correctly if the cast fails.
+
+### List of valid casts
+The following is a complete list of all valid source and destination types for
+type casts, as well as the details of how the cast is performed:
+
+#### `int` to `byte` (fallible)
+If the `int` value is a valid `byte` (0 <= value <= 255), it will be converted
+to the same numerical value as a `byte`. If the `int` value is not a valid
+`byte` (value < 0 || value > 255), the cast will result in `null`.
+
+#### `int` to `float` (infallible)
+The `int` value will be converted to the nearest representable `float`. Values
+greater than the maximum finite `float` value or less than the minimum finite
+`float` value are converted to positive and negative `Infinity` respectively.
+
+The behavior In the event of a "tie" (when the )
+
+#### `byte` to `int` (infallible)
+The `byte` value will be converted to the same numerical value as an `int`.
+Every possible `byte` value is also valid as an `int`, so this conversion cannot
+fail.
+
+#### `byte` to `float` (infallible)
+The `byte` value will be converted to the same numerical value as a `float`.
+Every possible `byte` value is also valid as an `float`, so this conversion
+cannot fail.
+
+#### `float` to `int` (fallible)
+The `float` will be rounded towards zero, then converted to the same numerical
+value as an `int`. Attempting to cast positive `Infinity`, negative `Infinity`,
+or `NaN` will result in `null`.
+
+#### `int` to `string` (infallible)
+Converts the `int` to a human-readable `string` in decimal (base 10). The exact
+output will be identical to calling the standard library function
+[`fmt(...)`](TODO) function with default formatting arguments.
+
+#### `byte` to `string` (infallible)
+Converts the `byte` to a human-readable `string` in capital hexadecimal, zero
+padded to two digits if necessary. The exact output will be identical to calling
+the standard library function [`fmt(...)`](TODO) function with default
+formatting arguments.
+
+#### `float` to `string` (infallible)
+Converts the `float` to a human-readable `string` with similar syntax to a
+`float` literal. The exact output will be identical to calling the standard
+library function [`fmt(...)`](TODO) function with default formatting arguments.
+
+#### `bool` to `string` (infallible)
+Converts the `bool` to a human-readable `string`, either `"true"` or `"false"`.
+The exact output will be identical to calling the standard library function
+[`fmt(...)`](TODO) function with default formatting arguments.
+
+#### `string` to `int` (fallible)
+Attempts to parse the `string` as an `int` following the same syntax as an `int`
+literal. Any valid `int` literal will be converted to its corresponding value as
+an `int`, and anything else will result in `null`.
+
+#### `string` to `byte` (fallible)
+Attempts to parse the `string` as a `byte` following the same syntax as a `byte`
+literal. Any valid `byte` literal will be converted to its corresponding value
+as a `byte`, and anything else will result in `null`.
+
+#### `string` to `float` (fallible)
+Attempts to parse the `string` as a `float` following the same syntax as a
+`float` literal. Any valid `float` literal will be converted to its
+corresponding value as a `float`, and anything else will result in `null`.
+
 # TODO
 
 ## Identifiers
@@ -865,10 +1027,6 @@ fn my_func([args]) {
 my_func(1, 2); // Calls the first overload
 ```
 
-## Expressions
-TODO
-(don't forget type casting)
-
 ## Control flow
 ### If/else statements
 #### If statements
@@ -1011,7 +1169,7 @@ for character in "Howdy!" {
 assert(my_list == ["H", "o", "w", "d", "y", "!"]);
 ```
 
-`for` loops are often used with the builtin `range(...)` function:
+`for` loops are often used with the builtin [`range(...)`](TODO) function:
 ```
 let sum = 0;
 

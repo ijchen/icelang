@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{icelang_type::IcelangType, source_range::SourceRange};
+use crate::{icelang_type::IcelangType, source_range::SourceRange, value::Value};
 
 use super::*;
 use ast_node_format::format_as_node;
@@ -10,15 +10,22 @@ use ast_node_format::format_as_node;
 pub struct AstNodeLiteral<'source> {
     raw: String,
     icelang_type: IcelangType,
+    value: Value,
     pos: SourceRange<'source>,
 }
 
 impl<'source> AstNodeLiteral<'source> {
     /// Constructs a new AstNodeLiteral
-    pub fn new(raw: String, icelang_type: IcelangType, pos: SourceRange<'source>) -> Self {
+    pub fn new(
+        raw: String,
+        icelang_type: IcelangType,
+        value: Value,
+        pos: SourceRange<'source>,
+    ) -> Self {
         Self {
             raw,
             icelang_type,
+            value,
             pos,
         }
     }
@@ -31,6 +38,11 @@ impl<'source> AstNodeLiteral<'source> {
     /// Returns the icelang type of the literal
     pub fn icelang_type(&self) -> IcelangType {
         self.icelang_type
+    }
+
+    /// Returns the value of the literal
+    pub fn value(&self) -> &Value {
+        &self.value
     }
 
     /// Returns the position in the source code of this variable access
@@ -72,8 +84,13 @@ mod tests {
     #[test]
     fn test_ast_node_display_literal_int() {
         let nowhere = SourceRange::new(" ", "", 0, 0);
-        let node: AstNode =
-            AstNodeLiteral::new("123".to_string(), IcelangType::Int, nowhere).into();
+        let node: AstNode = AstNodeLiteral::new(
+            "123".to_string(),
+            IcelangType::Int,
+            Value::Int(123),
+            nowhere,
+        )
+        .into();
 
         assert_eq!(node.to_string(), "● [Literal] (int) 123");
     }
@@ -81,8 +98,13 @@ mod tests {
     #[test]
     fn test_ast_node_display_literal_float_nan() {
         let nowhere = SourceRange::new(" ", "", 0, 0);
-        let node: AstNode =
-            AstNodeLiteral::new("NaN".to_string(), IcelangType::Float, nowhere).into();
+        let node: AstNode = AstNodeLiteral::new(
+            "NaN".to_string(),
+            IcelangType::Float,
+            Value::Float(f64::NAN),
+            nowhere,
+        )
+        .into();
 
         assert_eq!(node.to_string(), "● [Literal] (float) NaN");
     }

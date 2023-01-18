@@ -4,77 +4,9 @@
 use crate::{
     ast::{Ast, AstNode, AstNodeDictLiteral, AstNodeListLiteral, AstNodeLiteral},
     error::runtime_error::RuntimeError,
-    icelang_type::IcelangType,
     runtime_state::RuntimeState,
     value::Value,
 };
-
-/// Interprets an int literal AstNodeLiteral
-///
-/// # Panics
-/// - If the AstNodeLiteral isn't a valid int literal
-fn interpret_literal_int<'source>(node: &AstNodeLiteral) -> Result<Value, RuntimeError<'source>> {
-    assert!(node.icelang_type() == IcelangType::Int);
-
-    use std::num::IntErrorKind;
-    let value = match str::parse::<i64>(node.raw()) {
-        Ok(value) => value,
-        Err(err) => match err.kind() {
-            IntErrorKind::Empty | IntErrorKind::InvalidDigit => panic!("invalid int literal"),
-            IntErrorKind::PosOverflow | IntErrorKind::NegOverflow => todo!(),
-            IntErrorKind::Zero => unreachable!(),
-            _ => panic!("Unexpected error parsing integer"),
-        },
-    };
-
-    Ok(Value::Int(value))
-}
-
-/// Interprets a byte literal AstNodeLiteral
-///
-/// # Panics
-/// - If the AstNodeLiteral isn't a valid byte literal
-fn interpret_literal_byte<'source>(node: &AstNodeLiteral) -> Result<Value, RuntimeError<'source>> {
-    assert!(node.icelang_type() == IcelangType::Byte);
-
-    todo!()
-}
-
-/// Interprets a float literal AstNodeLiteral
-///
-/// # Panics
-/// - If the AstNodeLiteral isn't a valid float literal
-fn interpret_literal_float<'source>(node: &AstNodeLiteral) -> Result<Value, RuntimeError<'source>> {
-    assert!(node.icelang_type() == IcelangType::Float);
-
-    todo!()
-}
-
-/// Interprets a bool literal AstNodeLiteral
-///
-/// # Panics
-/// - If the AstNodeLiteral isn't a valid bool literal
-fn interpret_literal_bool<'source>(node: &AstNodeLiteral) -> Result<Value, RuntimeError<'source>> {
-    assert!(node.icelang_type() == IcelangType::Bool);
-
-    match node.raw() {
-        "true" => Ok(Value::Bool(true)),
-        "false" => Ok(Value::Bool(false)),
-        _ => todo!(),
-    }
-}
-
-/// Interprets a string literal AstNodeLiteral
-///
-/// # Panics
-/// - If the AstNodeLiteral isn't a string
-fn interpret_literal_string<'source>(
-    node: &AstNodeLiteral,
-) -> Result<Value, RuntimeError<'source>> {
-    assert!(node.icelang_type() == IcelangType::String);
-
-    todo!()
-}
 
 /// Interprets a list literal AstNodeLiteral
 ///
@@ -98,35 +30,12 @@ fn interpret_literal_dict<'source>(
     todo!()
 }
 
-/// Interprets a null literal AstNodeLiteral
-///
-/// # Panics
-/// - If the AstNodeLiteral isn't a valid null literal
-fn interpret_literal_null<'source>(node: &AstNodeLiteral) -> Result<Value, RuntimeError<'source>> {
-    assert!(node.icelang_type() == IcelangType::Null);
-
-    if node.raw() != "null" {
-        panic!("invalid null literal")
-    }
-
-    Ok(Value::Null)
-}
-
 /// Interprets an AstNodeLiteral into a Value
 ///
 /// # Panics
 /// - If the literal is invalid
-fn interpret_literal<'source>(node: &AstNodeLiteral) -> Result<Value, RuntimeError<'source>> {
-    match node.icelang_type() {
-        IcelangType::Int => interpret_literal_int(node),
-        IcelangType::Byte => interpret_literal_byte(node),
-        IcelangType::Float => interpret_literal_float(node),
-        IcelangType::Bool => interpret_literal_bool(node),
-        IcelangType::String => interpret_literal_string(node),
-        IcelangType::List => todo!(),
-        IcelangType::Dict => todo!(),
-        IcelangType::Null => interpret_literal_null(node),
-    }
+fn interpret_literal(node: &AstNodeLiteral) -> Value {
+    node.value().clone()
 }
 
 /// Interprets an expression AstNode
@@ -140,7 +49,7 @@ pub fn interpret_expression<'source>(
     let _ = state; // TODO
     match expression {
         AstNode::VariableAccess(_) => todo!(),
-        AstNode::Literal(node) => interpret_literal(node),
+        AstNode::Literal(node) => Ok(interpret_literal(node)),
         AstNode::ListLiteral(node) => interpret_literal_list(node),
         AstNode::FormattedStringLiteral(_) => todo!(),
         AstNode::DictLiteral(node) => interpret_literal_dict(node),

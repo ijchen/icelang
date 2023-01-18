@@ -55,6 +55,7 @@ impl Display for FormattedStringLiteralSectionKind {
 #[derive(Debug)]
 pub struct TokenFormattedStringLiteralSection<'source> {
     raw: String,
+    value: String,
     kind: FormattedStringLiteralSectionKind,
     pos: SourceRange<'source>,
 }
@@ -63,15 +64,27 @@ impl<'source> TokenFormattedStringLiteralSection<'source> {
     /// Constructs a new TokenFormattedStringLiteralSection
     pub fn new(
         raw: String,
+        value: String,
         kind: FormattedStringLiteralSectionKind,
         pos: SourceRange<'source>,
     ) -> Self {
-        Self { raw, kind, pos }
+        Self {
+            raw,
+            value,
+            kind,
+            pos,
+        }
     }
 
     /// Returns the formatted string literal as a string
     pub fn raw(&self) -> &str {
         &self.raw
+    }
+
+    /// Returns the "cooked" string value of this formatted string literal
+    /// section
+    pub fn value(&self) -> &str {
+        &self.value
     }
 
     /// Returns the kind of this formatted string literal section
@@ -118,8 +131,12 @@ mod tests {
         let raw = "foobar";
 
         for kind in enum_iterator::all::<FormattedStringLiteralSectionKind>() {
-            let tok =
-                TokenFormattedStringLiteralSection::new(raw.to_string(), kind, nowhere.clone());
+            let tok = TokenFormattedStringLiteralSection::new(
+                raw.to_string(),
+                raw.to_string(),
+                kind,
+                nowhere.clone(),
+            );
 
             assert_eq!(tok.kind(), kind);
         }
@@ -131,8 +148,12 @@ mod tests {
         let raw = "foobar";
 
         for kind in enum_iterator::all::<FormattedStringLiteralSectionKind>() {
-            let tok =
-                TokenFormattedStringLiteralSection::new(raw.to_string(), kind, nowhere.clone());
+            let tok = TokenFormattedStringLiteralSection::new(
+                raw.to_string(),
+                raw.to_string(),
+                kind,
+                nowhere.clone(),
+            );
 
             assert_eq!(
                 tok.to_string(),

@@ -67,13 +67,20 @@ impl Display for AstNodeTypeCast<'_> {
 
 #[cfg(test)]
 mod tests {
+    use crate::value::Value;
+
     use super::*;
 
     #[test]
     fn test_ast_node_type_cast_int() {
         let nowhere = SourceRange::new(" ", "", 0, 0);
-        let body: AstNode =
-            AstNodeLiteral::new("123".to_string(), IcelangType::Int, nowhere.clone()).into();
+        let body: AstNode = AstNodeLiteral::new(
+            "123".to_string(),
+            IcelangType::Int,
+            Value::Int(123),
+            nowhere.clone(),
+        )
+        .into();
         let node: AstNode = AstNodeTypeCast::new(body, IcelangType::Float, nowhere).into();
 
         assert_eq!(
