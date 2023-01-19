@@ -1323,72 +1323,125 @@ Function prototypes:
 - `error(msg: string) -> never` (core)
 
 ### assert
-The `assert` function evaluates a condition, throwing a RuntimeError if the condition evaluates to `false`.
+The `assert` function evaluates a condition, throwing a RuntimeError if the
+condition does not evaluate to `true`.
 
 Function prototypes:
 - `assert(condition: bool) -> null | never`
 
 ### todo
-The `todo` function immediately throws a RuntimeError with a message indicating that the code that was executed is not yet implemented, but is intended to be later during development.
+The `todo` function immediately throws a RuntimeError with a message indicating
+that the code that was executed is not yet implemented, but is intended to be
+later during development.
 
 Function prototypes:
 - `todo() -> never`
 
 ## String
 ### from_codepoint
-The `from_codepoint` function returns a `string` containing a single character corresponding to the passed Unicode code point, or `null` if the passed `int` is not a valid Unicode scalar value
+The `from_codepoint` function returns a `string` containing a single character corresponding to the passed Unicode code point, or `null` if the passed `int` is
+not a valid Unicode scalar value
 
 Function prototypes:
 - `from_codepoint(codepoint: int | byte) -> ?string` (core (doesn't *technically* have to be, but it absolutely is going to be))
 
 ### to_codepoint
-The `to_codepoint` function returns an `int` corresponding to the Unicode code point of the character in the given string, or null if the passed `string` isn't exactly one character
+The `to_codepoint` function returns an `int` corresponding to the Unicode code
+point of the character in the given string, or null if the passed `string` isn't
+exactly one character
 
 Function prototypes:
 - `to_codepoint(character: string) -> ?int` (core (doesn't *technically* have to be, but it absolutely is going to be))
 
-## Miscellaneous
-### typeof
-The `typeof` function returns a string representing the type of the argument. Here is the exact string corresponding to each type:
-- `int` -> `"int"`
-- `byte` -> `"byte"`
-- `float` -> `"float"`
-- `bool` -> `"bool"`
-- `string` -> `"string"`
-- `list` -> `"list"`
-- `dict` -> `"dict"`
-- `null` -> `"null"`
+### fmt
+The `fmt` function returns a string representing the first argument. What
+exactly this string looks like depends on both the type of the first argument
+and any provided formatting args as the second argument.
+
+The first argument, `value`, is the value to be converted to a string. This
+value may be of any type, and `fmt(...)` cannot fail regardless of the type of
+`value` as long as the provided `fmt_args` are valid.
+
+The optional second argument, `fmt_args`, is a `dict` containing additional
+instructions for the output format, called *format specifiers*. There are many
+different format specifiers that can be provided in `fmt_args`, all listed
+below. Each format specifier also has a default value which will be used if that
+format specifier is not included in `fmt_args`. If `fmt_args` is omitted
+entirely, all format specifiers will use their default values. If `fmt_args`
+contains any entries that are not a valid format specifier, this function will
+throw a RuntimeError.
 
 Function prototypes:
-- `typeof(val: any) -> string` (core)
+- `fmt(val: any) -> string` (core)
+- `fmt(val: any, fmt_args: dict) -> string` (core)
 
-### repr
-The `repr` function returns a string representing the argument. What exactly
-this is varies by type, but it is generally similar to a literal that would be
-equal to the passed value.
+#### Table of format specifiers
+| format specifier key | value type | default value   |
+|----------------------|------------|-----------------|
+| `"debug"`            | `bool`     | `false`         |
+| `"base"`             | `string`   | `"decimal"`[^1] |
+| `"sign"`             | `string`   | `"-<"`          |
+| `"precision"`        | `?int`     | `null`          |
+| `"comma_separator"`  | `bool`     | `false`         |
+| `"allow_scientific"` | `bool`     | `true`          |
+| `"align"`            | `string`   | `"right"`       |
+| `"pad_char"`         | `string`   | `" "`[^2]       |
+| `"min_width"`        | `int`      | `0`[^3]         |
 
-TODO Specify the output format *exactly*
+[^1]: `"decimal"` is the default base except for `byte`s, which use `"HEX"`
+[^2]: `" "` is the the default padding character except for `int`s, `byte`s, and
+`float`s, which use `"0"`
+[^3]: `0` is the default minimum padding width except for `byte`s, which use `2`
 
-For some types, the exact output might be slightly different than you'd expect.
+#### Default format per-type
+##### `int`
+`int`s are formatted as human-readable numbers. `int`s default to displaying in
+decimal (base 10).
 
-`strings` may be escaped as necessary:
+```
+assert(fmt(42) == "42");
+assert(fmt(0xFF) == "255");
+assert(fmt(-100) == "-100");
 ```
 
-// If printed, my_string would look like: my "quote"	here
-let my_string = "my \"quote\"\there";
+##### `byte`
+`byte`s are formatted as human-readable numbers. Unlike `int`s and `float`s,
+`byte`s default to displaying in uppercase hexadecimal instead of decimal.
+Additionally, `byte`s have a default minimum padding width of `2` instead of
+`0`.
 
-// If printed, my_string_repr would look like: "my \"quote\"\there"
-let my_string_repr = repr(my_string);
-assert(my_string_repr == "\"my \\\"quote\\\"\\there\"");
+```
+assert(fmt(8d11) == "0B");
+assert(fmt(8d255) == "FF");
+assert(fmt(8x7a) == "7A");
 ```
 
-`float`s may be truncated somewhat arbitrarily:
+##### `float`
+TODO
+
+##### `bool`
+`bool`s are formatted as either `"true"` for `true` or `"false"` for `false`.
+
+##### `string`
+`string`s are formatted exactly as they are by default, character for character.
+The following property will hold for any valid `string`:
 ```
-let my_float = 0.200000000000000011102230246251565404236316680908203125;
-assert(repr(my_float) == "0.2")
+let any_string = "Absolutely any valid string - any at all!";
+assert(any_string == fmt(any_string));
 ```
 
-Recursive `list`s and `dict`s may have all or parts replaced:
+The `"debug"` format specifier causes the string to be surrounded with double
+quotes, and also causes some characters to be escaped. See
+[the section on individual format specifiers](#individual-format-specifier-details)
+for details.
+
+##### `list`
+TODO
+
+##### `dict`
+TODO
+
+TODO Recursive `list`s and `dict`s may have all or parts replaced:
 ```
 let my_list = [3, 4, 5];
 
@@ -1407,15 +1460,32 @@ assert(
 );
 ```
 
+##### `null`
+`null` is formatted as `"null"`.
+
+#### Individual format specifier details
+TODO
+
+## Miscellaneous
+### typeof
+The `typeof` function returns a string representing the type of the argument. Here is the exact string corresponding to each type:
+- `int` -> `"int"`
+- `byte` -> `"byte"`
+- `float` -> `"float"`
+- `bool` -> `"bool"`
+- `string` -> `"string"`
+- `list` -> `"list"`
+- `dict` -> `"dict"`
+- `null` -> `"null"`
+
 Function prototypes:
-- `repr(val: any) -> string` (core)
+- `typeof(val: any) -> string` (core)
 
 ### copy
 The `copy` function creates a deep copy of the passed value. This is only useful for `list`s and `dict`s, as all other types are always automatically copied
 
 Function prototypes:
-- `copy(val: list) -> list`
-- `copy(val: dict) -> dict`
+- `copy(val: any) -> any`
 
 ### range
 The `range` function returns a list of `int`s, starting from some start value (`0` by default), stepping by some step value (`1` by default) and ending immediately before some end value.
