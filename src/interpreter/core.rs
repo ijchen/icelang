@@ -21,7 +21,7 @@ pub fn interpret_expression<'source>(
         AstNode::ListLiteral(node) => interpret_literal_list(node, state),
         AstNode::FormattedStringLiteral(_) => todo!(),
         AstNode::DictLiteral(node) => interpret_literal_dict(node, state),
-        AstNode::TypeCast(_) => todo!(),
+        AstNode::TypeCast(node) => interpret_type_cast(node, state),
         AstNode::UsageSuffix(_) => todo!(),
         AstNode::BinaryOperation(node) => interpret_binary_operation(node, state),
         AstNode::UnaryOperation(_) => todo!(),

@@ -3,7 +3,6 @@
 use std::{collections::HashMap, fmt::Display, hash::Hash};
 
 use num_bigint::BigInt;
-use num_traits::{cast::ToPrimitive, FromPrimitive};
 use ordered_float::OrderedFloat;
 
 use crate::{
@@ -51,36 +50,6 @@ impl Value {
             Self::List(_) => IcelangType::List,
             Self::Dict(_) => IcelangType::Dict,
             Self::Null => IcelangType::Null,
-        }
-    }
-
-    /// Attempts to cast the value to the given type, returning None if the cast
-    /// has an invalid source and destination type
-    pub fn casted_to(&self, destination_type: IcelangType) -> Option<Value> {
-        match (self, destination_type) {
-            (Value::Int(value), IcelangType::Byte) => Some(if let Ok(byte) = value.try_into() {
-                Value::Byte(byte)
-            } else {
-                Value::Null
-            }),
-            (Value::Int(value), IcelangType::Float) => Some(Value::Float(value.to_f64().unwrap())),
-            (Value::Byte(value), IcelangType::Int) => Some(Value::Int(BigInt::from(*value))),
-            (Value::Byte(value), IcelangType::Float) => Some(Value::Float(*value as f64)),
-            (Value::Float(value), IcelangType::Int) => {
-                Some(if value.is_infinite() || value.is_nan() {
-                    Value::Null
-                } else {
-                    Value::Int(BigInt::from_f64(*value).unwrap())
-                })
-            }
-            (Value::Int(_), IcelangType::String) => todo!(),
-            (Value::Byte(_), IcelangType::String) => todo!(),
-            (Value::Float(_), IcelangType::String) => todo!(),
-            (Value::Bool(_), IcelangType::String) => todo!(),
-            (Value::String(_), IcelangType::Int) => todo!(),
-            (Value::String(_), IcelangType::Byte) => todo!(),
-            (Value::String(_), IcelangType::Float) => todo!(),
-            (_, _) => None,
         }
     }
 }

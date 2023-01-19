@@ -24,7 +24,7 @@ impl<'source> AstNodeTypeCast<'source> {
     }
 
     /// Returns the body of the type cast node (the value to be cast)
-    pub fn body(&self) -> &AstNode {
+    pub fn body(&self) -> &AstNode<'source> {
         &self.body
     }
 
