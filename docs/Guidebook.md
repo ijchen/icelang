@@ -835,20 +835,19 @@ output will be identical to calling the standard library function
 [`fmt(...)`](TODO) function with default formatting arguments.
 
 #### `byte` to `string` (infallible)
-Converts the `byte` to a human-readable `string` in capital hexadecimal, zero
-padded to two digits if necessary. The exact output will be identical to calling
-the standard library function [`fmt(...)`](TODO) function with default
-formatting arguments.
+Converts the `byte` to a human-readable `string`. The exact output will be
+identical to calling the standard library function [`fmt(...)`](TODO) function
+with default formatting arguments.
 
 #### `float` to `string` (infallible)
-Converts the `float` to a human-readable `string` with similar syntax to a
-`float` literal. The exact output will be identical to calling the standard
-library function [`fmt(...)`](TODO) function with default formatting arguments.
+Converts the `float` to a human-readable `string`. The exact output will be
+identical to calling the standard library function [`fmt(...)`](TODO) function
+with default formatting arguments.
 
 #### `bool` to `string` (infallible)
-Converts the `bool` to a human-readable `string`, either `"true"` or `"false"`.
-The exact output will be identical to calling the standard library function
-[`fmt(...)`](TODO) function with default formatting arguments.
+Converts the `bool` to a human-readable `string`. The exact output will be
+identical to calling the standard library function [`fmt(...)`](TODO) function
+with default formatting arguments.
 
 #### `string` to `int` (fallible)
 Attempts to parse the `string` as an `int` following the same syntax as an `int`
