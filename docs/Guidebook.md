@@ -1464,7 +1464,82 @@ assert(
 `null` is formatted as `"null"`.
 
 #### Individual format specifier details
+##### `"debug"`
+The `"debug"` format specifier effects the following types in the following
+ways:
+###### `string`
+The string contents will be surrounded in a pair of double quotes:
+```
+assert(fmt("hi", {"debug": true}) == "\"hi\"");
+```
+
+Additionally, characters will be replaced according to the
+following table:
+| original character                 | replacement              |
+|------------------------------------|--------------------------|
+| `"`                                | `\"`                     |
+| `\`                                | `\\`                     |
+| `<tab>`                            | `\t`                     |
+| `<newline>`                        | `\n`                     |
+| `<carriage return>`                | `\r`                     |
+| `<null character>`                 | `\0`                     |
+| `<printable ASCII characters>`     | not replaced (see below) |
+| `<non-printable ASCII characters>` | `\x##` (see below)       |
+| `<all other characters>`           | `\u{######}` (see below) |
+
+All printable ASCII characters (characters with an ASCII code from `0x20` to
+`0x7E`, both ends inclusive) not specifically listed in the above table are not
+replaced
+
+All non-printable ASCII characters (characters with an ASCII code from `0x00` to
+`0x1F` or `0x7F` (all inclusive)) not specifically listed in the above table are
+replaced with the form `\x##`, where the `#`s are an uppercase hexadecimal
+representation of the ASCII code of the character. This representation is
+zero-padded to two characters if necessary.
+
+Any character besides ASCII characters are replaced with the form `\u{######}`,
+where the `#`s are an uppercase hexadecimal representation of the Unicode value
+of the character. This representation is not zero-padded, so may be fewer than
+six digits.
+
+##### `"base"`
+The `"base"` format specifier effects the following types in the following ways:
 TODO
+
+##### `"sign"`
+The `"sign"` format specifier effects the following types in the following ways:
+TODO
+
+##### `"precision"`
+The `"precision"` format specifier effects the following types in the following
+ways:
+TODO
+
+##### `"comma_separator"`
+The `"comma_separator"` format specifier effects the following types in the
+following ways:
+TODO
+
+##### `"allow_scientific"`
+The `"allow_scientific"` format specifier effects the following types in the
+following ways:
+TODO
+
+##### `"align"`
+The `"align"` format specifier effects the following types in the following
+ways:
+TODO
+
+##### `"pad_char"`
+The `"pad_char"` format specifier effects the following types in the following
+ways:
+TODO
+
+##### `"min_width"`
+The `"min_width"` format specifier effects the following types in the following
+ways:
+TODO
+
 
 ## Miscellaneous
 ### typeof
