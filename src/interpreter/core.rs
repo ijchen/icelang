@@ -40,6 +40,8 @@ pub fn interpret_with_runtime_state<'source>(
     ast: &Ast<'source>,
     state: &mut RuntimeState,
 ) -> Result<(), RuntimeError<'source>> {
+    state.update_most_recent_value(Value::Null);
+
     for statement in &ast.statements {
         match statement {
             AstNode::FunctionDeclaration(_) => todo!(),
