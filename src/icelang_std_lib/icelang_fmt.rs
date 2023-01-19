@@ -1,14 +1,8 @@
 use crate::value::Value;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct IcelangFmtArgs {
     pub debug: bool,
-}
-
-impl Default for IcelangFmtArgs {
-    fn default() -> Self {
-        Self { debug: false }
-    }
 }
 
 pub trait IcelangFmt {

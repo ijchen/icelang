@@ -42,8 +42,7 @@ impl Default for RuntimeState {
 impl Display for RuntimeState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Most recent value: ")?;
-        let mut fmt_args = IcelangFmtArgs::default();
-        fmt_args.debug = true;
+        let fmt_args = IcelangFmtArgs { debug: true };
         self.most_recent_value.icelang_fmt(f, &fmt_args)
     }
 }
