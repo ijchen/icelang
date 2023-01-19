@@ -19,6 +19,8 @@ clearscreen = "1.0.10"
 static_assertions = "1.1.0"
 enum-iterator = "1.2.0"
 ordered-float = "3.4.0"
+num-bigint = "0.4.3"
+num-traits = "0.2.15"
 
 [dev-dependencies]
 rand = "0.8.5"

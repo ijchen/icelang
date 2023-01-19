@@ -2,6 +2,8 @@
 
 use std::{collections::HashMap, hash::Hash};
 
+use num_bigint::BigInt;
+use num_traits::{cast::ToPrimitive, FromPrimitive};
 use ordered_float::OrderedFloat;
 
 use crate::icelang_type::IcelangType;
@@ -10,7 +12,7 @@ use crate::icelang_type::IcelangType;
 #[derive(Clone, Debug)]
 pub enum Value {
     /// An int value
-    Int(i64), // TODO use a BigInt
+    Int(BigInt),
 
     /// A byte value
     Byte(u8),
@@ -53,23 +55,19 @@ impl Value {
     /// has an invalid source and destination type
     pub fn casted_to(&self, destination_type: IcelangType) -> Option<Value> {
         match (self, destination_type) {
-            (Value::Int(value), IcelangType::Byte) => Some(if 0x00 <= *value && *value <= 0xFF {
-                Value::Byte(*value as u8)
+            (Value::Int(value), IcelangType::Byte) => Some(if let Ok(byte) = value.try_into() {
+                Value::Byte(byte)
             } else {
                 Value::Null
             }),
-            (Value::Int(value), IcelangType::Float) => Some(Value::Float(*value as f64)),
-            (Value::Byte(value), IcelangType::Int) => Some(Value::Int(*value as i64)),
+            (Value::Int(value), IcelangType::Float) => Some(Value::Float(value.to_f64().unwrap())),
+            (Value::Byte(value), IcelangType::Int) => Some(Value::Int(BigInt::from(*value))),
             (Value::Byte(value), IcelangType::Float) => Some(Value::Float(*value as f64)),
             (Value::Float(value), IcelangType::Int) => {
                 Some(if value.is_infinite() || value.is_nan() {
                     Value::Null
                 } else {
-                    // TODO remove once ints are arbitrary size
-                    if *value as i64 == i64::MAX {
-                        todo!();
-                    }
-                    Value::Int(*value as i64)
+                    Value::Int(BigInt::from_f64(*value).unwrap())
                 })
             }
             (Value::Int(_), IcelangType::String) => todo!(),

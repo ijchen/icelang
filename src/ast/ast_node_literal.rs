@@ -79,6 +79,8 @@ impl Display for AstNodeLiteral<'_> {
 
 #[cfg(test)]
 mod tests {
+    use num_bigint::BigInt;
+
     use super::*;
 
     #[test]
@@ -87,7 +89,7 @@ mod tests {
         let node: AstNode = AstNodeLiteral::new(
             "123".to_string(),
             IcelangType::Int,
-            Value::Int(123),
+            Value::Int(BigInt::from(123)),
             nowhere,
         )
         .into();

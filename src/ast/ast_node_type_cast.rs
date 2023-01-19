@@ -67,6 +67,8 @@ impl Display for AstNodeTypeCast<'_> {
 
 #[cfg(test)]
 mod tests {
+    use num_bigint::BigInt;
+
     use crate::value::Value;
 
     use super::*;
@@ -77,7 +79,7 @@ mod tests {
         let body: AstNode = AstNodeLiteral::new(
             "123".to_string(),
             IcelangType::Int,
-            Value::Int(123),
+            Value::Int(BigInt::from(123)),
             nowhere.clone(),
         )
         .into();

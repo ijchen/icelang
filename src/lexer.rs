@@ -1,5 +1,8 @@
 //! Contains code related to lexing (converting source code to tokens)
 
+use num_bigint::{BigInt, BigUint};
+use num_traits::{Num, Pow};
+
 use crate::{
     error::LexerError,
     icelang_type::IcelangType,
@@ -286,13 +289,10 @@ pub fn tokenize<'source>(
                     let exponent = parts_iter.next();
                     assert!(parts_iter.next().is_none());
 
-                    // TODO handle arbitrary ints
-                    let mut base_value = str::parse::<i64>(main_part).unwrap();
+                    let mut base_value = str::parse::<BigInt>(main_part).unwrap();
 
-                    if let Some(exponent) = exponent.map(|x| x.parse::<i64>().unwrap()) {
-                        base_value = base_value
-                            .checked_mul(10i64.checked_pow(exponent as u32).unwrap())
-                            .unwrap()
+                    if let Some(exponent) = exponent.map(|x| x.parse::<BigUint>().unwrap()) {
+                        base_value *= BigInt::from(10).pow(exponent)
                     }
 
                     Value::Int(base_value)
@@ -307,13 +307,10 @@ pub fn tokenize<'source>(
                         let exponent = parts_iter.next();
                         assert!(parts_iter.next().is_none());
 
-                        // TODO handle arbitrary ints
-                        let mut base_value = str::parse::<i64>(main_part).unwrap();
+                        let mut base_value = str::parse::<BigInt>(main_part).unwrap();
 
-                        if let Some(exponent) = exponent.map(|x| x.parse::<i64>().unwrap()) {
-                            base_value = base_value
-                                .checked_mul(10i64.checked_pow(exponent as u32).unwrap())
-                                .unwrap()
+                        if let Some(exponent) = exponent.map(|x| x.parse::<BigUint>().unwrap()) {
+                            base_value *= BigInt::from(10).pow(exponent)
                         }
 
                         Value::Int(base_value)
@@ -325,7 +322,7 @@ pub fn tokenize<'source>(
                             Octal => 8,
                         };
                         let without_underscores = &literal[2..].replace('_', "");
-                        Value::Int(i64::from_str_radix(without_underscores, radix).unwrap())
+                        Value::Int(BigInt::from_str_radix(without_underscores, radix).unwrap())
                     }
                 }
                 BasedByte(base) => {

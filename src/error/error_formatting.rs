@@ -7,8 +7,6 @@ use crate::source_range::SourceRange;
 #[derive(Clone, Copy, Debug)]
 pub enum IcelangErrorKind {
     Syntax,
-    // TODO remove once this is used
-    #[allow(dead_code)]
     Runtime,
 }
 
