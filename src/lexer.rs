@@ -281,6 +281,8 @@ pub fn tokenize<'source>(
                 Float => IcelangType::Float,
                 IntOrFloat => unreachable!(),
             };
+            let literal_pos =
+                SourceRange::new(source_code, source_file_name, start_index, index - 1);
             let value = match kind {
                 Int => {
                     let without_underscores = literal.replace('_', "");
@@ -333,8 +335,10 @@ pub fn tokenize<'source>(
                         Octal => 8,
                     };
                     let without_underscores = &literal[2..].replace('_', "");
-                    dbg!(&literal);
-                    Value::Byte(u8::from_str_radix(without_underscores, radix).unwrap())
+                    match u8::from_str_radix(without_underscores, radix) {
+                        Ok(byte) => Value::Byte(byte),
+                        Err(_) => return Err(LexerError::new_invalid_literal(literal_pos)),
+                    }
                 }
                 Float => {
                     let without_underscores = literal.replace('_', "");
@@ -342,8 +346,6 @@ pub fn tokenize<'source>(
                 }
                 IntOrFloat => unreachable!(),
             };
-            let literal_pos =
-                SourceRange::new(source_code, source_file_name, start_index, index - 1);
             tokens.push(TokenLiteral::new(literal, literal_type, value, literal_pos).into());
 
             continue;

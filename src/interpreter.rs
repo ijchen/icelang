@@ -58,7 +58,7 @@ fn interpret_literal(node: &AstNodeLiteral) -> Value {
 ///
 /// # Panics
 /// - if the AstNode isn't a valid expression
-pub fn interpret_expression<'source>(
+fn interpret_expression<'source>(
     expression: &AstNode<'source>,
     state: &mut RuntimeState,
 ) -> Result<Value, RuntimeError<'source>> {
@@ -79,10 +79,11 @@ pub fn interpret_expression<'source>(
     }
 }
 
-/// Interprets an AST
-pub fn interpret<'source>(ast: &Ast<'source>) -> Result<RuntimeState, RuntimeError<'source>> {
-    let mut state = RuntimeState::new();
-
+/// Interprets an AST with the given runtime state
+pub fn interpret_with_runtime_state<'source>(
+    ast: &Ast<'source>,
+    state: &mut RuntimeState,
+) -> Result<(), RuntimeError<'source>> {
     for statement in &ast.statements {
         match statement {
             AstNode::FunctionDeclaration(_) => todo!(),
@@ -99,12 +100,9 @@ pub fn interpret<'source>(ast: &Ast<'source>) -> Result<RuntimeState, RuntimeErr
             | AstNode::Comparison(_)
             | AstNode::InlineConditional(_)
             | AstNode::Assignment(_) => {
-                let value = interpret_expression(statement, &mut state)?;
+                let value = interpret_expression(statement, state)?;
 
-                println!("{value:?}");
-
-                let _ = value;
-                todo!()
+                state.update_most_recent_value(value);
             }
             AstNode::JumpStatement(_) => todo!(),
             AstNode::SimpleLoop(_) => todo!(),
@@ -114,6 +112,15 @@ pub fn interpret<'source>(ast: &Ast<'source>) -> Result<RuntimeState, RuntimeErr
             AstNode::IfElseStatement(_) => todo!(),
         }
     }
+
+    Ok(())
+}
+
+/// Interprets an AST
+pub fn interpret<'source>(ast: &Ast<'source>) -> Result<RuntimeState, RuntimeError<'source>> {
+    let mut state = RuntimeState::new();
+
+    interpret_with_runtime_state(ast, &mut state)?;
 
     Ok(state)
 }

@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use icelang::{interpreter, lexer, parser};
+use icelang::{interpreter, lexer, parser, runtime_state::RuntimeState};
 use rustyline::{error::ReadlineError, Editor};
 use typed_arena::Arena;
 
@@ -38,6 +38,9 @@ pub fn enter_repl(mut show_debug_info: bool) {
     // to slices from source code entered in the past, and the lifetime of those
     // references must be valid for the entire lifetime of the interpreter state
     let input_lines: Arena<String> = Arena::new();
+
+    // Initialize a runtime state to use persistently in the REPL
+    let mut state = RuntimeState::new();
 
     // Show welcome message
     println!("{WELCOME_MESSAGE}");
@@ -145,19 +148,14 @@ pub fn enter_repl(mut show_debug_info: bool) {
         }
 
         // Interpreting
-        let state = match interpreter::interpret(&ast) {
-            Ok(state) => state,
-            Err(err) => {
-                println!("{err}");
-                continue;
-            }
+        if let Err(err) = interpreter::interpret_with_runtime_state(&ast, &mut state) {
+            println!("{err}");
         };
 
-        // If debug info is enabled, print the state
-        // TODO think about how I want to display/handle this
+        // If debug info is enabled, print the runtime state
         if show_debug_info {
             println!("Interpreter State:");
-            println!("{state:?}");
+            println!("{state}");
             println!();
         }
     }
