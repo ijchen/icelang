@@ -150,7 +150,7 @@ pub fn enter_repl(mut show_debug_info: bool) {
         // Interpreting
         match interpreter::interpret_with_runtime_state(&ast, &mut state) {
             Ok(()) => {
-                println!("{}", state.most_recent_value());
+                println!("{}", state.most_recent_value().icelang_debug());
                 println!();
             }
             Err(err) => {

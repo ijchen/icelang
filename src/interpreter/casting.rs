@@ -3,8 +3,8 @@ use num_traits::{FromPrimitive, ToPrimitive};
 
 use super::*;
 use crate::{
-    ast::AstNodeTypeCast, error::runtime_error::RuntimeError, icelang_std_lib::IcelangFmt,
-    icelang_type::IcelangType, runtime_state::RuntimeState, value::Value,
+    ast::AstNodeTypeCast, error::runtime_error::RuntimeError, icelang_type::IcelangType,
+    runtime_state::RuntimeState, value::Value,
 };
 
 /// Interprets a list literal AstNodeLiteral
@@ -34,13 +34,7 @@ pub fn interpret_type_cast<'source>(
         (
             Value::Int(_) | Value::Byte(_) | Value::Float(_) | Value::Bool(_),
             IcelangType::String,
-        ) => {
-            let mut buffer = String::new();
-
-            value.icelang_fmt(&mut buffer, &Default::default()).unwrap();
-
-            Ok(Value::String(buffer))
-        }
+        ) => Ok(Value::String(value.icelang_display())),
         (Value::String(_), IcelangType::Int) => todo!(),
         (Value::String(_), IcelangType::Byte) => todo!(),
         (Value::String(_), IcelangType::Float) => todo!(),

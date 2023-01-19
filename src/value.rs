@@ -5,7 +5,10 @@ use std::{collections::HashMap, hash::Hash};
 use num_bigint::BigInt;
 use ordered_float::OrderedFloat;
 
-use crate::icelang_type::IcelangType;
+use crate::{
+    icelang_std_lib::{IcelangFmt, IcelangFmtArgs},
+    icelang_type::IcelangType,
+};
 
 /// Represents an icelang runtime value
 #[derive(Clone, Debug)]
@@ -48,6 +51,26 @@ impl Value {
             Self::Dict(_) => IcelangType::Dict,
             Self::Null => IcelangType::Null,
         }
+    }
+
+    /// Returns a human-readable stringified version of this value
+    pub fn icelang_display(&self) -> String {
+        let mut buffer = String::new();
+
+        let fmt_args = Default::default();
+        self.icelang_fmt(&mut buffer, &fmt_args).unwrap();
+
+        buffer
+    }
+
+    /// Returns a human-readable debug stringified version of this value
+    pub fn icelang_debug(&self) -> String {
+        let mut buffer = String::new();
+
+        let fmt_args = IcelangFmtArgs { debug: true };
+        self.icelang_fmt(&mut buffer, &fmt_args).unwrap();
+
+        buffer
     }
 }
 
