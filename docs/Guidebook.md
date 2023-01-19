@@ -310,7 +310,7 @@ To make a separate, independent copy of a `dict`, use the built-in
 
 Some examples of valid `dict`s include:
 `{"Alice": 97, "Bob": 79, "Charlie": 84}`, `{false: "N"}`, `{}` (an empty dict),
-`{"weird dict": true, 4: -2, 9: null, -10: "negative ten", null: {"what is this?": ["confusion", "chaos"]}, 8b4: "not -2"}`
+`{"weird dict": true, 4: -2, 9: null, -10: "negative ten", null: {"what is this?": ["confusion", "chaos"]}, 8d4: "not -2"}`
 
 ## `null`
 A `null` value represents a "nothing" value, or the absence of a valid value.

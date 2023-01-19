@@ -1,6 +1,8 @@
 //! Contains code related to interpreting (reading and executing code
 //! represented as an abstract syntax tree (AST))
 
+use std::collections::HashMap;
+
 use crate::{
     ast::{Ast, AstNode, AstNodeDictLiteral, AstNodeListLiteral, AstNodeLiteral},
     error::runtime_error::RuntimeError,
@@ -13,10 +15,16 @@ use crate::{
 /// # Panics
 /// - If the AstNodeListLiteral isn't a valid list literal
 fn interpret_literal_list<'source>(
-    node: &AstNodeListLiteral,
+    node: &AstNodeListLiteral<'source>,
+    state: &mut RuntimeState,
 ) -> Result<Value, RuntimeError<'source>> {
-    let _ = node;
-    todo!()
+    let mut list = Vec::with_capacity(node.elements().len());
+
+    for element_node in node.elements() {
+        list.push(interpret_expression(element_node, state)?);
+    }
+
+    Ok(Value::List(list))
 }
 
 /// Interprets a dict literal AstNodeLiteral
@@ -24,10 +32,18 @@ fn interpret_literal_list<'source>(
 /// # Panics
 /// - If the AstNodeDictLiteral isn't a valid dict literal
 fn interpret_literal_dict<'source>(
-    node: &AstNodeDictLiteral,
+    node: &AstNodeDictLiteral<'source>,
+    state: &mut RuntimeState,
 ) -> Result<Value, RuntimeError<'source>> {
-    let _ = node;
-    todo!()
+    let mut dict = HashMap::with_capacity(node.entries().len());
+
+    for (key_node, value_node) in node.entries() {
+        let key = interpret_expression(key_node, state)?;
+        let value = interpret_expression(value_node, state)?;
+        dict.insert(key, value);
+    }
+
+    Ok(Value::Dict(dict))
 }
 
 /// Interprets an AstNodeLiteral into a Value
@@ -46,13 +62,12 @@ pub fn interpret_expression<'source>(
     expression: &AstNode<'source>,
     state: &mut RuntimeState,
 ) -> Result<Value, RuntimeError<'source>> {
-    let _ = state; // TODO
     match expression {
         AstNode::VariableAccess(_) => todo!(),
         AstNode::Literal(node) => Ok(interpret_literal(node)),
-        AstNode::ListLiteral(node) => interpret_literal_list(node),
+        AstNode::ListLiteral(node) => interpret_literal_list(node, state),
         AstNode::FormattedStringLiteral(_) => todo!(),
-        AstNode::DictLiteral(node) => interpret_literal_dict(node),
+        AstNode::DictLiteral(node) => interpret_literal_dict(node, state),
         AstNode::TypeCast(_) => todo!(),
         AstNode::UsageSuffix(_) => todo!(),
         AstNode::BinaryOperation(_) => todo!(),

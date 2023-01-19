@@ -18,6 +18,7 @@ typed-arena = "2.0"
 clearscreen = "1.0.10"
 static_assertions = "1.1.0"
 enum-iterator = "1.2.0"
+ordered-float = "3.4.0"
 
 [dev-dependencies]
 rand = "0.8.5"

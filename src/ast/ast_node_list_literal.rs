@@ -18,7 +18,7 @@ impl<'source> AstNodeListLiteral<'source> {
     }
 
     /// Returns the elements of the list literal node
-    pub fn elements(&self) -> &Vec<AstNode> {
+    pub fn elements(&self) -> &Vec<AstNode<'source>> {
         &self.elements
     }
 
