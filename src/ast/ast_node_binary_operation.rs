@@ -34,13 +34,18 @@ impl<'source> AstNodeBinaryOperation<'source> {
     }
 
     /// Returns the left-hand side of the binary operation node
-    pub fn lhs(&self) -> &AstNode {
+    pub fn lhs(&self) -> &AstNode<'source> {
         &self.lhs
     }
 
     /// Returns the right-hand side of the binary operation node
-    pub fn rhs(&self) -> &AstNode {
+    pub fn rhs(&self) -> &AstNode<'source> {
         &self.rhs
+    }
+
+    /// Returns the operation of the binary operation node
+    pub fn operation(&self) -> BinaryOperationKind {
+        self.operation
     }
 
     /// Returns the position in the source code of this binary operation node

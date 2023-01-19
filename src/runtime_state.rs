@@ -3,10 +3,7 @@
 
 use std::fmt::Display;
 
-use crate::{
-    icelang_std_lib::{IcelangFmt, IcelangFmtArgs},
-    value::Value,
-};
+use crate::value::Value;
 
 /// Represents the entire state of an icelang program during execution
 #[derive(Clone, Debug)]
@@ -41,8 +38,6 @@ impl Default for RuntimeState {
 
 impl Display for RuntimeState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Most recent value: ")?;
-        let fmt_args = IcelangFmtArgs { debug: true };
-        self.most_recent_value.icelang_fmt(f, &fmt_args)
+        write!(f, "Most recent value: {}", self.most_recent_value)
     }
 }

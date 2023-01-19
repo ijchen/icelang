@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 /// The kind of a binary operation
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum BinaryOperationKind {
     /// The logical or (||) binary operation
     LogicalOr,

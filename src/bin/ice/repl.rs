@@ -148,9 +148,16 @@ pub fn enter_repl(mut show_debug_info: bool) {
         }
 
         // Interpreting
-        if let Err(err) = interpreter::interpret_with_runtime_state(&ast, &mut state) {
-            println!("{err}");
-        };
+        match interpreter::interpret_with_runtime_state(&ast, &mut state) {
+            Ok(()) => {
+                println!("{}", state.most_recent_value());
+                println!();
+            }
+            Err(err) => {
+                println!("{err}");
+                println!();
+            }
+        }
 
         // If debug info is enabled, print the runtime state
         if show_debug_info {

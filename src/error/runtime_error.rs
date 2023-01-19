@@ -14,19 +14,22 @@ pub enum RuntimeError<'source> {
     Type {
         /// The position of the error
         pos: SourceRange<'source>,
+
+        /// An explanation of why the type is invalid
+        why: String,
     },
 }
 
 impl<'source> RuntimeError<'source> {
     /// Constructs a new Type RuntimeError
-    pub fn new_type_error(pos: SourceRange<'source>) -> Self {
-        Self::Type { pos }
+    pub fn new_type_error(pos: SourceRange<'source>, why: String) -> Self {
+        Self::Type { pos, why }
     }
 
     /// Returns the SourceRange corresponding to this error
     pub fn pos(&self) -> &SourceRange<'source> {
         match self {
-            Self::Type { pos } => pos,
+            Self::Type { pos, why: _ } => pos,
         }
     }
 }
@@ -34,7 +37,7 @@ impl<'source> RuntimeError<'source> {
 impl Display for RuntimeError<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let description = match self {
-            RuntimeError::Type { pos: _ } => "invalid type".to_string(),
+            RuntimeError::Type { pos: _, why } => why.to_string(),
         };
 
         error_formatting::write_error(f, IcelangErrorKind::Runtime, &description, self.pos(), None)

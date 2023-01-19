@@ -1,12 +1,15 @@
 //! Contains code related to `Value`s, which represent icelang runtime values
 
-use std::{collections::HashMap, hash::Hash};
+use std::{collections::HashMap, fmt::Display, hash::Hash};
 
 use num_bigint::BigInt;
 use num_traits::{cast::ToPrimitive, FromPrimitive};
 use ordered_float::OrderedFloat;
 
-use crate::icelang_type::IcelangType;
+use crate::{
+    icelang_std_lib::{IcelangFmt, IcelangFmtArgs},
+    icelang_type::IcelangType,
+};
 
 /// Represents an icelang runtime value
 #[derive(Clone, Debug)]
@@ -79,6 +82,13 @@ impl Value {
             (Value::String(_), IcelangType::Float) => todo!(),
             (_, _) => None,
         }
+    }
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let fmt_args = IcelangFmtArgs { debug: true };
+        self.icelang_fmt(f, &fmt_args)
     }
 }
 
