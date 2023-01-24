@@ -16,7 +16,7 @@ impl IcelangFmt for Value {
         match self {
             Value::Int(value) => write!(buffer, "{value}"),
             Value::Byte(value) => write!(buffer, "{value:02X}"),
-            Value::Float(_) => todo!(),
+            Value::Float(value) => write!(buffer, "{value:?}"), // TODO implement correctly
             Value::Bool(value) => match value {
                 true => write!(buffer, "true"),
                 false => write!(buffer, "false"),
