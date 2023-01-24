@@ -1383,7 +1383,7 @@ Function prototypes:
 | `"sign"`             | `string`   | `"-<"`          |
 | `"precision"`        | `?int`     | `null`          |
 | `"comma_separator"`  | `bool`     | `false`         |
-| `"allow_scientific"` | `bool`     | `true`          |
+| `"scientific"`       | `string`   | `"allow"`       |
 | `"align"`            | `string`   | `"right"`       |
 | `"pad_char"`         | `string`   | `" "`[^2]       |
 | `"min_width"`        | `int`      | `0`[^3]         |
@@ -1417,7 +1417,54 @@ assert(fmt(8x7a) == "7A");
 ```
 
 ##### `float`
-TODO
+`float`s are formatted as human-readable numbers. There are many ways to format
+a floating-point value as a human-readable `string`. Here are just a few
+examples of ways you might decide to format the floating point value closest to
+`3.14`:
+```
+// The exact, unrounded, full precision value (for typical 64-bit floats)
+"3.140000000000000124344978758017532527446746826171875"
+
+// "Rounded" (this is basically what icelang uses - we'll talk about it more)
+"3.14"
+
+// Really rounded (I would argue rounded a little too much)
+"3.1"
+
+// There's no reason we couldn't include some extra zeros for fun
+"0003.140000"
+
+// Since floating-point values really represent ranges of values, we could
+// (arguably) reasonably choose *any* representation in that range...
+// This is neither 3.14 nor the true full value, but it's closer to the true
+// full value than it is to any other float's exact value
+"3.140000000000000345676543"
+
+// You might also choose to use scientific notation (okay, it's a bit silly for
+// a value in the range [1.0, 10.0), but you get the idea)
+"3.14e0"
+```
+
+So how do we decide which representation to use? When converting a `float` value
+to a formatted output `string`, the following rules are applied:
+1. The formatted form of a `float` (the output) must be in either *normal* or
+*scientific* form, as described below, or be exactly `"NaN"`, `"Infinity"`, or
+`"-Infinity"` for NaN, positive infinity, and negative infinity respectively.
+2. The numerical value of the output must be closer to the original `float`'s
+exact value than it is to any other valid `float`'s exact value - this implies
+that a correct parser will reconstruct the original floating-point value
+exactly, bit for bit, upon parsing the output
+3. The output must be the (or one of the) shortest (fewest characters) valid
+representation which still adheres to the above rules - in other words, the
+output string must not be longer than necessary
+4. The numerical value of the output must be as close as possible to the
+original `float`'s exact value while still adhering to the above rules - in
+other words, if there's a tie for shortest, choose whichever representation is
+closest to the original `float`'s exact value
+5. If there are two equally close outputs which adhere to all of the above
+rules, the one with an even least significant digit is chosen
+
+[TODO the "as described below" for #1]
 
 ##### `bool`
 `bool`s are formatted as either `"true"` for `true` or `"false"` for `false`.
