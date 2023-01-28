@@ -566,7 +566,7 @@ pub fn tokenize<'source>(
                     TokenLiteral::new(
                         raw,
                         IcelangType::String,
-                        Value::String(value),
+                        Value::String(value.into()),
                         SourceRange::new(source_code, source_file_name, start_index, index - 1),
                     )
                     .into(),
@@ -659,7 +659,7 @@ pub fn tokenize<'source>(
                     TokenLiteral::new(
                         raw,
                         IcelangType::String,
-                        Value::String(value),
+                        Value::String(value.into()),
                         SourceRange::new(source_code, source_file_name, start_index, index - 1),
                     )
                     .into(),

@@ -34,7 +34,7 @@ pub fn interpret_type_cast<'source>(
         (
             Value::Int(_) | Value::Byte(_) | Value::Float(_) | Value::Bool(_),
             IcelangType::String,
-        ) => Ok(Value::String(value.icelang_display())),
+        ) => Ok(Value::String(value.icelang_display().into())),
         (Value::String(_), IcelangType::Int) => todo!(),
         (Value::String(_), IcelangType::Byte) => todo!(),
         (Value::String(_), IcelangType::Float) => todo!(),

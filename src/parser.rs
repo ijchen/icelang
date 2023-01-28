@@ -975,7 +975,7 @@ fn parse_formatted_string_literal<'source>(
             return Ok(AstNodeLiteral::new(
                 token.raw().to_string(),
                 IcelangType::String,
-                Value::String(token.value().to_string()),
+                Value::String(token.value().into()),
                 token.pos().clone(),
             )
             .into());

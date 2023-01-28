@@ -1,6 +1,6 @@
 //! Contains code related to `Value`s, which represent icelang runtime values
 
-use std::{collections::HashMap, hash::Hash};
+use std::{collections::HashMap, hash::Hash, rc::Rc};
 
 use num_bigint::BigInt;
 use ordered_float::OrderedFloat;
@@ -26,7 +26,7 @@ pub enum Value {
     Bool(bool),
 
     /// A string value
-    String(String),
+    String(Rc<str>),
 
     /// A list value
     List(Vec<Value>),
