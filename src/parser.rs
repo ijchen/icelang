@@ -995,7 +995,7 @@ fn parse_formatted_string_literal<'source>(
             };
 
             (
-                (token.raw().to_string(), parse_expression(token_stream)?),
+                (token.value().to_string(), parse_expression(token_stream)?),
                 token.pos(),
             )
         }
@@ -1022,12 +1022,12 @@ fn parse_formatted_string_literal<'source>(
                     ));
                 };
 
-                continuations.push((token.raw().to_string(), parse_expression(token_stream)?));
+                continuations.push((token.value().to_string(), parse_expression(token_stream)?));
             }
             Some(Token::FormattedStringLiteralSection(token))
                 if token.kind() == FormattedStringLiteralSectionKind::End =>
             {
-                break (token.raw().to_string(), token.pos());
+                break (token.value().to_string(), token.pos());
             }
             Some(token) => {
                 return Err(ParseError::new_unexpected_token(

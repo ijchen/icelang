@@ -22,7 +22,7 @@ pub fn interpret_expression<'source>(
         AstNode::VariableAccess(node) => interpret_variable_access(node, state),
         AstNode::Literal(node) => Ok(interpret_literal(node)),
         AstNode::ListLiteral(node) => interpret_literal_list(node, state),
-        AstNode::FormattedStringLiteral(_) => todo!(),
+        AstNode::FormattedStringLiteral(node) => interpret_formatted_string_literal(node, state),
         AstNode::DictLiteral(node) => interpret_literal_dict(node, state),
         AstNode::TypeCast(node) => interpret_type_cast(node, state),
         AstNode::UsageSuffix(_) => todo!(),

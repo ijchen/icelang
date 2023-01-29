@@ -34,12 +34,12 @@ impl<'source> AstNodeFormattedStringLiteral<'source> {
     }
 
     /// Returns the start of the formatted string literal node
-    pub fn start(&self) -> (&String, &AstNode) {
+    pub fn start(&self) -> (&String, &AstNode<'source>) {
         (&self.start.0, &self.start.1)
     }
 
     /// Returns the continuations of the formatted string literal node
-    pub fn continuations(&self) -> Vec<(&String, &AstNode)> {
+    pub fn continuations(&self) -> Vec<(&String, &AstNode<'source>)> {
         self.continuations
             .iter()
             .map(|(s, r)| (s, r.as_ref()))

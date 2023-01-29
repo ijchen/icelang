@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use super::*;
 
 use crate::{
-    ast::{AstNodeDictLiteral, AstNodeListLiteral, AstNodeLiteral},
+    ast::{AstNodeDictLiteral, AstNodeFormattedStringLiteral, AstNodeListLiteral, AstNodeLiteral},
     error::runtime_error::RuntimeError,
     runtime_state::RuntimeState,
     value::Value,
@@ -43,6 +43,27 @@ pub fn interpret_literal_dict<'source>(
     }
 
     Ok(Value::Dict(dict))
+}
+
+/// Interprets a formatted string literal AstNodeLiteral
+///
+/// # Panics
+/// - If the AstNodeDictLiteral isn't a formatted string literal
+pub fn interpret_formatted_string_literal<'source>(
+    node: &AstNodeFormattedStringLiteral<'source>,
+    state: &mut RuntimeState,
+) -> Result<Value, RuntimeError<'source>> {
+    let mut buffer = String::new();
+
+    for (string_part, replacement_field) in
+        std::iter::once(node.start()).chain(node.continuations().into_iter())
+    {
+        buffer += string_part;
+        buffer += &interpret_expression(replacement_field, state)?.icelang_display();
+    }
+    buffer += node.end();
+
+    Ok(Value::String(buffer.into()))
 }
 
 /// Interprets an AstNodeLiteral into a Value
