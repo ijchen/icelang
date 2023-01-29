@@ -1,4 +1,5 @@
 use super::{
+    comparisons::interpret_comparison,
     variables::{interpret_variable_access, interpret_variable_declaration},
     *,
 };
@@ -28,7 +29,7 @@ pub fn interpret_expression<'source>(
         AstNode::UsageSuffix(_) => todo!(),
         AstNode::BinaryOperation(node) => interpret_binary_operation(node, state),
         AstNode::UnaryOperation(_) => todo!(),
-        AstNode::Comparison(_) => todo!(),
+        AstNode::Comparison(node) => interpret_comparison(node, state),
         AstNode::InlineConditional(_) => todo!(),
         AstNode::Assignment(_) => todo!(),
         _ => panic!("expected expression"),

@@ -2,6 +2,7 @@
 //! represented as an abstract syntax tree (AST))
 mod binary_operations;
 mod casting;
+mod comparisons;
 mod core;
 mod literals;
 mod variables;

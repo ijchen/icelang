@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use super::*;
 
@@ -23,7 +23,7 @@ pub fn interpret_literal_list<'source>(
         list.push(interpret_expression(element_node, state)?);
     }
 
-    Ok(Value::List(list))
+    Ok(Value::List(Rc::new(RefCell::new(list))))
 }
 
 /// Interprets a dict literal AstNodeLiteral
@@ -42,7 +42,7 @@ pub fn interpret_literal_dict<'source>(
         dict.insert(key, value);
     }
 
-    Ok(Value::Dict(dict))
+    Ok(Value::Dict(Rc::new(RefCell::new(dict))))
 }
 
 /// Interprets a formatted string literal AstNodeLiteral

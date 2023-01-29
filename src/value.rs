@@ -1,6 +1,6 @@
 //! Contains code related to `Value`s, which represent icelang runtime values
 
-use std::{collections::HashMap, hash::Hash, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, hash::Hash, rc::Rc};
 
 use num_bigint::BigInt;
 use ordered_float::OrderedFloat;
@@ -29,10 +29,10 @@ pub enum Value {
     String(Rc<str>),
 
     /// A list value
-    List(Vec<Value>),
+    List(Rc<RefCell<Vec<Value>>>),
 
     /// A dict value
-    Dict(HashMap<Value, Value>),
+    Dict(Rc<RefCell<HashMap<Value, Value>>>),
 
     /// A null value
     Null,
@@ -84,7 +84,11 @@ impl PartialEq for Value {
             (Self::String(lhs), Self::String(rhs)) => lhs == rhs,
             (Self::List(lhs), Self::List(rhs)) => lhs == rhs,
             (Self::Dict(lhs), Self::Dict(rhs)) => {
-                lhs.len() == rhs.len() && lhs.iter().all(|(key, value)| rhs.get(key) == Some(value))
+                lhs.borrow().len() == rhs.borrow().len()
+                    && lhs
+                        .borrow()
+                        .iter()
+                        .all(|(key, value)| rhs.borrow().get(key) == Some(value))
             }
             (Self::Null, Self::Null) => true,
             (_, _) => false,
@@ -105,10 +109,10 @@ impl Hash for Value {
             }
             Value::Bool(value) => value.hash(state),
             Value::String(value) => value.hash(state),
-            Value::List(value) => value.hash(state),
+            Value::List(value) => value.borrow().hash(state),
             Value::Dict(value) => {
-                value.len().hash(state);
-                for (key, value) in value.iter() {
+                value.borrow().len().hash(state);
+                for (key, value) in value.borrow().iter() {
                     key.hash(state);
                     value.hash(state);
                 }

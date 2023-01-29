@@ -34,7 +34,7 @@ impl<'source> AstNodeComparison<'source> {
     }
 
     /// Returns the first operand of the comparison node
-    pub fn first(&self) -> &AstNode {
+    pub fn first(&self) -> &AstNode<'source> {
         &self.first
     }
 
