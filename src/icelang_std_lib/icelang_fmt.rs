@@ -48,8 +48,57 @@ impl IcelangFmt for Value {
                     write!(buffer, "{value}")
                 }
             }
-            Value::List(_) => todo!(),
-            Value::Dict(_) => todo!(),
+            Value::List(value) => {
+                write!(buffer, "[")?;
+
+                let borrowed = value.borrow();
+                let mut values_iter = borrowed.iter();
+
+                // Write the first element
+                if let Some(element) = values_iter.next() {
+                    element.icelang_fmt(buffer, fmt_args)?;
+                }
+
+                // Write any remaining elements (with a comma prepended)
+                for element in values_iter {
+                    write!(buffer, ", ")?;
+                    element.icelang_fmt(buffer, fmt_args)?;
+                }
+
+                write!(buffer, "]")?;
+                Ok(())
+            }
+            Value::Dict(value) => {
+                fn write_entry(
+                    (key, value): (&Value, &Value),
+                    buffer: &mut impl Write,
+                    fmt_args: &IcelangFmtArgs,
+                ) -> std::fmt::Result {
+                    key.icelang_fmt(buffer, fmt_args)?;
+                    write!(buffer, ": ")?;
+                    value.icelang_fmt(buffer, fmt_args)?;
+                    Ok(())
+                }
+
+                write!(buffer, "{{")?;
+
+                let borrowed = value.borrow();
+                let mut values_iter = borrowed.iter();
+
+                // Write the first element
+                if let Some(entry) = values_iter.next() {
+                    write_entry(entry, buffer, fmt_args)?;
+                }
+
+                // Write any remaining elements (with a comma prepended)
+                for entry in values_iter {
+                    write!(buffer, ", ")?;
+                    write_entry(entry, buffer, fmt_args)?;
+                }
+
+                write!(buffer, "}}")?;
+                Ok(())
+            }
             Value::Null => write!(buffer, "null"),
         }
     }
