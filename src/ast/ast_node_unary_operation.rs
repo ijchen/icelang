@@ -30,8 +30,13 @@ impl<'source> AstNodeUnaryOperation<'source> {
     }
 
     /// Returns the operand of the unary operation node
-    pub fn operand(&self) -> &AstNode {
+    pub fn operand(&self) -> &AstNode<'source> {
         &self.operand
+    }
+
+    /// Returns the operation of the unary operation node
+    pub fn operation(&self) -> UnaryOperationKind {
+        self.operation
     }
 
     /// Returns the position in the source code of this unary operation node

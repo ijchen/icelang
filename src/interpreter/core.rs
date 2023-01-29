@@ -1,5 +1,6 @@
 use super::{
     comparisons::interpret_comparison,
+    unary_operations::interpret_unary_operation,
     variables::{interpret_variable_access, interpret_variable_declaration},
     *,
 };
@@ -28,7 +29,7 @@ pub fn interpret_expression<'source>(
         AstNode::TypeCast(node) => interpret_type_cast(node, state),
         AstNode::UsageSuffix(_) => todo!(),
         AstNode::BinaryOperation(node) => interpret_binary_operation(node, state),
-        AstNode::UnaryOperation(_) => todo!(),
+        AstNode::UnaryOperation(node) => interpret_unary_operation(node, state),
         AstNode::Comparison(node) => interpret_comparison(node, state),
         AstNode::InlineConditional(_) => todo!(),
         AstNode::Assignment(_) => todo!(),

@@ -5,6 +5,7 @@ mod casting;
 mod comparisons;
 mod core;
 mod literals;
+mod unary_operations;
 mod variables;
 
 use self::core::interpret_expression;
