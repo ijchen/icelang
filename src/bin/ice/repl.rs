@@ -58,10 +58,12 @@ pub fn enter_repl(mut show_debug_info: bool) {
             Err(ReadlineError::Interrupted) => {
                 if last_input_was_ctrl_c {
                     println!("Nevermind, it seems like you're in a hurry. Goodbye!");
+                    println!();
                     return;
                 }
 
                 println!("KeyboardInterrupt detected - type \"exit\" to exit");
+                println!();
                 last_input_was_ctrl_c = true;
 
                 continue;
@@ -79,6 +81,7 @@ pub fn enter_repl(mut show_debug_info: bool) {
         match source_code.as_str() {
             "help" => {
                 println!("{HELP_MESSAGE}");
+                println!();
                 continue;
             }
             "exit" => {
@@ -87,6 +90,7 @@ pub fn enter_repl(mut show_debug_info: bool) {
             "clear" => {
                 if clearscreen::clear().is_err() {
                     println!("Failed to clear the screen, sorry!");
+                    println!();
                 }
 
                 continue;
@@ -94,12 +98,14 @@ pub fn enter_repl(mut show_debug_info: bool) {
             "debug" => {
                 show_debug_info = true;
                 println!("Debug information enabled");
+                println!();
 
                 continue;
             }
             "nodebug" => {
                 show_debug_info = false;
                 println!("Debug information disabled");
+                println!();
 
                 continue;
             }
