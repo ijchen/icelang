@@ -5,6 +5,7 @@ use std::fmt::Display;
 
 use crate::{
     icelang_std_lib::{IcelangFmt, IcelangFmtArgs},
+    symbol_table::SymbolTable,
     value::Value,
 };
 
@@ -12,6 +13,7 @@ use crate::{
 #[derive(Clone, Debug)]
 pub struct RuntimeState {
     most_recent_value: Value,
+    global_symbol_table: SymbolTable,
 }
 
 impl RuntimeState {
@@ -19,7 +21,18 @@ impl RuntimeState {
     pub fn new() -> Self {
         Self {
             most_recent_value: Value::Null,
+            global_symbol_table: SymbolTable::new(),
         }
+    }
+
+    /// Gets a reference to the global symbol table
+    pub fn global_symbol_table(&self) -> &SymbolTable {
+        &self.global_symbol_table
+    }
+
+    /// Gets a reference to the global symbol table
+    pub fn global_symbol_table_mut(&mut self) -> &mut SymbolTable {
+        &mut self.global_symbol_table
     }
 
     /// Returns the most recent value from an expression

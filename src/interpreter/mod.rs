@@ -4,6 +4,7 @@ mod binary_operations;
 mod casting;
 mod core;
 mod literals;
+mod variables;
 
 use self::core::interpret_expression;
 pub use self::core::{interpret, interpret_with_runtime_state};

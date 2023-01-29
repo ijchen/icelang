@@ -243,6 +243,7 @@ fn parse_variable_declaration<'source>(
         Some(Token::Ident(token)) => {
             // Save the identifier and update pos
             let ident = token.ident().to_string();
+            let mut declaration_pos = token.pos().clone();
             pos.extend_to(token.pos());
 
             // Check if this declaration has an initialization value, and
@@ -262,12 +263,13 @@ fn parse_variable_declaration<'source>(
 
                     let value = parse_expression(token_stream)?;
                     pos.extend_to(value.pos());
+                    declaration_pos.extend_to(value.pos());
                     Some(value)
                 }
                 _ => None,
             };
 
-            declarations.push((ident, value));
+            declarations.push((ident, value, declaration_pos));
         }
         Some(token) => {
             return Err(ParseError::new_unexpected_token(
@@ -291,14 +293,14 @@ fn parse_variable_declaration<'source>(
                 token_stream.pop_front();
 
                 // Expect an identifier
-                let ident = match token_stream.front() {
+                let (ident, mut declaration_pos) = match token_stream.front() {
                     Some(Token::Ident(token)) => {
                         // Consume the identifier
                         token_stream.pop_front();
 
                         // Save the identifier and update pos
                         pos.extend_to(token.pos());
-                        token.ident().to_string()
+                        (token.ident().to_string(), token.pos().clone())
                     }
                     _ => {
                         // This must have been the optional trailing comma after
@@ -324,12 +326,13 @@ fn parse_variable_declaration<'source>(
 
                         let value = parse_expression(token_stream)?;
                         pos.extend_to(value.pos());
+                        declaration_pos.extend_to(value.pos());
                         Some(value)
                     }
                     _ => None,
                 };
 
-                declarations.push((ident, value));
+                declarations.push((ident, value, declaration_pos));
             }
             _ => break,
         }

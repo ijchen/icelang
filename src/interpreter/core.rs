@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    variables::{interpret_variable_access, interpret_variable_declaration},
+    *,
+};
 
 use crate::{
     ast::{Ast, AstNode},
@@ -16,7 +19,7 @@ pub fn interpret_expression<'source>(
     state: &mut RuntimeState,
 ) -> Result<Value, RuntimeError<'source>> {
     match expression {
-        AstNode::VariableAccess(_) => todo!(),
+        AstNode::VariableAccess(node) => interpret_variable_access(node, state),
         AstNode::Literal(node) => Ok(interpret_literal(node)),
         AstNode::ListLiteral(node) => interpret_literal_list(node, state),
         AstNode::FormattedStringLiteral(_) => todo!(),
@@ -45,9 +48,9 @@ pub fn interpret_with_runtime_state<'source>(
     for statement in &ast.statements {
         match statement {
             AstNode::FunctionDeclaration(_) => todo!(),
-            AstNode::VariableDeclaration(_) => todo!(),
-            AstNode::VariableAccess(_) => todo!(),
-            AstNode::Literal(_)
+            AstNode::VariableDeclaration(_) => interpret_variable_declaration(statement, state)?,
+            AstNode::VariableAccess(_)
+            | AstNode::Literal(_)
             | AstNode::ListLiteral(_)
             | AstNode::FormattedStringLiteral(_)
             | AstNode::DictLiteral(_)

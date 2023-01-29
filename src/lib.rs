@@ -12,6 +12,7 @@ pub mod lexer;
 pub mod parser;
 pub mod runtime_state;
 pub mod source_range;
+mod symbol_table;
 mod test_utils;
 pub mod token;
 pub mod value;

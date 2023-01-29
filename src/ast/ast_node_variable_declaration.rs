@@ -7,7 +7,7 @@ use super::{ast_node_format::format_as_node, *};
 /// A variable declaration AST node
 #[derive(Debug)]
 pub struct AstNodeVariableDeclaration<'source> {
-    declarations: Vec<(String, Option<AstNode<'source>>)>,
+    declarations: Vec<(String, Option<AstNode<'source>>, SourceRange<'source>)>,
     pos: SourceRange<'source>,
 }
 
@@ -15,14 +15,14 @@ impl<'source> AstNodeVariableDeclaration<'source> {
     /// Constructs a new AstNodeVariableDeclaration with the given declarations
     /// and pos
     pub fn new(
-        declarations: Vec<(String, Option<AstNode<'source>>)>,
+        declarations: Vec<(String, Option<AstNode<'source>>, SourceRange<'source>)>,
         pos: SourceRange<'source>,
     ) -> Self {
         Self { declarations, pos }
     }
 
     /// Returns the list of declarations of the assignment node
-    pub fn declarations(&self) -> &Vec<(String, Option<AstNode<'source>>)> {
+    pub fn declarations(&self) -> &Vec<(String, Option<AstNode<'source>>, SourceRange<'source>)> {
         &self.declarations
     }
     /// Returns the position in the source code of this variable declaration node
@@ -46,7 +46,7 @@ impl Display for AstNodeVariableDeclaration<'_> {
                 "[Variable Declaration]",
                 self.declarations
                     .iter()
-                    .map(|(ident, value)| format_as_node(
+                    .map(|(ident, value, _)| format_as_node(
                         if value.is_some() {
                             ident.to_string()
                         } else {
@@ -63,7 +63,10 @@ impl Display for AstNodeVariableDeclaration<'_> {
 
 impl PartialEq for AstNodeVariableDeclaration<'_> {
     fn eq(&self, other: &Self) -> bool {
-        self.declarations == other.declarations
+        self.declarations
+            .iter()
+            .zip(other.declarations.iter())
+            .all(|((ident1, value1, _), (ident2, value2, _))| ident1 == ident2 && value1 == value2)
     }
 }
 impl Eq for AstNodeVariableDeclaration<'_> {}
