@@ -45,6 +45,16 @@ pub enum RuntimeError<'source> {
         /// The identifier which was referenced but not defined
         identifier: String,
     },
+
+    /// A necessary resource was unavailable
+    // TODO eventually catch all (if possible, or most) memory/allocation errors
+    ResourceUnavailable {
+        /// The position of the error
+        pos: SourceRange<'source>,
+
+        /// An explanation of what went wrong
+        why: String,
+    },
 }
 
 impl<'source> RuntimeError<'source> {
@@ -78,6 +88,7 @@ impl<'source> RuntimeError<'source> {
             Self::Mathematical { pos, why: _ } => pos,
             Self::IdentifierAlreadyDeclared { pos, identifier: _ } => pos,
             Self::UndefinedReference { pos, identifier: _ } => pos,
+            Self::ResourceUnavailable { pos, why: _ } => pos,
         }
     }
 }
@@ -93,6 +104,7 @@ impl Display for RuntimeError<'_> {
             Self::UndefinedReference { pos: _, identifier } => {
                 format!("identifier \"{identifier}\" is not defined")
             }
+            Self::ResourceUnavailable { pos: _, why } => why.to_string(),
         };
 
         error_formatting::write_error(f, IcelangErrorKind::Runtime, &description, self.pos(), None)
