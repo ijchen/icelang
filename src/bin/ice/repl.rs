@@ -124,6 +124,7 @@ pub fn enter_repl(mut show_debug_info: bool) {
             Ok(tokens) => tokens,
             Err(err) => {
                 println!("{err}");
+                println!();
                 continue;
             }
         };
@@ -142,6 +143,7 @@ pub fn enter_repl(mut show_debug_info: bool) {
             Ok(tokens) => tokens,
             Err(err) => {
                 println!("{err}");
+                println!();
                 continue;
             }
         };
