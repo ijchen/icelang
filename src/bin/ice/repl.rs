@@ -20,8 +20,8 @@ You can also use the following commands:
 help                Display this help message
 exit                Exit the REPL
 clear               Clear the screen
-debug               Enable showing debug information
-nodebug             Disable showing debug information";
+restart             Restarts the REPL
+debug               Toggles showing debug information";
 
 const SOURCE_NAME: &str = "<stdin>";
 
@@ -37,7 +37,7 @@ pub fn enter_repl(mut show_debug_info: bool) {
     // An arena is necessary since the interpreter state may maintain references
     // to slices from source code entered in the past, and the lifetime of those
     // references must be valid for the entire lifetime of the interpreter state
-    let input_lines: Arena<String> = Arena::new();
+    let mut input_lines: Arena<String> = Arena::new();
 
     // Initialize a runtime state to use persistently in the REPL
     let mut state = RuntimeState::new();
@@ -95,16 +95,26 @@ pub fn enter_repl(mut show_debug_info: bool) {
 
                 continue;
             }
-            "debug" => {
-                show_debug_info = true;
-                println!("Debug information enabled");
+            "restart" => {
+                input_lines = Arena::new();
+                state = RuntimeState::new();
+
+                // Show welcome message again
                 println!();
+                println!("{WELCOME_MESSAGE}");
 
                 continue;
             }
-            "nodebug" => {
-                show_debug_info = false;
-                println!("Debug information disabled");
+            "debug" => {
+                show_debug_info = !show_debug_info;
+                println!(
+                    "Debug information {}",
+                    if show_debug_info {
+                        "enabled"
+                    } else {
+                        "disabled"
+                    }
+                );
                 println!();
 
                 continue;
