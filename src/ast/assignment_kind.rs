@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 /// The kind of a unary operation
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum AssignmentKind {
     /// The normal (=) assignment expression
     Normal,

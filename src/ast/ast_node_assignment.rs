@@ -33,13 +33,18 @@ impl<'source> AstNodeAssignment<'source> {
     }
 
     /// Returns the left-hand side of the assignment node
-    pub fn lhs(&self) -> &AstNode {
+    pub fn lhs(&self) -> &AstNode<'source> {
         &self.lhs
     }
 
     /// Returns the right-hand side of the assignment node
-    pub fn rhs(&self) -> &AstNode {
+    pub fn rhs(&self) -> &AstNode<'source> {
         &self.rhs
+    }
+
+    /// Returns the kind of the assignment node
+    pub fn assignment_kind(&self) -> AssignmentKind {
+        self.assignment_kind
     }
 
     /// Returns the position in the source code of this assignment node

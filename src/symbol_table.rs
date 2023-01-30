@@ -31,4 +31,19 @@ impl SymbolTable {
     pub fn access_variable(&self, identifier: &str) -> Option<&Value> {
         self.variables.get(identifier)
     }
+
+    /// Returns whether or not a variable is defined
+    pub fn is_defined(&self, identifier: &str) -> bool {
+        self.variables.contains_key(identifier)
+    }
+
+    /// Assigns a new value to an already existing variable
+    ///
+    /// # Panics
+    /// - If the variable isn't already defined
+    pub fn reassign(&mut self, identifier: &str, new_value: Value) {
+        assert!(self.is_defined(identifier));
+
+        *self.variables.get_mut(identifier).unwrap() = new_value;
+    }
 }

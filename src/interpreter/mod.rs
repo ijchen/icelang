@@ -1,5 +1,6 @@
 //! Contains code related to interpreting (reading and executing code
 //! represented as an abstract syntax tree (AST))
+mod assignments;
 mod binary_operations;
 mod casting;
 mod comparisons;
