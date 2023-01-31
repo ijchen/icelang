@@ -33,17 +33,17 @@ impl<'source> AstNodeInlineConditional<'source> {
     }
 
     /// Returns the condition of the inline conditional node
-    pub fn condition(&self) -> &AstNode {
+    pub fn condition(&self) -> &AstNode<'source> {
         &self.condition
     }
 
     /// Returns the truthy case of the inline conditional node
-    pub fn truthy_case(&self) -> &AstNode {
+    pub fn truthy_case(&self) -> &AstNode<'source> {
         &self.truthy_case
     }
 
     /// Returns the falsey case of the inline conditional node
-    pub fn falsey_case(&self) -> &AstNode {
+    pub fn falsey_case(&self) -> &AstNode<'source> {
         &self.falsey_case
     }
 
