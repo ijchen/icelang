@@ -29,7 +29,9 @@ pub fn interpret_expression<'source>(
         AstNode::FormattedStringLiteral(node) => interpret_formatted_string_literal(node, state),
         AstNode::DictLiteral(node) => interpret_literal_dict(node, state),
         AstNode::TypeCast(node) => interpret_type_cast(node, state),
-        AstNode::UsageSuffix(_) => todo!(),
+        AstNode::DotMemberAccess(_) => todo!(),
+        AstNode::ComputedMemberAccess(_) => todo!(),
+        AstNode::FunctionCall(_) => todo!(),
         AstNode::BinaryOperation(node) => interpret_binary_operation(node, state),
         AstNode::UnaryOperation(node) => interpret_unary_operation(node, state),
         AstNode::Comparison(node) => interpret_comparison(node, state),
@@ -59,7 +61,9 @@ pub fn interpret_with_runtime_state<'source>(
             | AstNode::FormattedStringLiteral(_)
             | AstNode::DictLiteral(_)
             | AstNode::TypeCast(_)
-            | AstNode::UsageSuffix(_)
+            | AstNode::DotMemberAccess(_)
+            | AstNode::ComputedMemberAccess(_)
+            | AstNode::FunctionCall(_)
             | AstNode::BinaryOperation(_)
             | AstNode::UnaryOperation(_)
             | AstNode::Comparison(_)

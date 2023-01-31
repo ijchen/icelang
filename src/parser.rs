@@ -1295,7 +1295,7 @@ fn parse_expr_usage_suffix<'source>(
 
     // Parse any usage suffixes
     loop {
-        let suffix = match token_stream.front() {
+        match token_stream.front() {
             // Dot member access
             Some(Token::Punctuator(token)) if token.punctuator() == "." => {
                 let start_pos = token.pos();
@@ -1320,8 +1320,13 @@ fn parse_expr_usage_suffix<'source>(
                     }
                 };
 
-                UsageSuffixDotMemberAccess::new(ident.to_string(), start_pos.extended_to(ident_pos))
-                    .into()
+                // Update the root
+                root = AstNodeDotMemberAccess::new(
+                    root,
+                    ident.to_string(),
+                    start_pos.extended_to(ident_pos),
+                )
+                .into();
             }
 
             // Computed (square bracket) member access
@@ -1360,7 +1365,9 @@ fn parse_expr_usage_suffix<'source>(
                     }
                 };
 
-                UsageSuffixComputedMemberAccess::new(body, start_pos.extended_to(end_pos)).into()
+                // Update the root
+                root = AstNodeComputedMemberAccess::new(root, body, start_pos.extended_to(end_pos))
+                    .into();
             }
 
             // Function call
@@ -1449,14 +1456,14 @@ fn parse_expr_usage_suffix<'source>(
                     }
                 };
 
-                UsageSuffixFunctionCall::new(arguments, start_pos.extended_to(end_pos)).into()
+                // Update the root
+                root = AstNodeFunctionCall::new(root, arguments, start_pos.extended_to(end_pos))
+                    .into();
             }
 
             // Anything else is not a usage suffix
             _ => break,
-        };
-
-        root = AstNodeUsageSuffix::new(root, suffix).into()
+        }
     }
 
     Ok(root)

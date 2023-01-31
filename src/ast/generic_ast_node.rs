@@ -23,8 +23,12 @@ pub enum AstNode<'source> {
     DictLiteral(AstNodeDictLiteral<'source>),
     /// A type cast node
     TypeCast(AstNodeTypeCast<'source>),
-    /// A usage suffix node
-    UsageSuffix(AstNodeUsageSuffix<'source>),
+    /// A dot member access node
+    DotMemberAccess(AstNodeDotMemberAccess<'source>),
+    /// A computed member access node
+    ComputedMemberAccess(AstNodeComputedMemberAccess<'source>),
+    /// A function call node
+    FunctionCall(AstNodeFunctionCall<'source>),
     /// A binary operation node
     BinaryOperation(AstNodeBinaryOperation<'source>),
     /// A unary operation node
@@ -61,7 +65,9 @@ impl<'source> AstNode<'source> {
             AstNode::ListLiteral(node) => node.pos(),
             AstNode::DictLiteral(node) => node.pos(),
             AstNode::TypeCast(node) => node.pos(),
-            AstNode::UsageSuffix(node) => node.pos(),
+            AstNode::DotMemberAccess(node) => node.pos(),
+            AstNode::ComputedMemberAccess(node) => node.pos(),
+            AstNode::FunctionCall(node) => node.pos(),
             AstNode::BinaryOperation(node) => node.pos(),
             AstNode::UnaryOperation(node) => node.pos(),
             AstNode::Comparison(node) => node.pos(),
@@ -87,7 +93,9 @@ impl<'source> AstNode<'source> {
             AstNode::ListLiteral(node) => node.pos_mut(),
             AstNode::DictLiteral(node) => node.pos_mut(),
             AstNode::TypeCast(node) => node.pos_mut(),
-            AstNode::UsageSuffix(node) => node.pos_mut(),
+            AstNode::DotMemberAccess(node) => node.pos_mut(),
+            AstNode::ComputedMemberAccess(node) => node.pos_mut(),
+            AstNode::FunctionCall(node) => node.pos_mut(),
             AstNode::BinaryOperation(node) => node.pos_mut(),
             AstNode::UnaryOperation(node) => node.pos_mut(),
             AstNode::Comparison(node) => node.pos_mut(),
@@ -117,7 +125,9 @@ impl Display for AstNode<'_> {
                 AstNode::ListLiteral(node) => node.to_string(),
                 AstNode::DictLiteral(node) => node.to_string(),
                 AstNode::TypeCast(node) => node.to_string(),
-                AstNode::UsageSuffix(node) => node.to_string(),
+                AstNode::DotMemberAccess(node) => node.to_string(),
+                AstNode::ComputedMemberAccess(node) => node.to_string(),
+                AstNode::FunctionCall(node) => node.to_string(),
                 AstNode::BinaryOperation(node) => node.to_string(),
                 AstNode::UnaryOperation(node) => node.to_string(),
                 AstNode::Comparison(node) => node.to_string(),
@@ -151,7 +161,9 @@ impl_from_specific_ast_node!(AstNodeListLiteral, ListLiteral);
 impl_from_specific_ast_node!(AstNodeFormattedStringLiteral, FormattedStringLiteral);
 impl_from_specific_ast_node!(AstNodeDictLiteral, DictLiteral);
 impl_from_specific_ast_node!(AstNodeTypeCast, TypeCast);
-impl_from_specific_ast_node!(AstNodeUsageSuffix, UsageSuffix);
+impl_from_specific_ast_node!(AstNodeDotMemberAccess, DotMemberAccess);
+impl_from_specific_ast_node!(AstNodeComputedMemberAccess, ComputedMemberAccess);
+impl_from_specific_ast_node!(AstNodeFunctionCall, FunctionCall);
 impl_from_specific_ast_node!(AstNodeBinaryOperation, BinaryOperation);
 impl_from_specific_ast_node!(AstNodeUnaryOperation, UnaryOperation);
 impl_from_specific_ast_node!(AstNodeComparison, Comparison);

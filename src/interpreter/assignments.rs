@@ -36,7 +36,8 @@ pub fn interpret_assignment<'source>(
 
                     Ok(value)
                 }
-                AstNode::UsageSuffix(_) => todo!(),
+                AstNode::DotMemberAccess(_) => todo!(),
+                AstNode::ComputedMemberAccess(_) => todo!(),
                 _ => todo!(),
             }
         }
