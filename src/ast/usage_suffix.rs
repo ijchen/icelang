@@ -59,13 +59,16 @@ impl Eq for UsageSuffixDotMemberAccess<'_> {}
 #[derive(Debug)]
 /// A computed member access usage suffix
 pub struct UsageSuffixComputedMemberAccess<'source> {
-    member_node: AstNode<'source>,
+    member_node: Box<AstNode<'source>>,
     pos: SourceRange<'source>,
 }
 impl<'source> UsageSuffixComputedMemberAccess<'source> {
     /// Constructs a new UsageSuffixComputedMemberAccess
     pub fn new(member_node: AstNode<'source>, pos: SourceRange<'source>) -> Self {
-        Self { member_node, pos }
+        Self {
+            member_node: Box::new(member_node),
+            pos,
+        }
     }
 
     /// Returns the node representing the member to access

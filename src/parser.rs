@@ -1291,13 +1291,11 @@ fn parse_expr_usage_suffix<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
 ) -> Result<AstNode<'source>, ParseError<'source>> {
     // Parse the root atomic expression
-    let root = parse_atomic(token_stream)?;
-
-    let mut suffixes: Vec<UsageSuffix> = Vec::new();
+    let mut root = parse_atomic(token_stream)?;
 
     // Parse any usage suffixes
     loop {
-        match token_stream.front() {
+        let suffix = match token_stream.front() {
             // Dot member access
             Some(Token::Punctuator(token)) if token.punctuator() == "." => {
                 let start_pos = token.pos();
@@ -1322,14 +1320,8 @@ fn parse_expr_usage_suffix<'source>(
                     }
                 };
 
-                // Append the new UsageSuffix
-                suffixes.push(
-                    UsageSuffixDotMemberAccess::new(
-                        ident.to_string(),
-                        start_pos.extended_to(ident_pos),
-                    )
-                    .into(),
-                );
+                UsageSuffixDotMemberAccess::new(ident.to_string(), start_pos.extended_to(ident_pos))
+                    .into()
             }
 
             // Computed (square bracket) member access
@@ -1368,11 +1360,7 @@ fn parse_expr_usage_suffix<'source>(
                     }
                 };
 
-                // Append the new UsageSuffix
-                suffixes.push(
-                    UsageSuffixComputedMemberAccess::new(body, start_pos.extended_to(end_pos))
-                        .into(),
-                );
+                UsageSuffixComputedMemberAccess::new(body, start_pos.extended_to(end_pos)).into()
             }
 
             // Function call
@@ -1461,24 +1449,17 @@ fn parse_expr_usage_suffix<'source>(
                     }
                 };
 
-                // Append the new UsageSuffix
-                suffixes.push(
-                    UsageSuffixFunctionCall::new(arguments, start_pos.extended_to(end_pos)).into(),
-                );
+                UsageSuffixFunctionCall::new(arguments, start_pos.extended_to(end_pos)).into()
             }
 
             // Anything else is not a usage suffix
             _ => break,
-        }
+        };
+
+        root = AstNodeUsageSuffix::new(root, suffix).into()
     }
 
-    // Return a new AstNodeUsageSuffix if we have suffixes, otherwise just
-    // return the root
-    Ok(if suffixes.is_empty() {
-        root
-    } else {
-        AstNodeUsageSuffix::new(root, suffixes).into()
-    })
+    Ok(root)
 }
 
 /// Parses an exponentiation expression from a token stream
