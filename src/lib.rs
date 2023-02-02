@@ -4,6 +4,7 @@
 
 pub mod ast;
 pub mod error;
+pub mod function;
 mod icelang_std_lib;
 pub mod icelang_type;
 pub mod interpreter;

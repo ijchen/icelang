@@ -4,7 +4,7 @@ use crate::source_range::SourceRange;
 
 use super::{ast_node_format::format_as_node, AstNode};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// A dot member access AST node
 pub struct AstNodeDotMemberAccess<'source> {
     root: Box<AstNode<'source>>,

@@ -8,7 +8,7 @@ use super::{ast_node_format::format_as_node, *};
 ///
 /// A binary operation is an operation with two operands - a left-hand side
 /// (lhs) and a right-hand side (rhs)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AstNodeBinaryOperation<'source> {
     lhs: Box<AstNode<'source>>,
     rhs: Box<AstNode<'source>>,

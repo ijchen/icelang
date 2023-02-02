@@ -6,7 +6,7 @@ use super::*;
 use ast_node_format::format_as_node;
 
 /// A literal AST node
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AstNodeLiteral<'source> {
     raw: String,
     icelang_type: IcelangType,

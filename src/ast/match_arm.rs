@@ -3,7 +3,7 @@ use crate::source_range::SourceRange;
 use super::*;
 
 /// One arm in a match statement
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MatchArm<'source> {
     pattern: Box<AstNode<'source>>,
     body: Vec<AstNode<'source>>,

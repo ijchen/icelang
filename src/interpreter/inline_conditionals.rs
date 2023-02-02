@@ -11,7 +11,7 @@ use super::core::interpret_expression;
 /// - if the AstNode isn't a valid expression
 pub fn interpret_inline_conditional<'source>(
     node: &AstNodeInlineConditional<'source>,
-    state: &mut RuntimeState,
+    state: &mut RuntimeState<'source>,
 ) -> Result<Value, RuntimeError<'source>> {
     let condition = interpret_expression(node.condition(), state)?;
 

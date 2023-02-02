@@ -10,7 +10,7 @@ macro_rules! impl_simple_unary_op {
     ($func_name:ident, $node:ident, $operand:ident, $op_kind:ident, {$($operand_type:ident => $result:expr),+$(,)?}) => {
         fn $func_name<'source>(
             $node: &AstNodeUnaryOperation<'source>,
-            state: &mut RuntimeState,
+            state: &mut RuntimeState<'source>,
         ) -> Result<Value, RuntimeError<'source>> {
             assert!($node.operation() == UnaryOperationKind::$op_kind);
 
@@ -56,7 +56,7 @@ impl_simple_unary_op!(interpret_negation, node, operand, Negation, {
 /// - If the AstNodeUnaryOperation isn't a valid binary operation node
 pub fn interpret_unary_operation<'source>(
     node: &AstNodeUnaryOperation<'source>,
-    state: &mut RuntimeState,
+    state: &mut RuntimeState<'source>,
 ) -> Result<Value, RuntimeError<'source>> {
     match node.operation() {
         UnaryOperationKind::Not => interpret_not(node, state),

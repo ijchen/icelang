@@ -5,7 +5,7 @@ use crate::source_range::SourceRange;
 use super::*;
 
 /// Represents a node in an abstract syntax tree (AST)
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum AstNode<'source> {
     /// A function declaration node
     FunctionDeclaration(AstNodeFunctionDeclaration<'source>),

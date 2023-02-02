@@ -5,7 +5,7 @@ use crate::source_range::SourceRange;
 use super::{ast_node_format::format_as_node, *};
 
 /// A jump statement AST node
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AstNodeJumpStatement<'source> {
     body: Option<Box<AstNode<'source>>>,
     jump_kind: JumpStatementKind,

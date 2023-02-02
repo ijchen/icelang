@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 /// The kind of a comparison
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ComparisonKind {
     /// The equal to (==) comparison
     Equal,

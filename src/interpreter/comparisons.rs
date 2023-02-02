@@ -15,7 +15,7 @@ use super::core::interpret_expression;
 /// - If the node is invalid
 pub fn interpret_comparison<'source>(
     node: &AstNodeComparison<'source>,
-    state: &mut RuntimeState,
+    state: &mut RuntimeState<'source>,
 ) -> Result<Value, RuntimeError<'source>> {
     // This is repeated often... or, *was* repeated often :)
     macro_rules! invalid_types {

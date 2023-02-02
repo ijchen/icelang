@@ -11,12 +11,12 @@ use crate::{
 
 /// Represents the entire state of an icelang program during execution
 #[derive(Clone, Debug)]
-pub struct RuntimeState {
+pub struct RuntimeState<'source> {
     most_recent_value: Value,
-    global_symbol_table: SymbolTable,
+    global_symbol_table: SymbolTable<'source>,
 }
 
-impl RuntimeState {
+impl<'source> RuntimeState<'source> {
     /// Constructs a new default RuntimeState
     pub fn new() -> Self {
         Self {
@@ -26,12 +26,12 @@ impl RuntimeState {
     }
 
     /// Gets a reference to the global symbol table
-    pub fn global_symbol_table(&self) -> &SymbolTable {
+    pub fn global_symbol_table(&self) -> &SymbolTable<'source> {
         &self.global_symbol_table
     }
 
     /// Gets a reference to the global symbol table
-    pub fn global_symbol_table_mut(&mut self) -> &mut SymbolTable {
+    pub fn global_symbol_table_mut(&mut self) -> &mut SymbolTable<'source> {
         &mut self.global_symbol_table
     }
 
@@ -46,13 +46,13 @@ impl RuntimeState {
     }
 }
 
-impl Default for RuntimeState {
+impl<'source> Default for RuntimeState<'source> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Display for RuntimeState {
+impl<'source> Display for RuntimeState<'source> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Most recent value: ")?;
         let fmt_args = IcelangFmtArgs { debug: true };

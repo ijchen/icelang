@@ -5,7 +5,7 @@ use crate::source_range::SourceRange;
 use super::{ast_node_format::format_as_node, *};
 
 /// An if-else statement AST node
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AstNodeIfElseStatement<'source> {
     conditional_branches: Vec<(AstNode<'source>, Vec<AstNode<'source>>)>,
     else_branch: Option<Vec<AstNode<'source>>>,

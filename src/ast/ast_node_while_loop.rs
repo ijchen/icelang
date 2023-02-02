@@ -5,7 +5,7 @@ use crate::source_range::SourceRange;
 use super::{ast_node_format::format_as_node, *};
 
 /// A while loop AST node
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AstNodeWhileLoop<'source> {
     condition: Box<AstNode<'source>>,
     body: Vec<AstNode<'source>>,

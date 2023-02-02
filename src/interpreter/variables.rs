@@ -13,7 +13,7 @@ use super::core::interpret_expression;
 /// - if the AstNode isn't a valid variable declaration
 pub fn interpret_variable_declaration<'source>(
     variable_declaration: &AstNode<'source>,
-    state: &mut RuntimeState,
+    state: &mut RuntimeState<'source>,
 ) -> Result<(), RuntimeError<'source>> {
     let AstNode::VariableDeclaration(variable_declaration) = variable_declaration else {
         panic!("AstNode was not a variable declaration");
@@ -25,16 +25,16 @@ pub fn interpret_variable_declaration<'source>(
             None => Value::Null,
         };
 
-        if state
-            .global_symbol_table_mut()
-            .declare_variable(ident.clone(), value)
-            .is_none()
-        {
+        if state.global_symbol_table().access_variable(ident).is_some() {
             return Err(RuntimeError::new_identifier_already_declared_error(
                 pos.clone(),
                 ident.clone(),
             ));
-        };
+        }
+
+        state
+            .global_symbol_table_mut()
+            .declare_variable(ident.clone(), value);
     }
 
     Ok(())

@@ -7,7 +7,7 @@ use super::{ast_node_format::format_as_node, *};
 /// An inline conditional (often called a
 /// ["ternary operator"](https://en.wikipedia.org/wiki/Ternary_conditional_operator)
 /// ) expression
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AstNodeInlineConditional<'source> {
     condition: Box<AstNode<'source>>,
     truthy_case: Box<AstNode<'source>>,

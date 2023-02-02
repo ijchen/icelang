@@ -4,7 +4,7 @@ use super::*;
 use ast_node_format::format_as_node;
 
 /// Represents an Abstract Syntax Tree of some icelang source code
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Ast<'source> {
     /// An icelang program is just a collection of statements. These are those
     /// statements, in order

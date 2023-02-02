@@ -7,7 +7,7 @@ use super::{ast_node_format::format_as_node, *};
 /// An assignment AST node
 ///
 /// This is the expression form, not a variable declaration
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AstNodeAssignment<'source> {
     lhs: Box<AstNode<'source>>,
     rhs: Box<AstNode<'source>>,

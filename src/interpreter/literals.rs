@@ -15,7 +15,7 @@ use crate::{
 /// - If the AstNodeListLiteral isn't a valid list literal
 pub fn interpret_literal_list<'source>(
     node: &AstNodeListLiteral<'source>,
-    state: &mut RuntimeState,
+    state: &mut RuntimeState<'source>,
 ) -> Result<Value, RuntimeError<'source>> {
     let mut list = Vec::with_capacity(node.elements().len());
 
@@ -32,7 +32,7 @@ pub fn interpret_literal_list<'source>(
 /// - If the AstNodeDictLiteral isn't a valid dict literal
 pub fn interpret_literal_dict<'source>(
     node: &AstNodeDictLiteral<'source>,
-    state: &mut RuntimeState,
+    state: &mut RuntimeState<'source>,
 ) -> Result<Value, RuntimeError<'source>> {
     let mut dict = HashMap::with_capacity(node.entries().len());
 
@@ -51,7 +51,7 @@ pub fn interpret_literal_dict<'source>(
 /// - If the AstNodeDictLiteral isn't a formatted string literal
 pub fn interpret_formatted_string_literal<'source>(
     node: &AstNodeFormattedStringLiteral<'source>,
-    state: &mut RuntimeState,
+    state: &mut RuntimeState<'source>,
 ) -> Result<Value, RuntimeError<'source>> {
     let mut buffer = String::new();
 

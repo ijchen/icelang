@@ -5,7 +5,7 @@ use crate::source_range::SourceRange;
 use super::{ast_node_format::format_as_node, *};
 
 /// A match statement AST node
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AstNodeMatchStatement<'source> {
     matched_expression: Box<AstNode<'source>>,
     arms: Vec<MatchArm<'source>>,

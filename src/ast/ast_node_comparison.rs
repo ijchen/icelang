@@ -5,7 +5,7 @@ use crate::source_range::SourceRange;
 use super::{ast_node_format::format_as_node, *};
 
 /// A comparison AST node
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AstNodeComparison<'source> {
     first: Box<AstNode<'source>>,
     comparisons: Vec<(ComparisonKind, AstNode<'source>)>,

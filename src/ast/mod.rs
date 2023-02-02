@@ -42,7 +42,7 @@ pub use ast_node_dot_member_access::AstNodeDotMemberAccess;
 pub use ast_node_for_loop::AstNodeForLoop;
 pub use ast_node_formatted_string_literal::AstNodeFormattedStringLiteral;
 pub use ast_node_function_call::AstNodeFunctionCall;
-pub use ast_node_function_declaration::{AstNodeFunctionDeclaration, FunctionParameters};
+pub use ast_node_function_declaration::AstNodeFunctionDeclaration;
 pub use ast_node_if_else_statement::AstNodeIfElseStatement;
 pub use ast_node_inline_conditional::AstNodeInlineConditional;
 pub use ast_node_jump_statement::AstNodeJumpStatement;

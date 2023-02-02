@@ -5,7 +5,7 @@ use crate::source_range::SourceRange;
 use super::{ast_node_format::format_as_node, *};
 
 /// A variable declaration AST node
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AstNodeVariableDeclaration<'source> {
     declarations: Vec<(String, Option<AstNode<'source>>, SourceRange<'source>)>,
     pos: SourceRange<'source>,

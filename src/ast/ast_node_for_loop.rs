@@ -5,7 +5,7 @@ use crate::source_range::SourceRange;
 use super::{ast_node_format::format_as_node, *};
 
 /// A for loop AST node
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AstNodeForLoop<'source> {
     ident: String,
     iterable: Box<AstNode<'source>>,

@@ -5,6 +5,7 @@ use std::collections::VecDeque;
 use crate::{
     ast::*,
     error::ParseError,
+    function::FunctionParameters,
     icelang_type::IcelangType,
     keyword::Keyword,
     source_range::SourceRange,
@@ -64,7 +65,7 @@ fn parse_function_declaration_parameters<'source>(
 
         // Nullary (zero parameter) function
         Some(Token::Punctuator(token)) if token.punctuator() == ")" => {
-            Ok(FunctionParameters::FixedArity { parameters: vec![] })
+            Ok(FunctionParameters::Polyadic { parameters: vec![] })
         }
 
         // One-or-more-ary function (technically, multiary means 2 or more)
@@ -111,7 +112,7 @@ fn parse_function_declaration_parameters<'source>(
                 }
             }
 
-            Ok(FunctionParameters::FixedArity { parameters })
+            Ok(FunctionParameters::Polyadic { parameters })
         }
 
         // Invalid arguments

@@ -6,7 +6,7 @@ use super::*;
 use ast_node_format::format_as_node;
 
 /// A type cast AST node
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AstNodeTypeCast<'source> {
     body: Box<AstNode<'source>>,
     new_type: IcelangType,

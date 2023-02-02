@@ -1,39 +1,12 @@
 use std::fmt::Display;
 
-use crate::source_range::SourceRange;
+use crate::{function::FunctionParameters, source_range::SourceRange};
 
 use super::*;
 use ast_node_format::format_as_node;
 
-/// Represents parameters to an icelang function
-#[derive(Debug, PartialEq, Eq)]
-pub enum FunctionParameters {
-    /// A variadic function (one which accepts any number of arguments)
-    Variadic {
-        /// The identifier for the parameter list parameter
-        parameter_name: String,
-    },
-    /// A "normal" fixed-arity function (one which only accepts a fixed number
-    /// of arguments)
-    FixedArity {
-        /// The parameter identifiers
-        parameters: Vec<String>,
-    },
-}
-
-impl Display for FunctionParameters {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FunctionParameters::Variadic {
-                parameter_name: list_name,
-            } => write!(f, "[{list_name}]"),
-            FunctionParameters::FixedArity { parameters } => write!(f, "{}", parameters.join(", ")),
-        }
-    }
-}
-
 /// A function declaration AST node
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AstNodeFunctionDeclaration<'source> {
     name: String,
     parameters: FunctionParameters,
@@ -96,10 +69,12 @@ impl Display for AstNodeFunctionDeclaration<'_> {
 mod tests {
     use super::*;
 
+    // TODO move function parameters tests
+
     #[test]
     fn test_function_parameters_display_empty() {
         assert_eq!(
-            FunctionParameters::FixedArity { parameters: vec![] }.to_string(),
+            FunctionParameters::Polyadic { parameters: vec![] }.to_string(),
             ""
         );
     }
@@ -107,7 +82,7 @@ mod tests {
     #[test]
     fn test_function_parameters_display_unary() {
         assert_eq!(
-            FunctionParameters::FixedArity {
+            FunctionParameters::Polyadic {
                 parameters: vec!["num".to_string()]
             }
             .to_string(),
@@ -118,7 +93,7 @@ mod tests {
     #[test]
     fn test_function_parameters_display_binary() {
         assert_eq!(
-            FunctionParameters::FixedArity {
+            FunctionParameters::Polyadic {
                 parameters: vec!["name".to_string(), "age".to_string()]
             }
             .to_string(),
@@ -129,7 +104,7 @@ mod tests {
     #[test]
     fn test_function_parameters_display_septenary() {
         assert_eq!(
-            FunctionParameters::FixedArity {
+            FunctionParameters::Polyadic {
                 parameters: vec![
                     "a".to_string(),
                     "b".to_string(),
@@ -163,7 +138,7 @@ mod tests {
 
         let nowhere = SourceRange::new(" ", "", 0, 0);
         let body = vec![];
-        let parameters = FunctionParameters::FixedArity { parameters: vec![] };
+        let parameters = FunctionParameters::Polyadic { parameters: vec![] };
         let node: AstNode = AstNodeFunctionDeclaration::new(
             "get_funny_number".to_string(),
             parameters,
@@ -184,7 +159,7 @@ mod tests {
         let nowhere = SourceRange::new(" ", "", 0, 0);
         // TODO add a body once we have more AstNode kinds
         let body = vec![];
-        let parameters = FunctionParameters::FixedArity {
+        let parameters = FunctionParameters::Polyadic {
             parameters: vec!["num".to_string()],
         };
         let node = AstNodeFunctionDeclaration::new("square".to_string(), parameters, body, nowhere);
@@ -201,7 +176,7 @@ mod tests {
         let nowhere = SourceRange::new(" ", "", 0, 0);
         // TODO add a body once we have more AstNode kinds
         let body = vec![];
-        let parameters = FunctionParameters::FixedArity {
+        let parameters = FunctionParameters::Polyadic {
             parameters: vec!["width".to_string(), "height".to_string()],
         };
         let node = AstNodeFunctionDeclaration::new(

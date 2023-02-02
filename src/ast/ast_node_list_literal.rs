@@ -5,7 +5,7 @@ use crate::source_range::SourceRange;
 use super::{ast_node_format::format_as_node, *};
 
 /// A list literal AST node
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AstNodeListLiteral<'source> {
     elements: Vec<AstNode<'source>>,
     pos: SourceRange<'source>,

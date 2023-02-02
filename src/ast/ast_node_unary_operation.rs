@@ -7,7 +7,7 @@ use super::{ast_node_format::format_as_node, *};
 /// A unary operation AST node
 ///
 /// A unary operation is an operation with only one operand
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AstNodeUnaryOperation<'source> {
     operand: Box<AstNode<'source>>,
     operation: UnaryOperationKind,

@@ -13,7 +13,7 @@ use super::core::interpret_expression;
 /// - if the AstNodeAssignment isn't a valid assignment
 pub fn interpret_assignment<'source>(
     assignment: &AstNodeAssignment<'source>,
-    state: &mut RuntimeState,
+    state: &mut RuntimeState<'source>,
 ) -> Result<Value, RuntimeError<'source>> {
     match assignment.assignment_kind() {
         AssignmentKind::Normal => {
@@ -23,7 +23,9 @@ pub fn interpret_assignment<'source>(
                 AstNode::VariableAccess(node) => {
                     let symbol_table = state.global_symbol_table_mut();
 
-                    if !symbol_table.is_defined(node.ident()) {
+                    // TODO consider refactoring to get rid of reassign_variable
+                    // and use a get_mut and match here
+                    if symbol_table.access_variable(node.ident()).is_some() {
                         return Err(RuntimeError::new_undefined_reference_error(
                             node.pos().clone(),
                             node.ident().to_string(),
@@ -32,7 +34,7 @@ pub fn interpret_assignment<'source>(
 
                     // TODO consider making expressions always return null,
                     // which avoids the clone
-                    symbol_table.reassign(node.ident(), value.clone());
+                    symbol_table.reassign_variable(node.ident(), value.clone());
 
                     Ok(value)
                 }

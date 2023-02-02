@@ -13,7 +13,7 @@ macro_rules! impl_simple_bin_op {
     ($func_name:ident, $node:ident, $lhs:ident, $rhs:ident, $op_kind:ident, {$($lhs_type:ident, $rhs_type:ident => $result:expr),+$(,)?}) => {
         fn $func_name<'source>(
             $node: &AstNodeBinaryOperation<'source>,
-            state: &mut RuntimeState,
+            state: &mut RuntimeState<'source>,
         ) -> Result<Value, RuntimeError<'source>> {
             assert!($node.operation() == BinaryOperationKind::$op_kind);
 
@@ -182,7 +182,7 @@ impl_simple_bin_op!(interpret_exponentiation, node, lhs, rhs, Exponentiation, {
 /// - If the AstNodeBinaryOperation isn't a valid binary operation node
 pub fn interpret_binary_operation<'source>(
     node: &AstNodeBinaryOperation<'source>,
-    state: &mut RuntimeState,
+    state: &mut RuntimeState<'source>,
 ) -> Result<Value, RuntimeError<'source>> {
     match node.operation() {
         BinaryOperationKind::LogicalOr => interpret_logical_or(node, state),

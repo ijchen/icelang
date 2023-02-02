@@ -6,7 +6,7 @@ use super::*;
 use ast_node_format::format_as_node;
 
 /// A variable access AST node
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AstNodeVariableAccess<'source> {
     ident: String,
     pos: SourceRange<'source>,

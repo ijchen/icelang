@@ -13,7 +13,7 @@ use crate::{
 /// - If the AstNodeListLiteral isn't a valid list literal
 pub fn interpret_type_cast<'source>(
     node: &AstNodeTypeCast<'source>,
-    state: &mut RuntimeState,
+    state: &mut RuntimeState<'source>,
 ) -> Result<Value, RuntimeError<'source>> {
     let value = interpret_expression(node.body(), state)?;
 

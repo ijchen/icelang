@@ -20,7 +20,7 @@ use crate::{
 /// - if the AstNode isn't a valid expression
 pub fn interpret_expression<'source>(
     expression: &AstNode<'source>,
-    state: &mut RuntimeState,
+    state: &mut RuntimeState<'source>,
 ) -> Result<Value, RuntimeError<'source>> {
     match expression {
         AstNode::VariableAccess(node) => interpret_variable_access(node, state),
@@ -47,7 +47,7 @@ pub fn interpret_expression<'source>(
 /// - If the Ast contains any invalid AstNodes
 pub fn interpret_with_runtime_state<'source>(
     ast: &Ast<'source>,
-    state: &mut RuntimeState,
+    state: &mut RuntimeState<'source>,
 ) -> Result<(), RuntimeError<'source>> {
     state.update_most_recent_value(Value::Null);
 
@@ -89,7 +89,9 @@ pub fn interpret_with_runtime_state<'source>(
 ///
 /// # Panics
 /// - If the Ast contains any invalid AstNodes
-pub fn interpret<'source>(ast: &Ast<'source>) -> Result<RuntimeState, RuntimeError<'source>> {
+pub fn interpret<'source>(
+    ast: &Ast<'source>,
+) -> Result<RuntimeState<'source>, RuntimeError<'source>> {
     let mut state = RuntimeState::new();
 
     interpret_with_runtime_state(ast, &mut state)?;
