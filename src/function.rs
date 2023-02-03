@@ -80,12 +80,12 @@ impl<'source> FunctionGroup<'source> {
 
     /// Gets the function overload for `arg_count` arguments, or None if there
     /// is no overload for `arg_count` arguments
-    pub fn get_polyadic_overload(&self, arg_count: usize) -> Option<&Function> {
+    pub fn get_polyadic_overload(&self, arg_count: usize) -> Option<&Function<'source>> {
         self.polyadic_overloads.get(&arg_count)
     }
 
     /// Gets the variadic overload, or None if there is no variadic overload
-    pub fn get_variadic_overload(&self) -> Option<&Function> {
+    pub fn get_variadic_overload(&self) -> Option<&Function<'source>> {
         self.variadic_overload.as_ref()
     }
 

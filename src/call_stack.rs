@@ -44,7 +44,7 @@ impl<'source> CallStack<'source> {
     }
 
     /// Looks up a function in the call stack
-    pub fn lookup_function(&self, identifier: &str) -> Option<&FunctionGroup> {
+    pub fn lookup_function(&self, identifier: &str) -> Option<&FunctionGroup<'source>> {
         if !self.stack.is_empty() {
             if let Some(value) = self.stack[self.stack.len() - 1].lookup_function(identifier) {
                 return Some(value);
@@ -56,7 +56,7 @@ impl<'source> CallStack<'source> {
 
     /// Looks up a function in the call stack, only checking the most local
     /// scope
-    pub fn lookup_local_function(&self, identifier: &str) -> Option<&FunctionGroup> {
+    pub fn lookup_local_function(&self, identifier: &str) -> Option<&FunctionGroup<'source>> {
         if !self.stack.is_empty() {
             self.stack[self.stack.len() - 1].lookup_local_function(identifier)
         } else {
@@ -159,7 +159,7 @@ impl<'source> StackFrame<'source> {
     }
 
     /// Looks up a function in the stack frame
-    pub fn lookup_function(&self, identifier: &str) -> Option<&FunctionGroup> {
+    pub fn lookup_function(&self, identifier: &str) -> Option<&FunctionGroup<'source>> {
         for scope in self.scopes.iter().rev() {
             if let Some(value) = scope.lookup_function(identifier) {
                 return Some(value);
@@ -171,7 +171,7 @@ impl<'source> StackFrame<'source> {
 
     /// Looks up a function in the stack frame, only checking the most local
     /// scope
-    pub fn lookup_local_function(&self, identifier: &str) -> Option<&FunctionGroup> {
+    pub fn lookup_local_function(&self, identifier: &str) -> Option<&FunctionGroup<'source>> {
         if self.scopes.is_empty() {
             self.local.lookup_function(identifier)
         } else {

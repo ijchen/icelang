@@ -26,7 +26,7 @@ impl<'source> AstNodeFunctionCall<'source> {
     }
 
     /// Returns the root of the function call node
-    pub fn root(&self) -> &AstNode {
+    pub fn root(&self) -> &AstNode<'source> {
         &self.root
     }
 

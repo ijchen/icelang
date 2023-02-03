@@ -75,13 +75,13 @@ impl<'source> RuntimeState<'source> {
     }
 
     /// Looks up a function in the runtime state
-    pub fn lookup_function(&self, identifier: &str) -> Option<&FunctionGroup> {
+    pub fn lookup_function(&self, identifier: &str) -> Option<&FunctionGroup<'source>> {
         self.call_stack.lookup_function(identifier)
     }
 
     /// Looks up a function in the runtime state, only checking the most local
     /// scope
-    pub fn lookup_local_function(&self, identifier: &str) -> Option<&FunctionGroup> {
+    pub fn lookup_local_function(&self, identifier: &str) -> Option<&FunctionGroup<'source>> {
         self.call_stack.lookup_local_function(identifier)
     }
 

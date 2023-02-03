@@ -1,7 +1,7 @@
 use super::{
     assignments::interpret_assignment,
     comparisons::interpret_comparison,
-    functions::interpret_function_declaration,
+    functions::{interpret_function_call, interpret_function_declaration},
     inline_conditionals::interpret_inline_conditional,
     unary_operations::interpret_unary_operation,
     variables::{interpret_variable_access, interpret_variable_declaration},
@@ -32,13 +32,57 @@ pub fn interpret_expression<'source>(
         AstNode::TypeCast(node) => interpret_type_cast(node, state),
         AstNode::DotMemberAccess(_) => todo!(),
         AstNode::ComputedMemberAccess(_) => todo!(),
-        AstNode::FunctionCall(_) => todo!(),
+        AstNode::FunctionCall(node) => interpret_function_call(node, state),
         AstNode::BinaryOperation(node) => interpret_binary_operation(node, state),
         AstNode::UnaryOperation(node) => interpret_unary_operation(node, state),
         AstNode::Comparison(node) => interpret_comparison(node, state),
         AstNode::InlineConditional(node) => interpret_inline_conditional(node, state),
         AstNode::Assignment(node) => interpret_assignment(node, state),
         _ => panic!("expected expression"),
+    }
+}
+
+/// Interprets a statement
+///
+/// # Panics
+/// - If the statement is invalid in any way
+pub fn interpret_statement<'source>(
+    statement: &AstNode<'source>,
+    state: &mut RuntimeState<'source>,
+) -> Result<(), RuntimeError<'source>> {
+    match statement {
+        AstNode::FunctionDeclaration(function_declaration) => {
+            interpret_function_declaration(function_declaration, state)
+        }
+        AstNode::VariableDeclaration(variable_declaration) => {
+            interpret_variable_declaration(variable_declaration, state)
+        }
+        AstNode::VariableAccess(_)
+        | AstNode::Literal(_)
+        | AstNode::ListLiteral(_)
+        | AstNode::FormattedStringLiteral(_)
+        | AstNode::DictLiteral(_)
+        | AstNode::TypeCast(_)
+        | AstNode::DotMemberAccess(_)
+        | AstNode::ComputedMemberAccess(_)
+        | AstNode::FunctionCall(_)
+        | AstNode::BinaryOperation(_)
+        | AstNode::UnaryOperation(_)
+        | AstNode::Comparison(_)
+        | AstNode::InlineConditional(_)
+        | AstNode::Assignment(_) => {
+            let value = interpret_expression(statement, state)?;
+
+            state.update_most_recent_value(value);
+
+            Ok(())
+        }
+        AstNode::JumpStatement(_) => todo!(),
+        AstNode::SimpleLoop(_) => todo!(),
+        AstNode::WhileLoop(_) => todo!(),
+        AstNode::ForLoop(_) => todo!(),
+        AstNode::MatchStatement(_) => todo!(),
+        AstNode::IfElseStatement(_) => todo!(),
     }
 }
 
@@ -53,38 +97,7 @@ pub fn interpret_with_runtime_state<'source>(
     state.update_most_recent_value(Value::Null);
 
     for statement in &ast.statements {
-        match statement {
-            AstNode::FunctionDeclaration(function_declaration) => {
-                interpret_function_declaration(function_declaration, state)?
-            }
-            AstNode::VariableDeclaration(variable_declaration) => {
-                interpret_variable_declaration(variable_declaration, state)?
-            }
-            AstNode::VariableAccess(_)
-            | AstNode::Literal(_)
-            | AstNode::ListLiteral(_)
-            | AstNode::FormattedStringLiteral(_)
-            | AstNode::DictLiteral(_)
-            | AstNode::TypeCast(_)
-            | AstNode::DotMemberAccess(_)
-            | AstNode::ComputedMemberAccess(_)
-            | AstNode::FunctionCall(_)
-            | AstNode::BinaryOperation(_)
-            | AstNode::UnaryOperation(_)
-            | AstNode::Comparison(_)
-            | AstNode::InlineConditional(_)
-            | AstNode::Assignment(_) => {
-                let value = interpret_expression(statement, state)?;
-
-                state.update_most_recent_value(value);
-            }
-            AstNode::JumpStatement(_) => todo!(),
-            AstNode::SimpleLoop(_) => todo!(),
-            AstNode::WhileLoop(_) => todo!(),
-            AstNode::ForLoop(_) => todo!(),
-            AstNode::MatchStatement(_) => todo!(),
-            AstNode::IfElseStatement(_) => todo!(),
-        }
+        interpret_statement(statement, state)?;
     }
 
     Ok(())
