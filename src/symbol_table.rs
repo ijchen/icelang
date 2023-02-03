@@ -9,7 +9,7 @@ use crate::{
 
 /// A table keeping track of variables and functions in some current icelang
 /// scope
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct SymbolTable<'source> {
     functions: HashMap<String, FunctionGroup<'source>>,
     variables: HashMap<String, Value>,
@@ -18,7 +18,10 @@ pub struct SymbolTable<'source> {
 impl<'source> SymbolTable<'source> {
     /// Constructs a new SymbolTable
     pub fn new() -> Self {
-        Default::default()
+        Self {
+            functions: HashMap::new(),
+            variables: HashMap::new(),
+        }
     }
 
     /// Declares a new variable with the given value, returning None if the
@@ -32,9 +35,9 @@ impl<'source> SymbolTable<'source> {
         self.variables.insert(identifier, value);
     }
 
-    /// Accesses a variable in the symbol table, returning None if the variable
+    /// Looks up a variable in the symbol table, returning None if the variable
     /// isn't defined
-    pub fn access_variable(&self, identifier: &str) -> Option<&Value> {
+    pub fn lookup_variable(&self, identifier: &str) -> Option<&Value> {
         self.variables.get(identifier)
     }
 
@@ -65,7 +68,7 @@ impl<'source> SymbolTable<'source> {
 
     /// Accesses a function in the symbol table, returning None if the function
     /// isn't defined
-    pub fn access_function(&self, identifier: &str) -> Option<&FunctionGroup<'source>> {
+    pub fn lookup_function(&self, identifier: &str) -> Option<&FunctionGroup<'source>> {
         self.functions.get(identifier)
     }
 
@@ -74,8 +77,14 @@ impl<'source> SymbolTable<'source> {
     /// # Panics
     /// - If the variable isn't already defined
     pub fn reassign_variable(&mut self, identifier: &str, new_value: Value) {
-        assert!(self.access_variable(identifier).is_some());
+        assert!(self.lookup_variable(identifier).is_some());
 
         *self.variables.get_mut(identifier).unwrap() = new_value;
+    }
+}
+
+impl Default for SymbolTable<'_> {
+    fn default() -> Self {
+        Self::new()
     }
 }

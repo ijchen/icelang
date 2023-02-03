@@ -1,6 +1,7 @@
 use super::{
     assignments::interpret_assignment,
     comparisons::interpret_comparison,
+    functions::interpret_function_declaration,
     inline_conditionals::interpret_inline_conditional,
     unary_operations::interpret_unary_operation,
     variables::{interpret_variable_access, interpret_variable_declaration},
@@ -53,8 +54,12 @@ pub fn interpret_with_runtime_state<'source>(
 
     for statement in &ast.statements {
         match statement {
-            AstNode::FunctionDeclaration(_) => todo!(),
-            AstNode::VariableDeclaration(_) => interpret_variable_declaration(statement, state)?,
+            AstNode::FunctionDeclaration(function_declaration) => {
+                interpret_function_declaration(function_declaration, state)?
+            }
+            AstNode::VariableDeclaration(variable_declaration) => {
+                interpret_variable_declaration(variable_declaration, state)?
+            }
             AstNode::VariableAccess(_)
             | AstNode::Literal(_)
             | AstNode::ListLiteral(_)

@@ -5,6 +5,7 @@ mod binary_operations;
 mod casting;
 mod comparisons;
 mod core;
+mod functions;
 mod inline_conditionals;
 mod literals;
 mod unary_operations;

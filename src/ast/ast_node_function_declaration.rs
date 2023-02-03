@@ -30,6 +30,21 @@ impl<'source> AstNodeFunctionDeclaration<'source> {
         }
     }
 
+    /// Returns the name of the function
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Returns the parameters of the function
+    pub fn parameters(&self) -> &FunctionParameters {
+        &self.parameters
+    }
+
+    /// Returns the body of the function
+    pub fn body(&self) -> &Vec<AstNode<'source>> {
+        &self.body
+    }
+
     /// Returns the position in the source code of this function declaration
     pub fn pos(&self) -> &SourceRange<'source> {
         &self.pos

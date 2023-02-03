@@ -4,8 +4,11 @@
 use std::fmt::Display;
 
 use crate::{
+    ast::AstNode,
+    call_stack::CallStack,
+    function::{FunctionGroup, FunctionParameters},
     icelang_std_lib::{IcelangFmt, IcelangFmtArgs},
-    symbol_table::SymbolTable,
+    source_range::SourceRange,
     value::Value,
 };
 
@@ -13,7 +16,7 @@ use crate::{
 #[derive(Clone, Debug)]
 pub struct RuntimeState<'source> {
     most_recent_value: Value,
-    global_symbol_table: SymbolTable<'source>,
+    call_stack: CallStack<'source>,
 }
 
 impl<'source> RuntimeState<'source> {
@@ -21,18 +24,8 @@ impl<'source> RuntimeState<'source> {
     pub fn new() -> Self {
         Self {
             most_recent_value: Value::Null,
-            global_symbol_table: SymbolTable::new(),
+            call_stack: CallStack::new(),
         }
-    }
-
-    /// Gets a reference to the global symbol table
-    pub fn global_symbol_table(&self) -> &SymbolTable<'source> {
-        &self.global_symbol_table
-    }
-
-    /// Gets a reference to the global symbol table
-    pub fn global_symbol_table_mut(&mut self) -> &mut SymbolTable<'source> {
-        &mut self.global_symbol_table
     }
 
     /// Returns the most recent value from an expression
@@ -43,6 +36,63 @@ impl<'source> RuntimeState<'source> {
     /// Updates the most recent value from an expression
     pub fn update_most_recent_value(&mut self, value: Value) {
         self.most_recent_value = value;
+    }
+
+    /// Declares a new variable and assigns the given value
+    ///
+    /// # Panics
+    /// - If the variable is already defined
+    pub fn declare_variable(&mut self, identifier: String, value: Value) {
+        assert!(self.call_stack.lookup_local_variable(&identifier).is_none());
+
+        self.call_stack.declare_variable(identifier, value);
+    }
+
+    /// Declares a function (or overloads a function)
+    ///
+    /// # Panics
+    /// - If the function is already defined (including arity)
+    pub fn declare_function(
+        &mut self,
+        identifier: String,
+        parameters: FunctionParameters,
+        body: Vec<AstNode<'source>>,
+        pos: SourceRange<'source>,
+    ) {
+        self.call_stack
+            .declare_function(identifier, parameters, body, pos);
+    }
+
+    /// Looks up a variable in the runtime state
+    pub fn lookup_variable(&self, identifier: &str) -> Option<&Value> {
+        self.call_stack.lookup_variable(identifier)
+    }
+
+    /// Looks up a variable in the runtime state, only checking the most local
+    /// scope
+    pub fn lookup_local_variable(&self, identifier: &str) -> Option<&Value> {
+        self.call_stack.lookup_local_variable(identifier)
+    }
+
+    /// Looks up a function in the runtime state
+    pub fn lookup_function(&self, identifier: &str) -> Option<&FunctionGroup> {
+        self.call_stack.lookup_function(identifier)
+    }
+
+    /// Looks up a function in the runtime state, only checking the most local
+    /// scope
+    pub fn lookup_local_function(&self, identifier: &str) -> Option<&FunctionGroup> {
+        self.call_stack.lookup_local_function(identifier)
+    }
+
+    /// Assigns a new value to an already existing variable
+    ///
+    /// # Panics
+    /// - If the variable isn't already defined
+    pub fn reassign_variable(&mut self, identifier: &str, value: Value) {
+        assert!(self.call_stack.lookup_variable(identifier).is_some());
+
+        self.call_stack.reassign_variable(identifier, value)
     }
 }
 

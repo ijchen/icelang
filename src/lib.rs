@@ -1,8 +1,9 @@
 //! An interpreter for icelang, written in Rust
 
-#![warn(missing_docs)]
+#![warn(missing_docs, missing_debug_implementations)]
 
 pub mod ast;
+mod call_stack;
 pub mod error;
 pub mod function;
 mod icelang_std_lib;

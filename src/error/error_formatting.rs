@@ -20,13 +20,12 @@ impl Display for IcelangErrorKind {
 }
 
 #[derive(Clone, Debug)]
+/// A stack trace for icelang error messages
 pub struct StackTrace<'source> {
     sources: VecDeque<(String, SourceRange<'source>)>,
 }
 
 impl<'source> StackTrace<'source> {
-    // TODO remove once this is used
-    #[allow(dead_code)]
     /// Constructs a new (empty) StackTrace
     pub fn new() -> Self {
         Self {
@@ -34,16 +33,12 @@ impl<'source> StackTrace<'source> {
         }
     }
 
-    // TODO remove once this is used
-    #[allow(dead_code)]
     /// Adds a stack frame to the top of the StackTrace
     pub fn add_top(&mut self, source_fn_display_name: String, source_range: SourceRange<'source>) {
         self.sources
             .push_front((source_fn_display_name, source_range));
     }
 
-    // TODO remove once this is used
-    #[allow(dead_code)]
     /// Adds a stack frame to the bottom of the StackTrace
     pub fn add_bottom(
         &mut self,
@@ -52,6 +47,12 @@ impl<'source> StackTrace<'source> {
     ) {
         self.sources
             .push_back((source_fn_display_name, source_range));
+    }
+}
+
+impl Default for StackTrace<'_> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -21,21 +21,14 @@ pub fn interpret_assignment<'source>(
 
             match assignment.lhs() {
                 AstNode::VariableAccess(node) => {
-                    let symbol_table = state.global_symbol_table_mut();
-
-                    // TODO consider refactoring to get rid of reassign_variable
-                    // and use a get_mut and match here
-                    if symbol_table.access_variable(node.ident()).is_some() {
+                    if state.lookup_variable(node.ident()).is_none() {
                         return Err(RuntimeError::new_undefined_reference_error(
                             node.pos().clone(),
                             node.ident().to_string(),
                         ));
                     }
 
-                    // TODO consider making expressions always return null,
-                    // which avoids the clone
-                    symbol_table.reassign_variable(node.ident(), value.clone());
-
+                    state.reassign_variable(node.ident(), value.clone());
                     Ok(value)
                 }
                 AstNode::DotMemberAccess(_) => todo!(),

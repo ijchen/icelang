@@ -63,7 +63,7 @@ impl Display for FunctionParameters {
 }
 
 /// A possibly overloaded icelang function group
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct FunctionGroup<'source> {
     variadic_overload: Option<Function<'source>>,
     polyadic_overloads: HashMap<usize, Function<'source>>,
@@ -72,7 +72,10 @@ pub struct FunctionGroup<'source> {
 impl<'source> FunctionGroup<'source> {
     /// Constructs a new (empty) function group
     pub fn new() -> Self {
-        Default::default()
+        Self {
+            variadic_overload: None,
+            polyadic_overloads: HashMap::new(),
+        }
     }
 
     /// Gets the function overload for `arg_count` arguments, or None if there
@@ -106,6 +109,12 @@ impl<'source> FunctionGroup<'source> {
                 };
             }
         }
+    }
+}
+
+impl Default for FunctionGroup<'_> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
