@@ -2,6 +2,7 @@ use crate::{
     ast::{AstNode, AstNodeFunctionCall, AstNodeFunctionDeclaration, JumpStatementKind},
     error::runtime_error::RuntimeError,
     function::FunctionParameters,
+    icelang_std_lib::StdLibFunction,
     interpreter::core::interpret_expression,
     runtime_state::RuntimeState,
     value::Value,
@@ -50,15 +51,15 @@ pub fn interpret_function_call<'source>(
     };
     let function_name = ident_node.ident();
 
-    // TODO just temporary
-    if function_name == "println" {
-        assert_eq!(function_call_node.arguments().len(), 1);
-
-        let value = interpret_expression(&function_call_node.arguments()[0], state)?;
-
-        println!("{}", value.icelang_display());
-
-        return Ok(Value::Null);
+    // If the function is a standard library function, intercept the fuinction
+    // call and handle that as a special case
+    if let Some(std_lib_function) = StdLibFunction::from_identifier(function_name) {
+        let arguments = function_call_node
+            .arguments()
+            .iter()
+            .map(|node| interpret_expression(node, state))
+            .collect::<Result<_, _>>()?;
+        return std_lib_function.call(arguments, state);
     }
 
     // Push a new stack frame

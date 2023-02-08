@@ -102,7 +102,7 @@ pub fn enter_repl(mut show_debug_info: bool) {
                     continue;
                 }
                 "restart" => {
-                    break 'reset;
+                    continue 'reset;
                 }
                 "debug" => {
                     show_debug_info = !show_debug_info;
