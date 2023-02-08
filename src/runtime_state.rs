@@ -28,6 +28,19 @@ impl<'source> RuntimeState<'source> {
         }
     }
 
+    /// Pushes a new stack frame to the call stack
+    pub fn push_stack_frame(&mut self) {
+        self.call_stack.push_stack_frame();
+    }
+
+    /// Pops a stack frame from the call stack
+    ///
+    /// # Panics
+    /// - If the call stack is empty
+    pub fn pop_stack_frame(&mut self) {
+        self.call_stack.pop_stack_frame();
+    }
+
     /// Returns the most recent value from an expression
     pub fn most_recent_value(&self) -> &Value {
         &self.most_recent_value

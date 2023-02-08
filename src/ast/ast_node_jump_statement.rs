@@ -28,7 +28,7 @@ impl<'source> AstNodeJumpStatement<'source> {
     }
 
     /// Returns the body of the jump statement node
-    pub fn body(&self) -> Option<&AstNode> {
+    pub fn body(&self) -> Option<&AstNode<'source>> {
         self.body.as_deref()
     }
 

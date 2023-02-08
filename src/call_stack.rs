@@ -22,6 +22,21 @@ impl<'source> CallStack<'source> {
         }
     }
 
+    /// Pushes a new stack frame to the call stack
+    pub fn push_stack_frame(&mut self) {
+        self.stack.push(StackFrame::new());
+    }
+
+    /// Pops a stack frame from the call stack
+    ///
+    /// # Panics
+    /// - If the call stack is empty
+    pub fn pop_stack_frame(&mut self) {
+        assert!(!self.stack.is_empty());
+
+        self.stack.pop().unwrap();
+    }
+
     /// Looks up a variable in the call stack
     pub fn lookup_variable(&self, identifier: &str) -> Option<&Value> {
         if !self.stack.is_empty() {

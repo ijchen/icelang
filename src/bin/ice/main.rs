@@ -5,7 +5,7 @@ mod repl;
 use std::{collections::VecDeque, fs};
 
 use clap::Parser;
-use icelang::{lexer, parser};
+use icelang::{interpreter, lexer, parser};
 use repl::enter_repl;
 
 use crate::debug_info::print_source_info;
@@ -57,7 +57,21 @@ fn interpret_file(file_path: &str, show_debug_info: bool) {
         println!();
     }
 
-    // TODO interpreting
+    // Interpreting
+    let state = match interpreter::interpret(&ast) {
+        Ok(state) => state,
+        Err(err) => {
+            println!("{err}");
+            return;
+        }
+    };
+
+    // If debug info is enabled, print the runtime state
+    if show_debug_info {
+        println!("Interpreter State:");
+        println!("{state}");
+        println!();
+    }
 }
 
 fn main() {

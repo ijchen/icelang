@@ -50,16 +50,19 @@ pub fn interpret_function_call<'source>(
     };
     let function_name = ident_node.ident();
 
-    // TODO lmao remove this I'm just messing around
+    // TODO just temporary
     if function_name == "println" {
-        if function_call_node.arguments().len() != 1 {
-            panic!();
-        }
         assert_eq!(function_call_node.arguments().len(), 1);
+
         let value = interpret_expression(&function_call_node.arguments()[0], state)?;
+
         println!("{}", value.icelang_display());
+
         return Ok(Value::Null);
     }
+
+    // Push a new stack frame
+    state.push_stack_frame();
 
     let Some(function_group) = state.lookup_function(function_name) else {
         return Err(RuntimeError::new_undefined_reference_error(
@@ -68,33 +71,34 @@ pub fn interpret_function_call<'source>(
         ));
     };
 
-    // TODO TEMPORARY HACKY WORKAROUND
-    eprintln!("this should never see the light of day");
-    let function_group = function_group.clone();
-
-    // Push a new stack frame
-    // state.push_stack_frame(); // TODO
-
     let function = function_group
         .get_polyadic_overload(function_call_node.arguments().len())
         .or_else(|| function_group.get_variadic_overload())
-        .ok_or_else(|| todo!())?;
+        .ok_or_else(|| todo!())?
+        // TODO look into ways to avoid this clone - FWIW, I don't think it is
+        // avoidable. It is right now (once declared, a function overload can't
+        // be modified) but this is likely to change once first-class functions
+        // are supported, and then they will be values which probably *have* to
+        // be cloned
+        .clone();
+
+    let mut return_value = Value::Null;
 
     for statement in function.body() {
         if let AstNode::JumpStatement(node) = statement {
             if node.jump_kind() == JumpStatementKind::Return {
-                todo!();
+                if let Some(body) = node.body() {
+                    return_value = interpret_expression(body, state)?;
+                    break;
+                }
             }
         }
 
         interpret_statement(statement, state).map_err(|_| todo!())?;
     }
 
-    todo!()
-    // let return_value = todo!();
-
     // Pop the stack frame
-    // state.pop_stack_frame(); // TODO
+    state.pop_stack_frame();
 
-    // Ok(return_value)
+    Ok(return_value)
 }
