@@ -38,7 +38,7 @@ pub fn enter_repl(mut show_debug_info: bool) {
     // lines can't be dropped while state exists, and I can't figure out how to
     // convince the borrow checker that when state is dropped it's okay to drop
     // the arena
-    'reset: loop {
+    loop {
         // Initialize the saved input lines arena
         // An arena is necessary since the interpreter state may maintain references
         // to slices from source code entered in the past, and the lifetime of those
@@ -91,7 +91,7 @@ pub fn enter_repl(mut show_debug_info: bool) {
                     continue;
                 }
                 "exit" => {
-                    break;
+                    return;
                 }
                 "clear" => {
                     if clearscreen::clear().is_err() {
@@ -102,7 +102,7 @@ pub fn enter_repl(mut show_debug_info: bool) {
                     continue;
                 }
                 "restart" => {
-                    continue 'reset;
+                    break;
                 }
                 "debug" => {
                     show_debug_info = !show_debug_info;
