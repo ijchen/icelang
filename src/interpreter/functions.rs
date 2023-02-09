@@ -96,6 +96,13 @@ pub fn interpret_function_call<'source>(
         // be cloned
         .clone();
 
+    // Evaluate the arguments
+    let arguments: Vec<Value> = function_call_node
+        .arguments()
+        .iter()
+        .map(|argument_node| interpret_expression(argument_node, state))
+        .collect::<Result<_, _>>()?;
+
     // Push a new stack frame
     state.push_stack_frame();
 
@@ -104,27 +111,16 @@ pub fn interpret_function_call<'source>(
     // Bind the arguments to local variables
     match function.parameters() {
         FunctionParameters::Variadic { parameter_name } => {
-            let parameters = function_call_node
-                .arguments()
-                .iter()
-                .map(|node| interpret_expression(node, state))
-                .collect::<Result<_, _>>()?;
             state.declare_variable(
                 parameter_name.0.to_string(),
-                Value::List(Rc::new(RefCell::new(parameters))),
+                Value::List(Rc::new(RefCell::new(arguments))),
             );
         }
         FunctionParameters::Polyadic { parameters } => {
-            assert_eq!(function_call_node.arguments().len(), parameters.len());
+            assert_eq!(arguments.len(), parameters.len());
 
-            for (parameter_name, argument_node) in
-                parameters.iter().zip(function_call_node.arguments().iter())
-            {
-                // TODO ensure there are no duplicate parameter names
-
-                let value = interpret_expression(argument_node, state)?;
-
-                state.declare_variable(parameter_name.0.clone(), value);
+            for (parameter_name, argument_value) in parameters.iter().zip(arguments.into_iter()) {
+                state.declare_variable(parameter_name.0.clone(), argument_value);
             }
         }
     }
