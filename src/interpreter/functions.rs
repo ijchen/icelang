@@ -59,7 +59,7 @@ pub fn interpret_function_call<'source>(
             .iter()
             .map(|node| interpret_expression(node, state))
             .collect::<Result<_, _>>()?;
-        return std_lib_function.call(arguments, state);
+        return std_lib_function.call(arguments, function_call_node.pos(), state);
     }
 
     // Push a new stack frame

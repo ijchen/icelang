@@ -55,6 +55,18 @@ pub enum RuntimeError<'source> {
         /// An explanation of what went wrong
         why: String,
     },
+
+    /// A function was called with an invalid number of arguments
+    InvalidOverload {
+        /// The position of the error
+        pos: SourceRange<'source>,
+
+        /// The name of the function
+        function_name: String,
+
+        /// The invalid number of arguments provided
+        argument_count: usize,
+    },
 }
 
 impl<'source> RuntimeError<'source> {
@@ -81,6 +93,19 @@ impl<'source> RuntimeError<'source> {
         Self::UndefinedReference { pos, identifier }
     }
 
+    /// Constructs a new InvalidOverload RuntimeError
+    pub fn new_invalid_overload_error(
+        pos: SourceRange<'source>,
+        function_name: String,
+        argument_count: usize,
+    ) -> Self {
+        Self::InvalidOverload {
+            pos,
+            function_name,
+            argument_count,
+        }
+    }
+
     /// Returns the SourceRange corresponding to this error
     pub fn pos(&self) -> &SourceRange<'source> {
         match self {
@@ -89,6 +114,11 @@ impl<'source> RuntimeError<'source> {
             Self::IdentifierAlreadyDeclared { pos, identifier: _ } => pos,
             Self::UndefinedReference { pos, identifier: _ } => pos,
             Self::ResourceUnavailable { pos, why: _ } => pos,
+            Self::InvalidOverload {
+                pos,
+                function_name: _,
+                argument_count: _,
+            } => pos,
         }
     }
 }
@@ -105,6 +135,13 @@ impl Display for RuntimeError<'_> {
                 format!("identifier \"{identifier}\" is not defined")
             }
             Self::ResourceUnavailable { pos: _, why } => why.to_string(),
+            Self::InvalidOverload {
+                pos: _,
+                function_name,
+                argument_count,
+            } => {
+                format!("no function overload for {function_name} that takes {argument_count} arguments")
+            }
         };
 
         error_formatting::write_error(f, IcelangErrorKind::Runtime, &description, self.pos(), None)
