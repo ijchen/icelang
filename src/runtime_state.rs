@@ -68,7 +68,7 @@ impl<'source> RuntimeState<'source> {
     pub fn declare_function(
         &mut self,
         identifier: String,
-        parameters: FunctionParameters,
+        parameters: FunctionParameters<'source>,
         body: Vec<AstNode<'source>>,
         pos: SourceRange<'source>,
     ) {

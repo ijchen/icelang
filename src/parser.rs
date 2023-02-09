@@ -17,7 +17,7 @@ use crate::{
 fn parse_function_declaration_parameters<'source>(
     token_stream: &mut VecDeque<&Token<'source>>,
     start_pos: &SourceRange<'source>,
-) -> Result<FunctionParameters, ParseError<'source>> {
+) -> Result<FunctionParameters<'source>, ParseError<'source>> {
     match token_stream.front() {
         // Variadic function
         Some(Token::Punctuator(token)) if token.punctuator() == "[" => {
@@ -25,8 +25,8 @@ fn parse_function_declaration_parameters<'source>(
             token_stream.pop_front();
 
             // Read the parameter identifier
-            let parameter_name = match token_stream.pop_front() {
-                Some(Token::Ident(token)) => token.ident(),
+            let (parameter_name, parameter_name_pos) = match token_stream.pop_front() {
+                Some(Token::Ident(token)) => (token.ident(), token.pos()),
                 Some(token) => {
                     return Err(ParseError::new_unexpected_token(
                         "expected function parameter name".to_string(),
@@ -59,7 +59,7 @@ fn parse_function_declaration_parameters<'source>(
             };
 
             Ok(FunctionParameters::Variadic {
-                parameter_name: parameter_name.to_string(),
+                parameter_name: (parameter_name.to_string(), parameter_name_pos.clone()),
             })
         }
 
@@ -71,7 +71,10 @@ fn parse_function_declaration_parameters<'source>(
         // One-or-more-ary function (technically, multiary means 2 or more)
         Some(Token::Ident(first_parameter_name_token)) => {
             // Read the first parameter
-            let mut parameters = vec![first_parameter_name_token.ident().to_string()];
+            let mut parameters = vec![(
+                first_parameter_name_token.ident().to_string(),
+                first_parameter_name_token.pos().clone(),
+            )];
             token_stream.pop_front();
 
             // Read any subsequent parameters
@@ -84,7 +87,10 @@ fn parse_function_declaration_parameters<'source>(
                         // Read the next parameter name
                         match token_stream.front() {
                             Some(Token::Ident(next_parameter_token)) => {
-                                parameters.push(next_parameter_token.ident().to_string());
+                                parameters.push((
+                                    next_parameter_token.ident().to_string(),
+                                    next_parameter_token.pos().clone(),
+                                ));
                                 token_stream.pop_front();
                             }
                             // If this was the optional comma after the last

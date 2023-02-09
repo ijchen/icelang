@@ -5,22 +5,22 @@ use std::{collections::HashMap, fmt::Display};
 use crate::{ast::AstNode, source_range::SourceRange};
 
 /// Represents parameters to an icelang function
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum FunctionParameters {
+#[derive(Debug, Clone)]
+pub enum FunctionParameters<'source> {
     /// A variadic function (one which accepts any number of arguments)
     Variadic {
         /// The identifier for the parameter list parameter
-        parameter_name: String,
+        parameter_name: (String, SourceRange<'source>),
     },
     /// A "normal" polyadic (fixed-arity) function (one which only accepts a
     /// fixed number of arguments)
     Polyadic {
         /// The parameter identifiers
-        parameters: Vec<String>,
+        parameters: Vec<(String, SourceRange<'source>)>,
     },
 }
 
-impl FunctionParameters {
+impl<'source> FunctionParameters<'source> {
     /// Returns whether or not the arity is variadic
     pub fn is_variadic(&self) -> bool {
         match self {
@@ -51,13 +51,50 @@ impl FunctionParameters {
     }
 }
 
-impl Display for FunctionParameters {
+impl PartialEq for FunctionParameters<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                Self::Variadic {
+                    parameter_name: l_parameter_name,
+                },
+                Self::Variadic {
+                    parameter_name: r_parameter_name,
+                },
+            ) => l_parameter_name.0 == r_parameter_name.0,
+            (
+                Self::Polyadic {
+                    parameters: l_parameters,
+                },
+                Self::Polyadic {
+                    parameters: r_parameters,
+                },
+            ) => l_parameters
+                .iter()
+                .zip(r_parameters.iter())
+                .all(|((l_parameter, _), (r_parameter, _))| l_parameter == r_parameter),
+            _ => false,
+        }
+    }
+}
+
+impl Eq for FunctionParameters<'_> {}
+
+impl Display for FunctionParameters<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             FunctionParameters::Variadic {
                 parameter_name: list_name,
-            } => write!(f, "[{list_name}]"),
-            FunctionParameters::Polyadic { parameters } => write!(f, "{}", parameters.join(", ")),
+            } => write!(f, "[{}]", list_name.0),
+            FunctionParameters::Polyadic { parameters } => write!(
+                f,
+                "{}",
+                parameters
+                    .iter()
+                    .map(|(parameter_name, _)| parameter_name.to_string())
+                    .collect::<Vec<_>>() // TODO refactor once intersperse is stabilized
+                    .join(", ")
+            ),
         }
     }
 }
@@ -121,7 +158,7 @@ impl Default for FunctionGroup<'_> {
 /// A non-builtin icelang function
 #[derive(Debug, Clone)]
 pub struct Function<'source> {
-    parameters: FunctionParameters,
+    parameters: FunctionParameters<'source>,
     body: Vec<AstNode<'source>>,
     pos: SourceRange<'source>,
 }
@@ -129,7 +166,7 @@ pub struct Function<'source> {
 impl<'source> Function<'source> {
     /// Constructs a new Function with the given parameters and body
     pub fn new(
-        parameters: FunctionParameters,
+        parameters: FunctionParameters<'source>,
         body: Vec<AstNode<'source>>,
         pos: SourceRange<'source>,
     ) -> Self {
@@ -138,6 +175,11 @@ impl<'source> Function<'source> {
             body,
             pos,
         }
+    }
+
+    /// Gets the parameters of the function
+    pub fn parameters(&self) -> &FunctionParameters<'source> {
+        &self.parameters
     }
 
     /// Gets the body of the function

@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::{
     ast::{AstNode, AstNodeFunctionCall, AstNodeFunctionDeclaration, JumpStatementKind},
     error::runtime_error::RuntimeError,
@@ -35,6 +37,20 @@ pub fn interpret_function_declaration<'source>(
         }
     }
 
+    // Ensure none of the parameter names are the same
+    if let FunctionParameters::Polyadic { parameters } = function_declaration.parameters() {
+        for (i, (parameter_1_name, parameter_1_pos)) in parameters.iter().enumerate() {
+            for (parameter_2_name, _) in parameters.iter().take(i) {
+                if parameter_1_name == parameter_2_name {
+                    return Err(RuntimeError::new_identifier_already_declared_error(
+                        parameter_1_pos.clone(),
+                        parameter_1_name.to_string(),
+                    ));
+                }
+            }
+        }
+    }
+
     state.declare_function(identifier, parameters, body, pos);
 
     Ok(())
@@ -51,7 +67,7 @@ pub fn interpret_function_call<'source>(
     };
     let function_name = ident_node.ident();
 
-    // If the function is a standard library function, intercept the fuinction
+    // If the function is a standard library function, intercept the function
     // call and handle that as a special case
     if let Some(std_lib_function) = StdLibFunction::from_identifier(function_name) {
         let arguments = function_call_node
@@ -61,9 +77,6 @@ pub fn interpret_function_call<'source>(
             .collect::<Result<_, _>>()?;
         return std_lib_function.call(arguments, function_call_node.pos(), state);
     }
-
-    // Push a new stack frame
-    state.push_stack_frame();
 
     let Some(function_group) = state.lookup_function(function_name) else {
         return Err(RuntimeError::new_undefined_reference_error(
@@ -83,7 +96,38 @@ pub fn interpret_function_call<'source>(
         // be cloned
         .clone();
 
+    // Push a new stack frame
+    state.push_stack_frame();
+
     let mut return_value = Value::Null;
+
+    // Bind the arguments to local variables
+    match function.parameters() {
+        FunctionParameters::Variadic { parameter_name } => {
+            let parameters = function_call_node
+                .arguments()
+                .iter()
+                .map(|node| interpret_expression(node, state))
+                .collect::<Result<_, _>>()?;
+            state.declare_variable(
+                parameter_name.0.to_string(),
+                Value::List(Rc::new(RefCell::new(parameters))),
+            );
+        }
+        FunctionParameters::Polyadic { parameters } => {
+            assert_eq!(function_call_node.arguments().len(), parameters.len());
+
+            for (parameter_name, argument_node) in
+                parameters.iter().zip(function_call_node.arguments().iter())
+            {
+                // TODO ensure there are no duplicate parameter names
+
+                let value = interpret_expression(argument_node, state)?;
+
+                state.declare_variable(parameter_name.0.clone(), value);
+            }
+        }
+    }
 
     for statement in function.body() {
         if let AstNode::JumpStatement(node) = statement {
