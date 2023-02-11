@@ -1305,8 +1305,6 @@ fn parse_expr_usage_suffix<'source>(
         match token_stream.front() {
             // Dot member access
             Some(Token::Punctuator(token)) if token.punctuator() == "." => {
-                let start_pos = token.pos();
-
                 // Consume the "."
                 token_stream.pop_front();
 
@@ -1328,18 +1326,12 @@ fn parse_expr_usage_suffix<'source>(
                 };
 
                 // Update the root
-                root = AstNodeDotMemberAccess::new(
-                    root,
-                    ident.to_string(),
-                    start_pos.extended_to(ident_pos),
-                )
-                .into();
+                let pos = root.pos().extended_to(ident_pos);
+                root = AstNodeDotMemberAccess::new(root, ident.to_string(), pos).into();
             }
 
             // Computed (square bracket) member access
             Some(Token::Punctuator(token)) if token.punctuator() == "[" => {
-                let start_pos = token.pos();
-
                 // Consume the "["
                 token_stream.pop_front();
 
@@ -1367,20 +1359,18 @@ fn parse_expr_usage_suffix<'source>(
                     None => {
                         return Err(ParseError::new_unexpected_eof(
                             "incomplete computed member access suffix".to_string(),
-                            start_pos.extended_to_end(),
+                            root.pos().extended_to_end(),
                         ));
                     }
                 };
 
                 // Update the root
-                root = AstNodeComputedMemberAccess::new(root, body, start_pos.extended_to(end_pos))
-                    .into();
+                let pos = root.pos().extended_to(end_pos);
+                root = AstNodeComputedMemberAccess::new(root, body, pos).into();
             }
 
             // Function call
             Some(Token::Punctuator(token)) if token.punctuator() == "(" => {
-                let start_pos = token.pos();
-
                 // Consume the "("
                 token_stream.pop_front();
 
@@ -1425,8 +1415,8 @@ fn parse_expr_usage_suffix<'source>(
                                         }
                                         None => {
                                             return Err(ParseError::new_unexpected_eof(
-                                                "incomplete function declaration".to_string(),
-                                                start_pos.extended_to_end(),
+                                                "incomplete function call suffix".to_string(),
+                                                root.pos().extended_to_end(),
                                             ));
                                         }
                                     };
@@ -1445,9 +1435,9 @@ fn parse_expr_usage_suffix<'source>(
                                 }
                                 None => {
                                     return Err(ParseError::UnexpectedEOF {
-                                        why: "expected closing parenthesis in function arguments"
+                                        why: "expected closing parenthesis in function call suffix"
                                             .to_string(),
-                                        pos: start_pos.extended_to_end(),
+                                        pos: root.pos().extended_to_end(),
                                     });
                                 }
                             }
@@ -1457,15 +1447,15 @@ fn parse_expr_usage_suffix<'source>(
                     // EOF (without a closing parenthesis)
                     None => {
                         return Err(ParseError::UnexpectedEOF {
-                            why: "expected closing parenthesis in function arguments".to_string(),
-                            pos: start_pos.extended_to_end(),
+                            why: "expected closing parenthesis in function call suffix".to_string(),
+                            pos: root.pos().extended_to_end(),
                         });
                     }
                 };
 
                 // Update the root
-                root = AstNodeFunctionCall::new(root, arguments, start_pos.extended_to(end_pos))
-                    .into();
+                let pos = root.pos().extended_to(end_pos);
+                root = AstNodeFunctionCall::new(root, arguments, pos).into();
             }
 
             // Anything else is not a usage suffix

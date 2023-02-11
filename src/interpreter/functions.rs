@@ -32,7 +32,9 @@ pub fn interpret_function_declaration<'source>(
                 .is_some(),
         } {
             return Err(RuntimeError::new_identifier_already_declared_error(
-                pos, identifier,
+                pos,
+                state.scope_display_name().to_string(),
+                identifier,
             ));
         }
     }
@@ -44,6 +46,7 @@ pub fn interpret_function_declaration<'source>(
                 if parameter_1_name == parameter_2_name {
                     return Err(RuntimeError::new_identifier_already_declared_error(
                         parameter_1_pos.clone(),
+                        state.scope_display_name().to_string(),
                         parameter_1_name.to_string(),
                     ));
                 }
@@ -63,24 +66,36 @@ pub fn interpret_function_call<'source>(
 ) -> Result<Value, RuntimeError<'source>> {
     // TODO do this cleanly
     let AstNode::VariableAccess(ident_node) = function_call_node.root() else {
-        todo!()
+        return Err(RuntimeError::new_called_non_function_error(function_call_node.pos().clone(), state.scope_display_name().to_string()));
     };
     let function_name = ident_node.ident();
 
     // If the function is a standard library function, intercept the function
     // call and handle that as a special case
     if let Some(std_lib_function) = StdLibFunction::from_identifier(function_name) {
+        // Evaluate the arguments
         let arguments = function_call_node
             .arguments()
             .iter()
             .map(|node| interpret_expression(node, state))
             .collect::<Result<_, _>>()?;
-        return std_lib_function.call(arguments, function_call_node.pos(), state);
+
+        // Push a new stack frame
+        state.push_stack_frame(format!("{function_name}(...)"));
+
+        // Call the function
+        let return_value = std_lib_function.call(arguments, function_call_node.pos(), state);
+
+        // Pop the stack frame
+        state.pop_stack_frame();
+
+        return return_value;
     }
 
     let Some(function_group) = state.lookup_function(function_name) else {
         return Err(RuntimeError::new_undefined_reference_error(
             function_call_node.pos().clone(),
+            state.scope_display_name().to_string(),
             function_name.to_string(),
         ));
     };
@@ -88,7 +103,14 @@ pub fn interpret_function_call<'source>(
     let function = function_group
         .get_polyadic_overload(function_call_node.arguments().len())
         .or_else(|| function_group.get_variadic_overload())
-        .ok_or_else(|| todo!())?
+        .ok_or_else(|| {
+            RuntimeError::new_invalid_overload_error(
+                function_call_node.pos().clone(),
+                state.scope_display_name().to_string(),
+                function_name.to_string(),
+                function_call_node.arguments().len(),
+            )
+        })?
         // TODO look into ways to avoid this clone - FWIW, I don't think it is
         // avoidable. It is right now (once declared, a function overload can't
         // be modified) but this is likely to change once first-class functions
@@ -104,7 +126,7 @@ pub fn interpret_function_call<'source>(
         .collect::<Result<_, _>>()?;
 
     // Push a new stack frame
-    state.push_stack_frame();
+    state.push_stack_frame(format!("{function_name}({})", function.parameters()));
 
     let mut return_value = Value::Null;
 
@@ -129,13 +151,27 @@ pub fn interpret_function_call<'source>(
         if let AstNode::JumpStatement(node) = statement {
             if node.jump_kind() == JumpStatementKind::Return {
                 if let Some(body) = node.body() {
-                    return_value = interpret_expression(body, state)?;
+                    return_value = interpret_expression(body, state).map_err(|mut err| {
+                        state.pop_stack_frame();
+                        err.stack_trace_mut().add_bottom(
+                            state.scope_display_name().to_string(),
+                            function_call_node.pos().clone(),
+                        );
+                        err
+                    })?;
                     break;
                 }
             }
         }
 
-        interpret_statement(statement, state).map_err(|_| todo!())?;
+        interpret_statement(statement, state).map_err(|mut err| {
+            state.pop_stack_frame();
+            err.stack_trace_mut().add_bottom(
+                state.scope_display_name().to_string(),
+                function_call_node.pos().clone(),
+            );
+            err
+        })?;
     }
 
     // Pop the stack frame

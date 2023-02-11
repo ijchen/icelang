@@ -32,18 +32,12 @@ impl StdLibFunction {
         pos: &SourceRange<'source>,
         state: &mut RuntimeState<'source>,
     ) -> Result<Value, RuntimeError<'source>> {
-        // Push a new stack frame
-        state.push_stack_frame();
-
         let return_value = match self {
             StdLibFunction::Print => isl_print(arguments, pos, state),
             StdLibFunction::Println => isl_println(arguments, pos, state),
             StdLibFunction::Eprint => isl_eprint(arguments, pos, state),
             StdLibFunction::Eprintln => isl_eprintln(arguments, pos, state),
         }?;
-
-        // Pop the stack frame
-        state.pop_stack_frame();
 
         Ok(return_value)
     }

@@ -21,6 +21,7 @@ pub fn interpret_variable_declaration<'source>(
         if state.lookup_local_variable(ident).is_some() {
             return Err(RuntimeError::new_identifier_already_declared_error(
                 pos.clone(),
+                state.scope_display_name().to_string(),
                 ident.to_string(),
             ));
         }
@@ -40,6 +41,7 @@ pub fn interpret_variable_access<'source>(
         Some(value) => Ok(value.clone()),
         None => Err(RuntimeError::new_undefined_reference_error(
             variable_access.pos().clone(),
+            state.scope_display_name().to_string(),
             variable_access.ident().to_string(),
         )),
     }

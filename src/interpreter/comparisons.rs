@@ -19,16 +19,17 @@ pub fn interpret_comparison<'source>(
 ) -> Result<Value, RuntimeError<'source>> {
     // This is repeated often... or, *was* repeated often :)
     macro_rules! invalid_types {
-        ($lhs: ident, $kind: ident, $rhs: ident) => {
-            return Err(RuntimeError::Type {
-                pos: node.pos().clone(),
-                why: format!(
+        ($state: ident, $lhs: ident, $kind: ident, $rhs: ident) => {
+            return Err(RuntimeError::new_type_error(
+                node.pos().clone(),
+                $state.scope_display_name().to_string(),
+                format!(
                     "invalid types for comparison: {} {} {}",
                     $lhs.icelang_type(),
                     $kind,
                     $rhs.icelang_type(),
                 ),
-            })
+            ))
         };
     }
 
@@ -79,37 +80,37 @@ pub fn interpret_comparison<'source>(
                 // This, fun fact, is logical XOR
                 ComparisonKind::NotEqual => lhs_value != rhs_value,
 
-                kind => invalid_types!(lhs, kind, rhs),
+                kind => invalid_types!(state, lhs, kind, rhs),
             },
 
             (Value::String(lhs_value), Value::String(rhs_value)) => match kind {
                 ComparisonKind::Equal => lhs_value == rhs_value,
                 ComparisonKind::NotEqual => lhs_value != rhs_value,
-                kind => invalid_types!(lhs, kind, rhs),
+                kind => invalid_types!(state, lhs, kind, rhs),
             },
 
             // Lists are compared by reference equality
             (Value::List(lhs_value), Value::List(rhs_value)) => match kind {
                 ComparisonKind::Equal => Rc::ptr_eq(lhs_value, rhs_value),
                 ComparisonKind::NotEqual => !Rc::ptr_eq(lhs_value, rhs_value),
-                kind => invalid_types!(lhs, kind, rhs),
+                kind => invalid_types!(state, lhs, kind, rhs),
             },
 
             // Dicts are compared by reference equality
             (Value::Dict(lhs_value), Value::Dict(rhs_value)) => match kind {
                 ComparisonKind::Equal => Rc::ptr_eq(lhs_value, rhs_value),
                 ComparisonKind::NotEqual => !Rc::ptr_eq(lhs_value, rhs_value),
-                kind => invalid_types!(lhs, kind, rhs),
+                kind => invalid_types!(state, lhs, kind, rhs),
             },
 
             (Value::Null, Value::Null) => match kind {
                 ComparisonKind::Equal => true,
                 ComparisonKind::NotEqual => false,
-                kind => invalid_types!(lhs, kind, rhs),
+                kind => invalid_types!(state, lhs, kind, rhs),
             },
 
             // Different types cannot be compared
-            (lhs, rhs) => invalid_types!(lhs, kind, rhs),
+            (lhs, rhs) => invalid_types!(state, lhs, kind, rhs),
         };
 
         // If this comparison was false, short-circuit and return false

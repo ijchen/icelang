@@ -7,7 +7,7 @@ use crate::{
 pub fn isl_print<'source>(
     arguments: Vec<Value>,
     pos: &SourceRange<'source>,
-    _state: &mut RuntimeState<'source>,
+    state: &mut RuntimeState<'source>,
 ) -> Result<Value, RuntimeError<'source>> {
     match arguments.len() {
         1 => {
@@ -17,6 +17,7 @@ pub fn isl_print<'source>(
         }
         argument_count => Err(RuntimeError::new_invalid_overload_error(
             pos.clone(),
+            state.scope_display_name().to_string(),
             "print".to_string(),
             argument_count,
         )),
@@ -27,7 +28,7 @@ pub fn isl_print<'source>(
 pub fn isl_println<'source>(
     arguments: Vec<Value>,
     pos: &SourceRange<'source>,
-    _state: &mut RuntimeState<'source>,
+    state: &mut RuntimeState<'source>,
 ) -> Result<Value, RuntimeError<'source>> {
     match arguments.len() {
         0 => {
@@ -42,6 +43,7 @@ pub fn isl_println<'source>(
         }
         argument_count => Err(RuntimeError::new_invalid_overload_error(
             pos.clone(),
+            state.scope_display_name().to_string(),
             "println".to_string(),
             argument_count,
         )),
@@ -52,7 +54,7 @@ pub fn isl_println<'source>(
 pub fn isl_eprint<'source>(
     arguments: Vec<Value>,
     pos: &SourceRange<'source>,
-    _state: &mut RuntimeState<'source>,
+    state: &mut RuntimeState<'source>,
 ) -> Result<Value, RuntimeError<'source>> {
     match arguments.len() {
         1 => {
@@ -62,6 +64,7 @@ pub fn isl_eprint<'source>(
         }
         argument_count => Err(RuntimeError::new_invalid_overload_error(
             pos.clone(),
+            state.scope_display_name().to_string(),
             "eprint".to_string(),
             argument_count,
         )),
@@ -72,7 +75,7 @@ pub fn isl_eprint<'source>(
 pub fn isl_eprintln<'source>(
     arguments: Vec<Value>,
     pos: &SourceRange<'source>,
-    _state: &mut RuntimeState<'source>,
+    state: &mut RuntimeState<'source>,
 ) -> Result<Value, RuntimeError<'source>> {
     match arguments.len() {
         0 => {
@@ -87,6 +90,7 @@ pub fn isl_eprintln<'source>(
         }
         argument_count => Err(RuntimeError::new_invalid_overload_error(
             pos.clone(),
+            state.scope_display_name().to_string(),
             "eprintln".to_string(),
             argument_count,
         )),

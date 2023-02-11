@@ -38,9 +38,10 @@ pub fn interpret_type_cast<'source>(
         (Value::String(_), IcelangType::Int) => todo!(),
         (Value::String(_), IcelangType::Byte) => todo!(),
         (Value::String(_), IcelangType::Float) => todo!(),
-        (value, new_type) => Err(RuntimeError::Type {
-            pos: node.pos().clone(),
-            why: format!("cannot cast from {} to {}", value.icelang_type(), new_type),
-        }),
+        (value, new_type) => Err(RuntimeError::new_type_error(
+            node.pos().clone(),
+            state.scope_display_name().to_string(),
+            format!("cannot cast from {} to {}", value.icelang_type(), new_type),
+        )),
     }
 }

@@ -24,6 +24,7 @@ pub fn interpret_assignment<'source>(
                     if state.lookup_variable(node.ident()).is_none() {
                         return Err(RuntimeError::new_undefined_reference_error(
                             node.pos().clone(),
+                            state.scope_display_name().to_string(),
                             node.ident().to_string(),
                         ));
                     }

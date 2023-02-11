@@ -7,45 +7,55 @@ use crate::{
 };
 
 macro_rules! impl_simple_unary_op {
-    ($func_name:ident, $node:ident, $operand:ident, $op_kind:ident, {$($operand_type:ident => $result:expr),+$(,)?}) => {
+    (
+        $func_name: ident,
+        $node: ident,
+        $state: ident,
+        $operand: ident,
+        $op_kind: ident,
+        {$(
+            $operand_type: ident => $result:expr
+        ),+$(,)?}
+    ) => {
         fn $func_name<'source>(
             $node: &AstNodeUnaryOperation<'source>,
-            state: &mut RuntimeState<'source>,
+            $state: &mut RuntimeState<'source>,
         ) -> Result<Value, RuntimeError<'source>> {
             assert!($node.operation() == UnaryOperationKind::$op_kind);
 
-            let operand = interpret_expression($node.operand(), state)?;
+            let operand = interpret_expression($node.operand(), $state)?;
 
             match operand {
                 $(
                     Value::$operand_type($operand) => $result,
                 )+
-                $operand => Err(RuntimeError::Type {
-                    pos: $node.pos().clone(),
-                    why: format!(
+                $operand => Err(RuntimeError::new_type_error(
+                    $node.pos().clone(),
+                    $state.scope_display_name().to_string(),
+                    format!(
                         "invalid types for unary operation: {}{}",
                         $node.operation(),
                         $operand.icelang_type(),
                     ),
-                }),
+                )),
             }
         }
     };
 }
 
-impl_simple_unary_op!(interpret_not, node, operand, Not, {
+impl_simple_unary_op!(interpret_not, node, state, operand, Not, {
     Int => Ok(Value::Int(!operand)),
     Byte => Ok(Value::Byte(!operand)),
     Bool => Ok(Value::Bool(!operand)),
 });
 
-impl_simple_unary_op!(interpret_identity, node, operand, Identity, {
+impl_simple_unary_op!(interpret_identity, node, state, operand, Identity, {
     Int => Ok(Value::Int(operand)),
     Byte => Ok(Value::Byte(operand)),
     Float => Ok(Value::Float(operand)),
 });
 
-impl_simple_unary_op!(interpret_negation, node, operand, Negation, {
+impl_simple_unary_op!(interpret_negation, node, state, operand, Negation, {
     Int => Ok(Value::Int(-operand)),
     Float => Ok(Value::Float(-operand)),
 });

@@ -27,6 +27,7 @@ pub fn interpret_inline_conditional<'source>(
     } else {
         Err(RuntimeError::new_type_error(
             node.condition().pos().clone(),
+            state.scope_display_name().to_string(),
             "expected bool in inline conditional".to_string(),
         ))
     }

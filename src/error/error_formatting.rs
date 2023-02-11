@@ -34,19 +34,13 @@ impl<'source> StackTrace<'source> {
     }
 
     /// Adds a stack frame to the top of the StackTrace
-    pub fn add_top(&mut self, source_fn_display_name: String, source_range: SourceRange<'source>) {
-        self.sources
-            .push_front((source_fn_display_name, source_range));
+    pub fn add_top(&mut self, scope_display_name: String, source_range: SourceRange<'source>) {
+        self.sources.push_front((scope_display_name, source_range));
     }
 
     /// Adds a stack frame to the bottom of the StackTrace
-    pub fn add_bottom(
-        &mut self,
-        source_fn_display_name: String,
-        source_range: SourceRange<'source>,
-    ) {
-        self.sources
-            .push_back((source_fn_display_name, source_range));
+    pub fn add_bottom(&mut self, scope_display_name: String, source_range: SourceRange<'source>) {
+        self.sources.push_back((scope_display_name, source_range));
     }
 }
 
@@ -63,10 +57,10 @@ impl Display for StackTrace<'_> {
         if self.sources.is_empty() {
             writeln!(f, "<empty>")
         } else {
-            for (source_fn_display_name, source_range) in self.sources.iter() {
-                // TODO trim source_fn_display_name if necessary to respect
-                // MAX_LEN (don't forget to update unit tests)
-                writeln!(f, "^ {source_fn_display_name} {source_range}")?;
+            for (scope_display_name, source_range) in self.sources.iter() {
+                // TODO trim scope_display_name if necessary to respect MAX_LEN
+                // (don't forget to update unit tests)
+                writeln!(f, "^ {scope_display_name} {source_range}")?;
             }
 
             Ok(())

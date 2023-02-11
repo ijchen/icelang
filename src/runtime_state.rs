@@ -24,13 +24,18 @@ impl<'source> RuntimeState<'source> {
     pub fn new() -> Self {
         Self {
             most_recent_value: Value::Null,
-            call_stack: CallStack::new(),
+            call_stack: CallStack::new("<global>".to_string()),
         }
     }
 
+    /// Returns the display name of the current scope
+    pub fn scope_display_name(&self) -> &str {
+        self.call_stack.scope_display_name()
+    }
+
     /// Pushes a new stack frame to the call stack
-    pub fn push_stack_frame(&mut self) {
-        self.call_stack.push_stack_frame();
+    pub fn push_stack_frame(&mut self, display_name: String) {
+        self.call_stack.push_stack_frame(display_name);
     }
 
     /// Pops a stack frame from the call stack

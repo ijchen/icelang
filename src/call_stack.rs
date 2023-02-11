@@ -15,16 +15,25 @@ pub struct CallStack<'source> {
 
 impl<'source> CallStack<'source> {
     /// Constructs a new CallStack
-    pub fn new() -> Self {
+    pub fn new(base_frame_display_name: String) -> Self {
         Self {
-            base_frame: StackFrame::new(),
+            base_frame: StackFrame::new(base_frame_display_name),
             stack: Vec::new(),
         }
     }
 
+    /// Returns the display name of the current scope
+    pub fn scope_display_name(&self) -> &str {
+        if !self.stack.is_empty() {
+            self.stack[self.stack.len() - 1].display_name()
+        } else {
+            self.base_frame.display_name()
+        }
+    }
+
     /// Pushes a new stack frame to the call stack
-    pub fn push_stack_frame(&mut self) {
-        self.stack.push(StackFrame::new());
+    pub fn push_stack_frame(&mut self, display_name: String) {
+        self.stack.push(StackFrame::new(display_name));
     }
 
     /// Pops a stack frame from the call stack
@@ -129,26 +138,27 @@ impl<'source> CallStack<'source> {
     }
 }
 
-impl Default for CallStack<'_> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 /// An icelang stack frame
 #[derive(Debug, Clone)]
 pub struct StackFrame<'source> {
+    display_name: String,
     local: SymbolTable<'source>,
     scopes: Vec<SymbolTable<'source>>,
 }
 
 impl<'source> StackFrame<'source> {
     /// Constructs a new StackFrame
-    pub fn new() -> Self {
+    pub fn new(display_name: String) -> Self {
         Self {
+            display_name,
             local: SymbolTable::new(),
             scopes: Vec::new(),
         }
+    }
+
+    /// Returns the display name of the stack frame
+    pub fn display_name(&self) -> &str {
+        &self.display_name
     }
 
     /// Looks up a variable in the stack frame
@@ -241,11 +251,5 @@ impl<'source> StackFrame<'source> {
             let last_index = self.scopes.len() - 1;
             self.scopes[last_index].declare_function(identifier, parameters, body, pos);
         }
-    }
-}
-
-impl Default for StackFrame<'_> {
-    fn default() -> Self {
-        Self::new()
     }
 }
