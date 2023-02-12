@@ -41,6 +41,12 @@ impl<'source> SymbolTable<'source> {
         self.variables.get(identifier)
     }
 
+    /// Looks up a variable (mutably) in the symbol table, returning None if the
+    /// variable isn't defined
+    pub fn lookup_variable_mut(&mut self, identifier: &str) -> Option<&mut Value> {
+        self.variables.get_mut(identifier)
+    }
+
     /// Declares a new function with the given parameters and body, or adds an
     /// overload to an existing function group
     ///

@@ -94,6 +94,18 @@ pub enum RuntimeError<'source> {
         /// The stack trace for the error
         stack_trace: StackTrace<'source>,
     },
+
+    /// Attempted to access a member of a value in an invalid way
+    InvalidMemberAccess {
+        /// The position of the error
+        pos: SourceRange<'source>,
+
+        /// The stack trace for the error
+        stack_trace: StackTrace<'source>,
+
+        /// An explanation of why the member access was invalid
+        why: String,
+    },
 }
 
 impl<'source> RuntimeError<'source> {
@@ -184,6 +196,21 @@ impl<'source> RuntimeError<'source> {
         Self::CalledNonFunction { pos, stack_trace }
     }
 
+    /// Constructs a new InvalidMemberAccess RuntimeError
+    pub fn new_invalid_member_access_error(
+        pos: SourceRange<'source>,
+        scope_display_name: String,
+        why: String,
+    ) -> Self {
+        let mut stack_trace = StackTrace::new();
+        stack_trace.add_bottom(scope_display_name, pos.clone());
+        Self::InvalidMemberAccess {
+            pos,
+            stack_trace,
+            why,
+        }
+    }
+
     /// Returns the StackTrace corresponding to this error
     pub fn stack_trace(&self) -> &StackTrace<'source> {
         match self {
@@ -221,6 +248,11 @@ impl<'source> RuntimeError<'source> {
             Self::CalledNonFunction {
                 pos: _,
                 stack_trace,
+            } => stack_trace,
+            Self::InvalidMemberAccess {
+                pos: _,
+                stack_trace,
+                why: _,
             } => stack_trace,
         }
     }
@@ -263,6 +295,11 @@ impl<'source> RuntimeError<'source> {
                 pos: _,
                 stack_trace,
             } => stack_trace,
+            Self::InvalidMemberAccess {
+                pos: _,
+                stack_trace,
+                why: _,
+            } => stack_trace,
         }
     }
 
@@ -303,6 +340,11 @@ impl<'source> RuntimeError<'source> {
             Self::CalledNonFunction {
                 pos,
                 stack_trace: _,
+            } => pos,
+            Self::InvalidMemberAccess {
+                pos,
+                stack_trace: _,
+                why: _,
             } => pos,
         }
     }
@@ -352,6 +394,11 @@ impl Display for RuntimeError<'_> {
                 pos: _,
                 stack_trace: _,
             } => "attempt to call something which is not a function".to_string(),
+            Self::InvalidMemberAccess {
+                pos: _,
+                stack_trace: _,
+                why,
+            } => why.to_string(),
         };
 
         error_formatting::write_error(

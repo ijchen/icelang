@@ -26,7 +26,7 @@ impl<'source> AstNodeComputedMemberAccess<'source> {
     }
 
     /// Returns the root of the computed member access node
-    pub fn root(&self) -> &AstNode {
+    pub fn root(&self) -> &AstNode<'source> {
         &self.root
     }
 

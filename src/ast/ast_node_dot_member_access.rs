@@ -22,7 +22,7 @@ impl<'source> AstNodeDotMemberAccess<'source> {
     }
 
     /// Returns the root of the usage suffix node
-    pub fn root(&self) -> &AstNode {
+    pub fn root(&self) -> &AstNode<'source> {
         &self.root
     }
 

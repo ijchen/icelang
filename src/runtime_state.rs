@@ -86,6 +86,11 @@ impl<'source> RuntimeState<'source> {
         self.call_stack.lookup_variable(identifier)
     }
 
+    /// Looks up a variable (mutably) in the runtime state
+    pub fn lookup_variable_mut(&mut self, identifier: &str) -> Option<&mut Value> {
+        self.call_stack.lookup_variable_mut(identifier)
+    }
+
     /// Looks up a variable in the runtime state, only checking the most local
     /// scope
     pub fn lookup_local_variable(&self, identifier: &str) -> Option<&Value> {

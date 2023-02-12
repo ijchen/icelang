@@ -57,6 +57,18 @@ impl<'source> CallStack<'source> {
         self.base_frame.lookup_variable(identifier)
     }
 
+    /// Looks up a variable (mutably) in the call stack
+    pub fn lookup_variable_mut(&mut self, identifier: &str) -> Option<&mut Value> {
+        if !self.stack.is_empty() {
+            let last_index = self.stack.len() - 1;
+            if let Some(value) = self.stack[last_index].lookup_variable_mut(identifier) {
+                return Some(value);
+            }
+        }
+
+        self.base_frame.lookup_variable_mut(identifier)
+    }
+
     /// Looks up a variable in the call stack, only checking the most local
     /// scope
     pub fn lookup_local_variable(&self, identifier: &str) -> Option<&Value> {
@@ -170,6 +182,17 @@ impl<'source> StackFrame<'source> {
         }
 
         self.local.lookup_variable(identifier)
+    }
+
+    /// Looks up a variable (mutably) in the stack frame
+    pub fn lookup_variable_mut(&mut self, identifier: &str) -> Option<&mut Value> {
+        for scope in self.scopes.iter_mut().rev() {
+            if let Some(value) = scope.lookup_variable_mut(identifier) {
+                return Some(value);
+            }
+        }
+
+        self.local.lookup_variable_mut(identifier)
     }
 
     /// Looks up a variable in the stack frame, only checking the most local
