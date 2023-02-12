@@ -8,6 +8,7 @@ mod core;
 mod functions;
 mod inline_conditionals;
 mod literals;
+mod member_access;
 mod unary_operations;
 mod variables;
 

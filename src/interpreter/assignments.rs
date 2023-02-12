@@ -36,11 +36,11 @@ pub fn assign_to_lvalue<'source>(
                     let key = Value::String(node.member().into());
                     dict.borrow_mut().insert(key, value);
                 }
-                value => {
+                root => {
                     return Err(RuntimeError::new_invalid_member_access_error(
                         node.pos().clone(),
                         scope_display_name,
-                        format!("cannot index value of type {}", value.icelang_type()),
+                        format!("cannot index value of type {}", root.icelang_type()),
                     ))
                 }
             }
