@@ -46,6 +46,19 @@ impl<'source> RuntimeState<'source> {
         self.call_stack.pop_stack_frame();
     }
 
+    /// Pushes a new scope to the stack frame
+    pub fn push_scope(&mut self) {
+        self.call_stack.push_scope();
+    }
+
+    /// Pops a scope from the stack frame
+    ///
+    /// # Panics
+    /// - If the stack frame's scope list is empty
+    pub fn pop_scope(&mut self) {
+        self.call_stack.pop_scope();
+    }
+
     /// Returns the most recent value from an expression
     pub fn most_recent_value(&self) -> &Value {
         &self.most_recent_value

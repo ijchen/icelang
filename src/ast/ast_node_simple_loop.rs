@@ -28,12 +28,12 @@ impl<'source> AstNodeSimpleLoop<'source> {
     }
 
     /// Returns the condition of the while loop node
-    pub fn condition(&self) -> Option<&AstNode> {
+    pub fn condition(&self) -> Option<&AstNode<'source>> {
         self.condition.as_deref()
     }
 
     /// Returns the body of the while loop node
-    pub fn body(&self) -> &Vec<AstNode> {
+    pub fn body(&self) -> &Vec<AstNode<'source>> {
         &self.body
     }
 

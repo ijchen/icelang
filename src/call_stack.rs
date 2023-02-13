@@ -46,6 +46,29 @@ impl<'source> CallStack<'source> {
         self.stack.pop().unwrap();
     }
 
+    /// Pushes a new scope to the stack frame
+    pub fn push_scope(&mut self) {
+        if self.stack.is_empty() {
+            self.base_frame.push_scope();
+        } else {
+            let last_index = self.stack.len() - 1;
+            self.stack[last_index].push_scope();
+        }
+    }
+
+    /// Pops a scope from the stack frame
+    ///
+    /// # Panics
+    /// - If the stack frame's scope list is empty
+    pub fn pop_scope(&mut self) {
+        if self.stack.is_empty() {
+            self.base_frame.pop_scope();
+        } else {
+            let last_index = self.stack.len() - 1;
+            self.stack[last_index].pop_scope();
+        }
+    }
+
     /// Looks up a variable in the call stack
     pub fn lookup_variable(&self, identifier: &str) -> Option<&Value> {
         if !self.stack.is_empty() {
@@ -171,6 +194,21 @@ impl<'source> StackFrame<'source> {
     /// Returns the display name of the stack frame
     pub fn display_name(&self) -> &str {
         &self.display_name
+    }
+
+    /// Pushes a new scope to the stack frame
+    pub fn push_scope(&mut self) {
+        self.scopes.push(SymbolTable::new());
+    }
+
+    /// Pops a scope from the stack frame
+    ///
+    /// # Panics
+    /// - If the stack frame's scope list is empty
+    pub fn pop_scope(&mut self) {
+        assert!(!self.scopes.is_empty());
+
+        self.scopes.pop().unwrap();
     }
 
     /// Looks up a variable in the stack frame

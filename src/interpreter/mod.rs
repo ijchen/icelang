@@ -4,6 +4,7 @@ mod assignments;
 mod binary_operations;
 mod casting;
 mod comparisons;
+mod control_flow;
 mod core;
 mod functions;
 mod inline_conditionals;
