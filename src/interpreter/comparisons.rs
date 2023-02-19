@@ -3,6 +3,7 @@ use std::rc::Rc;
 use crate::{
     ast::{AstNodeComparison, ComparisonKind},
     error::runtime_error::RuntimeError,
+    icelang_type::IcelangType,
     runtime_state::RuntimeState,
     value::Value,
 };
@@ -103,13 +104,14 @@ pub fn interpret_comparison<'source>(
                 kind => invalid_types!(state, lhs, kind, rhs),
             },
 
-            (Value::Null, Value::Null) => match kind {
-                ComparisonKind::Equal => true,
-                ComparisonKind::NotEqual => false,
+            // Null may be compared with anything
+            (Value::Null, other) | (other, Value::Null) => match kind {
+                ComparisonKind::Equal => other.icelang_type() == IcelangType::Null,
+                ComparisonKind::NotEqual => other.icelang_type() != IcelangType::Null,
                 kind => invalid_types!(state, lhs, kind, rhs),
             },
 
-            // Different types cannot be compared
+            // Besides null, Different types cannot be compared
             (lhs, rhs) => invalid_types!(state, lhs, kind, rhs),
         };
 

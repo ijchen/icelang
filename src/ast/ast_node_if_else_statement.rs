@@ -28,12 +28,12 @@ impl<'source> AstNodeIfElseStatement<'source> {
     }
 
     /// Returns the conditional branches of the if-else statement
-    pub fn conditional_branches(&self) -> &Vec<(AstNode, Vec<AstNode>)> {
+    pub fn conditional_branches(&self) -> &Vec<(AstNode<'source>, Vec<AstNode<'source>>)> {
         &self.conditional_branches
     }
 
     /// Returns the optional else branch of the if-else statement
-    pub fn else_branch(&self) -> Option<&Vec<AstNode>> {
+    pub fn else_branch(&self) -> Option<&Vec<AstNode<'source>>> {
         self.else_branch.as_ref()
     }
 
