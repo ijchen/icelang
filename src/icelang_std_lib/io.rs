@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crate::{
     error::runtime_error::RuntimeError, runtime_state::RuntimeState, source_range::SourceRange,
     value::Value,
@@ -12,6 +14,9 @@ pub fn isl_print<'source>(
     match arguments.len() {
         1 => {
             print!("{}", arguments[0].icelang_display());
+            if std::io::stdout().flush().is_err() {
+                todo!();
+            }
 
             Ok(Value::Null)
         }
@@ -59,6 +64,9 @@ pub fn isl_eprint<'source>(
     match arguments.len() {
         1 => {
             eprint!("{}", arguments[0].icelang_display());
+            if std::io::stdout().flush().is_err() {
+                todo!();
+            }
 
             Ok(Value::Null)
         }
@@ -92,6 +100,29 @@ pub fn isl_eprintln<'source>(
             pos.clone(),
             state.scope_display_name().to_string(),
             "eprintln".to_string(),
+            argument_count,
+        )),
+    }
+}
+
+/// The `input` icelang standard library function
+pub fn isl_input<'source>(
+    arguments: Vec<Value>,
+    pos: &SourceRange<'source>,
+    state: &mut RuntimeState<'source>,
+) -> Result<Value, RuntimeError<'source>> {
+    match arguments.len() {
+        0 => match std::io::stdin().lines().next() {
+            Some(input_result) => match input_result {
+                Ok(input) => Ok(Value::String(input.into())),
+                Err(_) => Ok(Value::Null),
+            },
+            None => Ok(Value::Null),
+        },
+        argument_count => Err(RuntimeError::new_invalid_overload_error(
+            pos.clone(),
+            state.scope_display_name().to_string(),
+            "input".to_string(),
             argument_count,
         )),
     }

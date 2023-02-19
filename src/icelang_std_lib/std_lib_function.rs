@@ -10,6 +10,7 @@ pub enum StdLibFunction {
     Println,
     Eprint,
     Eprintln,
+    Input,
 }
 
 impl StdLibFunction {
@@ -21,6 +22,7 @@ impl StdLibFunction {
             "println" => Some(Self::Println),
             "eprint" => Some(Self::Eprint),
             "eprintln" => Some(Self::Eprintln),
+            "input" => Some(Self::Input),
             _ => None,
         }
     }
@@ -37,6 +39,7 @@ impl StdLibFunction {
             StdLibFunction::Println => isl_println(arguments, pos, state),
             StdLibFunction::Eprint => isl_eprint(arguments, pos, state),
             StdLibFunction::Eprintln => isl_eprintln(arguments, pos, state),
+            StdLibFunction::Input => isl_input(arguments, pos, state),
         }?;
 
         Ok(return_value)
