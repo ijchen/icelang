@@ -63,9 +63,23 @@ pub fn interpret_simple_loop<'source>(
             }
             _ => todo!(),
         },
-        None => {
-            todo!()
-        }
+        None => 'icelang_loop: loop {
+            state.push_scope();
+
+            for statement in simple_loop.body() {
+                if let AstNode::JumpStatement(statement) = statement {
+                    match statement.jump_kind() {
+                        crate::ast::JumpStatementKind::Break => break 'icelang_loop,
+                        crate::ast::JumpStatementKind::Continue => break,
+                        crate::ast::JumpStatementKind::Return => todo!(),
+                    }
+                }
+
+                interpret_statement(statement, state)?;
+            }
+
+            state.pop_scope();
+        },
     }
 
     Ok(())
