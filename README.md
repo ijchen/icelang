@@ -1,4 +1,4 @@
-# icelang
+# ![icelang logo](assets/icelang%20(24x24).png) icelang
 
 [![Test status](https://github.com/ijchen/icelang/actions/workflows/tests.yml/badge.svg)](https://github.com/ijchen/icelang/actions/workflows/tests.yml)
 [![Docs](https://img.shields.io/docsrs/icelang/latest)](https://docs.rs/icelang)
@@ -58,7 +58,7 @@ loop 10 {
 
 icelang is still in development, and has a number of incomplete or missing
 features:
-- [ ] Make a cool logo
+- [x] Make a cool logo
 - [ ] Guidebook
   - [ ] Language features
     - [ ] Program structure
