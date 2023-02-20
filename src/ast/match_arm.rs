@@ -25,12 +25,12 @@ impl<'source> MatchArm<'source> {
     }
 
     /// Returns the pattern of the match arm
-    pub fn pattern(&self) -> &AstNode {
+    pub fn pattern(&self) -> &AstNode<'source> {
         &self.pattern
     }
 
     /// Returns the body of the match arm
-    pub fn body(&self) -> &Vec<AstNode> {
+    pub fn body(&self) -> &Vec<AstNode<'source>> {
         &self.body
     }
 

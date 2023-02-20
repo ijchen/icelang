@@ -36,12 +36,12 @@ impl<'source> AstNodeForLoop<'source> {
     }
 
     /// Returns the iterable expression of the for loop node
-    pub fn iterable(&self) -> &AstNode {
+    pub fn iterable(&self) -> &AstNode<'source> {
         &self.iterable
     }
 
     /// Returns the body of the for loop node
-    pub fn body(&self) -> &Vec<AstNode> {
+    pub fn body(&self) -> &Vec<AstNode<'source>> {
         &self.body
     }
 

@@ -28,7 +28,7 @@ impl<'source> AstNodeMatchStatement<'source> {
     }
 
     /// Returns the matched expression of the match statement
-    pub fn matched_expression(&self) -> &AstNode {
+    pub fn matched_expression(&self) -> &AstNode<'source> {
         &self.matched_expression
     }
 

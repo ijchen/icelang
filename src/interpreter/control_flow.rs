@@ -1,7 +1,10 @@
 use num_traits::Signed;
 
 use crate::{
-    ast::{AstNode, AstNodeIfElseStatement, AstNodeSimpleLoop, AstNodeWhileLoop},
+    ast::{
+        AstNode, AstNodeForLoop, AstNodeIfElseStatement, AstNodeMatchStatement, AstNodeSimpleLoop,
+        AstNodeWhileLoop,
+    },
     error::runtime_error::RuntimeError,
     runtime_state::RuntimeState,
     value::Value,
@@ -120,6 +123,41 @@ pub fn interpret_while_loop<'source>(
     Ok(())
 }
 
+/// Interprets an AstNodeForLoop
+pub fn interpret_for_loop<'source>(
+    for_loop: &AstNodeForLoop<'source>,
+    state: &mut RuntimeState<'source>,
+) -> Result<(), RuntimeError<'source>> {
+    let Value::List(iterable) = interpret_expression(for_loop.iterable(), state)? else {
+        todo!();
+    };
+    // Take a snapshot of the list as it is at the start of the loop - mutations
+    // of the iterated list shouldn't be reflected in the for loop's iterations
+    let iterable: Vec<Value> = iterable.borrow().clone();
+
+    'icelang_loop: for value in iterable {
+        state.push_scope();
+
+        state.declare_variable(for_loop.ident().to_string(), value);
+
+        for statement in for_loop.body() {
+            if let AstNode::JumpStatement(statement) = statement {
+                match statement.jump_kind() {
+                    crate::ast::JumpStatementKind::Break => break 'icelang_loop,
+                    crate::ast::JumpStatementKind::Continue => break,
+                    crate::ast::JumpStatementKind::Return => todo!(),
+                }
+            }
+
+            interpret_statement(statement, state)?;
+        }
+
+        state.pop_scope();
+    }
+
+    Ok(())
+}
+
 /// Interprets an AstNodeIfElseStatement
 pub fn interpret_if_else_statement<'source>(
     if_else_statement: &AstNodeIfElseStatement<'source>,
@@ -153,6 +191,32 @@ pub fn interpret_if_else_statement<'source>(
     if let Some(else_branch_body) = if_else_statement.else_branch() {
         for statement in else_branch_body {
             interpret_statement(statement, state)?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Interprets an AstNodeWhileLoop
+pub fn interpret_match_statement<'source>(
+    match_statement: &AstNodeMatchStatement<'source>,
+    state: &mut RuntimeState<'source>,
+) -> Result<(), RuntimeError<'source>> {
+    let matched_value = interpret_expression(match_statement.matched_expression(), state)?;
+
+    for arm in match_statement.arms() {
+        let pattern_value = interpret_expression(arm.pattern(), state)?;
+        // TODO use icelang eq instead of Rust eq
+        if matched_value == pattern_value {
+            state.push_scope();
+
+            for statement in arm.body() {
+                interpret_statement(statement, state)?;
+            }
+
+            state.pop_scope();
+
+            break;
         }
     }
 
