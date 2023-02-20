@@ -1,7 +1,7 @@
 use num_traits::Signed;
 
 use crate::{
-    ast::{AstNode, AstNodeIfElseStatement, AstNodeSimpleLoop},
+    ast::{AstNode, AstNodeIfElseStatement, AstNodeSimpleLoop, AstNodeWhileLoop},
     error::runtime_error::RuntimeError,
     runtime_state::RuntimeState,
     value::Value,
@@ -80,6 +80,41 @@ pub fn interpret_simple_loop<'source>(
 
             state.pop_scope();
         },
+    }
+
+    Ok(())
+}
+
+/// Interprets an AstNodeWhileLoop
+pub fn interpret_while_loop<'source>(
+    while_loop: &AstNodeWhileLoop<'source>,
+    state: &mut RuntimeState<'source>,
+) -> Result<(), RuntimeError<'source>> {
+    'icelang_loop: loop {
+        match interpret_expression(while_loop.condition(), state)? {
+            Value::Bool(condition_value) => {
+                if !condition_value {
+                    break;
+                }
+
+                state.push_scope();
+
+                for statement in while_loop.body() {
+                    if let AstNode::JumpStatement(statement) = statement {
+                        match statement.jump_kind() {
+                            crate::ast::JumpStatementKind::Break => break 'icelang_loop,
+                            crate::ast::JumpStatementKind::Continue => break,
+                            crate::ast::JumpStatementKind::Return => todo!(),
+                        }
+                    }
+
+                    interpret_statement(statement, state)?;
+                }
+
+                state.pop_scope();
+            }
+            _ => todo!(),
+        }
     }
 
     Ok(())

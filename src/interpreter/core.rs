@@ -1,7 +1,7 @@
 use super::{
     assignments::interpret_assignment,
     comparisons::interpret_comparison,
-    control_flow::{interpret_if_else_statement, interpret_simple_loop},
+    control_flow::{interpret_if_else_statement, interpret_simple_loop, interpret_while_loop},
     functions::{interpret_function_call, interpret_function_declaration},
     inline_conditionals::interpret_inline_conditional,
     member_access::{interpret_computed_member_access, interpret_dot_member_access},
@@ -81,7 +81,7 @@ pub fn interpret_statement<'source>(
         }
         AstNode::JumpStatement(_) => todo!(),
         AstNode::SimpleLoop(node) => interpret_simple_loop(node, state),
-        AstNode::WhileLoop(_) => todo!(),
+        AstNode::WhileLoop(node) => interpret_while_loop(node, state),
         AstNode::ForLoop(_) => todo!(),
         AstNode::MatchStatement(_) => todo!(),
         AstNode::IfElseStatement(node) => interpret_if_else_statement(node, state),
