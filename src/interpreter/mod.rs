@@ -10,6 +10,7 @@ mod functions;
 mod inline_conditionals;
 mod literals;
 mod member_access;
+mod operations;
 mod unary_operations;
 mod variables;
 

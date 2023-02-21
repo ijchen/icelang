@@ -1,210 +1,139 @@
-use num_bigint::BigInt;
-use num_traits::{ToPrimitive, Zero};
-
 use crate::{
     ast::{AstNodeBinaryOperation, BinaryOperationKind},
     error::runtime_error::RuntimeError,
-    interpreter::core::interpret_expression,
+    interpreter::{
+        core::interpret_expression,
+        operations::{
+            addition, bitwise_and, bitwise_or, bitwise_xor, division, exponentiation, modulo,
+            multiplication, shift_left, shift_right, subtraction, OperationError,
+        },
+    },
     runtime_state::RuntimeState,
     value::Value,
 };
 
-macro_rules! impl_simple_bin_op {
+macro_rules! impl_bin_op {
     (
-        $func_name:ident,
-        $node:ident,
-        $state:ident,
-        $lhs:ident,
-        $rhs:ident,
-        $op_kind:ident,
-        {$(
-            $lhs_type:ident,
-            $rhs_type:ident => $result:expr
-        ),+$(,)?}
+        $func_name: ident,
+        $operation_func_name: ident,
+        $operation_kind: ident
     ) => {
         fn $func_name<'source>(
-            $node: &AstNodeBinaryOperation<'source>,
-            $state: &mut RuntimeState<'source>,
+            node: &AstNodeBinaryOperation<'source>,
+            state: &mut RuntimeState<'source>,
         ) -> Result<Value, RuntimeError<'source>> {
-            assert!($node.operation() == BinaryOperationKind::$op_kind);
+            assert!(node.operation() == BinaryOperationKind::$operation_kind);
 
-            let lhs = interpret_expression($node.lhs(), $state)?;
-            let rhs = interpret_expression($node.rhs(), $state)?;
+            let lhs = interpret_expression(node.lhs(), state)?;
+            let rhs = interpret_expression(node.rhs(), state)?;
 
-            match (lhs, rhs) {
-                $(
-                    (Value::$lhs_type($lhs), Value::$rhs_type($rhs)) => $result,
-                )+
-                ($lhs, $rhs) => Err(
-                    RuntimeError::new_type_error(
-                        $node.pos().clone(),
-                        $state.scope_display_name().to_string(),
-                        format!(
-                            "invalid types for binary operation: {} {} {}",
-                            $lhs.icelang_type(),
-                            $node.operation(),
-                            $rhs.icelang_type(),
-                        )
-                    )
+            $operation_func_name(lhs, rhs).map_err(|op_err| match op_err {
+                OperationError::Type { why } => RuntimeError::new_type_error(
+                    node.pos().clone(),
+                    state.scope_display_name().to_string(),
+                    why,
                 ),
-            }
+                OperationError::Mathematical { why } => RuntimeError::new_mathematical_error(
+                    node.pos().clone(),
+                    state.scope_display_name().to_string(),
+                    why,
+                ),
+            })
         }
     };
 }
 
-impl_simple_bin_op!(interpret_logical_or, node, state, lhs, rhs, LogicalOr, {
-    Bool, Bool => Ok(Value::Bool(lhs || rhs)),
-});
+fn interpret_logical_or<'source>(
+    node: &AstNodeBinaryOperation<'source>,
+    state: &mut RuntimeState<'source>,
+) -> Result<Value, RuntimeError<'source>> {
+    assert!(node.operation() == BinaryOperationKind::LogicalOr);
 
-impl_simple_bin_op!(interpret_logical_and, node, state, lhs, rhs, LogicalAnd, {
-    Bool, Bool => Ok(Value::Bool(lhs && rhs)),
-});
-
-impl_simple_bin_op!(interpret_bitwise_xor, node, state, lhs, rhs, BitwiseXor, {
-    Int, Int => Ok(Value::Int(lhs ^ rhs)),
-    Byte, Byte => Ok(Value::Byte(lhs ^ rhs)),
-});
-
-impl_simple_bin_op!(interpret_bitwise_or, node, state, lhs, rhs, BitwiseXor, {
-    Int, Int => Ok(Value::Int(lhs | rhs)),
-    Byte, Byte => Ok(Value::Byte(lhs | rhs)),
-});
-
-impl_simple_bin_op!(interpret_bitwise_and, node, state, lhs, rhs, BitwiseAnd, {
-    Int, Int => Ok(Value::Int(lhs & rhs)),
-    Byte, Byte => Ok(Value::Byte(lhs & rhs)),
-});
-
-impl_simple_bin_op!(interpret_shift_left, node, state, lhs, rhs, ShiftLeft, {
-    Int, Int => {
-        let mut rhs = rhs;
-        let mut lhs = lhs;
-        while rhs > BigInt::from(u32::MAX) {
-            rhs -= u32::MAX;
-            lhs <<= u32::MAX;
-        }
-        lhs <<= rhs.to_u32().unwrap();
-        Ok(Value::Int(lhs))
-    },
-    Byte, Byte => {
-        if rhs >= u8::BITS as u8 {
-            Ok(Value::Byte(0))
-        }
-        else {
-            Ok(Value::Byte(lhs << rhs))
-        }
-    },
-});
-
-impl_simple_bin_op!(interpret_shift_right, node, state, lhs, rhs, ShiftRight, {
-    Int, Int => {
-        let mut rhs = rhs;
-        let mut lhs = lhs;
-        while rhs > BigInt::from(u32::MAX) {
-            rhs -= u32::MAX;
-            lhs >>= u32::MAX;
-        }
-        lhs >>= rhs.to_u32().unwrap();
-        Ok(Value::Int(lhs))
-    },
-    Byte, Byte => {
-        if rhs >= u8::BITS as u8 {
-            Ok(Value::Byte(0))
-        }
-        else {
-            Ok(Value::Byte(lhs >> rhs))
-        }
-    },
-});
-
-impl_simple_bin_op!(interpret_addition, node, state, lhs, rhs, Addition, {
-    Int, Int => Ok(Value::Int(lhs + rhs)),
-    Byte, Byte => Ok(Value::Byte(lhs.wrapping_add(rhs))),
-    Float, Float => Ok(Value::Float(lhs + rhs)),
-    String, String => {
-        Ok(Value::String((lhs.to_string() + &*rhs).into()))
-    },
-});
-
-impl_simple_bin_op!(interpret_subtraction, node, state, lhs, rhs, Subtraction, {
-    Int, Int => Ok(Value::Int(lhs - rhs)),
-    Byte, Byte => Ok(Value::Byte(lhs.wrapping_sub(rhs))),
-    Float, Float => Ok(Value::Float(lhs - rhs)),
-});
-
-impl_simple_bin_op!(interpret_multiplication, node, state, lhs, rhs, Multiplication, {
-    Int, Int => Ok(Value::Int(lhs * rhs)),
-    Byte, Byte => Ok(Value::Byte(lhs.wrapping_mul(rhs))),
-    Float, Float => Ok(Value::Float(lhs * rhs)),
-    String, Int => {
-        // TODO this can panic if the output string is too large or rhs doesn't
-        // fit in a usize
-        Ok(Value::String((lhs.repeat(rhs.to_usize().unwrap())).into()))
-    },
-    String, Byte => {
-        // TODO this can panic if the output string is too large
-        Ok(Value::String((lhs.repeat(rhs as usize)).into()))
-    },
-});
-
-impl_simple_bin_op!(interpret_division, node, state, lhs, rhs, Division, {
-    Int, Int => if rhs.is_zero() {
-        Err(RuntimeError::new_mathematical_error(
+    let lhs = interpret_expression(node.lhs(), state)?;
+    let Value::Bool(lhs_value) = lhs else {
+        return Err(RuntimeError::new_type_error(
             node.pos().clone(),
             state.scope_display_name().to_string(),
-            "division by zero".to_string()
-        ))
-    } else {
-        Ok(Value::Int(lhs / rhs))
-    },
-    Byte, Byte => if rhs == 0 {
-        Err(RuntimeError::new_mathematical_error(
-            node.pos().clone(),
-            state.scope_display_name().to_string(),
-            "division by zero".to_string()
-        ))
-    } else {
-        Ok(Value::Byte(lhs / rhs))
-    },
-    Float, Float => Ok(Value::Float(lhs / rhs)),
-});
+            format!(
+                "invalid types for binary operation: {} {} ...",
+                lhs.icelang_type(),
+                BinaryOperationKind::LogicalOr
+            ),
+        ));
+    };
 
-impl_simple_bin_op!(interpret_modulo, node, state, lhs, rhs, Modulo, {
-    Int, Int => if rhs.is_zero() {
-        Err(RuntimeError::new_mathematical_error(
-            node.pos().clone(),
-            state.scope_display_name().to_string(),
-            "modulo by zero".to_string()
-        ))
-    } else {
-        Ok(Value::Int(((lhs % &rhs) + &rhs) % &rhs))
-    },
-    Byte, Byte => if rhs == 0 {
-        Err(RuntimeError::new_mathematical_error(
-            node.pos().clone(),
-            state.scope_display_name().to_string(),
-            "modulo by zero".to_string()
-        ))
-    } else {
-        Ok(Value::Byte(lhs.wrapping_rem_euclid(rhs)))
-    },
-    Float, Float => Ok(Value::Float(((lhs % rhs) + rhs) % rhs)),
-});
+    if lhs_value {
+        return Ok(Value::Bool(true));
+    }
 
-impl_simple_bin_op!(interpret_exponentiation, node, state, lhs, rhs, Exponentiation, {
-    Int, Int => {
-        let mut rhs = rhs;
-        let mut result = BigInt::from(1u8);
-        while rhs > BigInt::from(u32::MAX) {
-            rhs -= u32::MAX;
-            result *= lhs.pow(u32::MAX);
-        }
-        result *= lhs.pow(rhs.to_u32().unwrap());
-        Ok(Value::Int(result))
-    },
-    Byte, Byte => Ok(Value::Byte(lhs.wrapping_pow(rhs as u32))),
-    Float, Float => Ok(Value::Float(lhs.powf(rhs))),
-});
+    let rhs = interpret_expression(node.rhs(), state)?;
+    let Value::Bool(rhs_value) = rhs else {
+        return Err(RuntimeError::new_type_error(
+            node.pos().clone(),
+            state.scope_display_name().to_string(),
+            format!(
+                "invalid types for binary operation: {} {} {}",
+                lhs.icelang_type(),
+                BinaryOperationKind::LogicalOr,
+                rhs.icelang_type(),
+            ),
+        ));
+    };
+
+    Ok(Value::Bool(rhs_value))
+}
+
+fn interpret_logical_and<'source>(
+    node: &AstNodeBinaryOperation<'source>,
+    state: &mut RuntimeState<'source>,
+) -> Result<Value, RuntimeError<'source>> {
+    assert!(node.operation() == BinaryOperationKind::LogicalAnd);
+
+    let lhs = interpret_expression(node.lhs(), state)?;
+    let Value::Bool(lhs_value) = lhs else {
+        return Err(RuntimeError::new_type_error(
+            node.pos().clone(),
+            state.scope_display_name().to_string(),
+            format!(
+                "invalid types for binary operation: {} {} ...",
+                lhs.icelang_type(),
+                BinaryOperationKind::LogicalAnd
+            ),
+        ));
+    };
+
+    if !lhs_value {
+        return Ok(Value::Bool(false));
+    }
+
+    let rhs = interpret_expression(node.rhs(), state)?;
+    let Value::Bool(rhs_value) = rhs else {
+        return Err(RuntimeError::new_type_error(
+            node.pos().clone(),
+            state.scope_display_name().to_string(),
+            format!(
+                "invalid types for binary operation: {} {} {}",
+                lhs.icelang_type(),
+                BinaryOperationKind::LogicalOr,
+                rhs.icelang_type(),
+            ),
+        ));
+    };
+
+    Ok(Value::Bool(rhs_value))
+}
+
+impl_bin_op!(interpret_bitwise_xor, bitwise_xor, BitwiseXor);
+impl_bin_op!(interpret_bitwise_or, bitwise_or, BitwiseOr);
+impl_bin_op!(interpret_bitwise_and, bitwise_and, BitwiseAnd);
+impl_bin_op!(interpret_shift_left, shift_left, ShiftLeft);
+impl_bin_op!(interpret_shift_right, shift_right, ShiftRight);
+impl_bin_op!(interpret_addition, addition, Addition);
+impl_bin_op!(interpret_subtraction, subtraction, Subtraction);
+impl_bin_op!(interpret_multiplication, multiplication, Multiplication);
+impl_bin_op!(interpret_division, division, Division);
+impl_bin_op!(interpret_modulo, modulo, Modulo);
+impl_bin_op!(interpret_exponentiation, exponentiation, Exponentiation);
 
 /// Interprets an AstNodeBinaryOperation
 ///
