@@ -1,4 +1,4 @@
-# ![icelang logo](assets/icelang%20(24x24).png) icelang
+![icelang logo](assets/icelang%20with%20text.png)
 
 [![Test status](https://github.com/ijchen/icelang/actions/workflows/tests.yml/badge.svg)](https://github.com/ijchen/icelang/actions/workflows/tests.yml)
 [![Docs](https://img.shields.io/docsrs/icelang/latest)](https://docs.rs/icelang)
