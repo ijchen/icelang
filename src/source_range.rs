@@ -213,7 +213,7 @@ loop 10 {
     let c = a;
     a = b;
     b += c;
-}
+};
 "#,
                     "fib.ice",
                     98,
@@ -256,7 +256,7 @@ loop 10 {
     let c = a;
     a = b;
     b += c;
-}
+};
 "#,
                     "fib.ice",
                     98,
@@ -299,7 +299,7 @@ loop 10 {
     let c = a;
     a = b;
     b += c;
-}
+};
 "#,
                     "fib.ice",
                     98,
@@ -345,7 +345,7 @@ loop 10 {
     let c = a;
     a = b;
     b += c;
-}
+};
 "#,
                     "fib.ice",
                     98,
@@ -388,7 +388,7 @@ loop 10 {
     let c = a;
     a = b;
     b += c;
-}
+};
 "#,
                     "fib.ice",
                     98,

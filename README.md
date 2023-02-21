@@ -51,7 +51,7 @@ loop 10 {
     let c = a;
     a = b;
     b += c;
-}
+};
 ```
 
 # To-do

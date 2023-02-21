@@ -7,7 +7,7 @@ use crate::{
     value::Value,
 };
 
-use super::core::interpret_expression;
+use super::{core::interpret_expression, operations::addition};
 
 /// Assigns a value to an lvalue node
 pub fn assign_to_lvalue<'source>(
@@ -131,7 +131,18 @@ pub fn interpret_assignment<'source>(
 
             Ok(value)
         }
-        AssignmentKind::Plus => todo!(),
+        AssignmentKind::Plus => {
+            let lhs = interpret_expression(assignment.lhs(), state)?;
+            let rhs = interpret_expression(assignment.rhs(), state)?;
+
+            let Ok(value) = addition(lhs, rhs) else {
+                todo!();
+            };
+
+            assign_to_lvalue(assignment.lhs(), value.clone(), state)?;
+
+            Ok(value)
+        }
         AssignmentKind::Minus => todo!(),
         AssignmentKind::Times => todo!(),
         AssignmentKind::Div => todo!(),
