@@ -12,13 +12,14 @@ include = ["src/", "Cargo.toml", "README.md", "LICENSE-*"]
 publish = false
 
 [dependencies]
-clap = { version = "4.0", features = ["derive"] }
-rustyline = "10.0"
-typed-arena = "2.0"
-clearscreen = "1.0.10"
+clap = { version = "4.2.1", features = ["derive"] }
+rustyline = "11.0.0"
+typed-arena = "2.0.2"
+# clearscreen = "2.0.0" # TODO update once they update their nom dependency
+clearscreen = { git = "https://github.com/watchexec/clearscreen.git", rev = "7507d59" }
 static_assertions = "1.1.0"
-enum-iterator = "1.2.0"
-ordered-float = "3.4.0"
+enum-iterator = "1.4.0"
+ordered-float = "3.6.0"
 num-bigint = "0.4.3"
 num-traits = "0.2.15"
 

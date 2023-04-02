@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use icelang::{interpreter, lexer, parser, runtime_state::RuntimeState};
-use rustyline::{error::ReadlineError, Editor};
+use rustyline::{error::ReadlineError, DefaultEditor};
 use typed_arena::Arena;
 
 use crate::debug_info::print_source_info;
@@ -27,7 +27,7 @@ const SOURCE_NAME: &str = "<stdin>";
 
 pub fn enter_repl(mut show_debug_info: bool) {
     // Initialize readline editor
-    let Ok(mut readline_editor) = Editor::<()>::new() else {
+    let Ok(mut readline_editor) = DefaultEditor::new() else {
         eprintln!("Failed to initialize REPL terminal");
         return;
     };
@@ -57,7 +57,7 @@ pub fn enter_repl(mut show_debug_info: bool) {
             // goes wrong
             let source_code = match readline_editor.readline(">>> ") {
                 Ok(line) => {
-                    readline_editor.add_history_entry(&line);
+                    readline_editor.add_history_entry(&line).unwrap();
                     last_input_was_ctrl_c = false;
                     input_lines.alloc(line)
                 }
