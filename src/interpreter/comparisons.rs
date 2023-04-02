@@ -8,7 +8,10 @@ use crate::{
     value::Value,
 };
 
-use super::core::interpret_expression;
+use super::{
+    core::interpret_expression,
+    runtime_result::{NonLinearControlFlow, RuntimeResult},
+};
 
 /// Interprets an AstNodeComparison
 ///
@@ -17,18 +20,20 @@ use super::core::interpret_expression;
 pub fn interpret_comparison<'source>(
     node: &AstNodeComparison<'source>,
     state: &mut RuntimeState<'source>,
-) -> Result<Value, RuntimeError<'source>> {
+) -> RuntimeResult<'source, Value> {
     // This is repeated often... or, *was* repeated often :)
     macro_rules! invalid_types {
         ($state: ident, $lhs: ident, $kind: ident, $rhs: ident) => {
-            return Err(RuntimeError::new_type_error(
-                node.pos().clone(),
-                $state.scope_display_name().to_string(),
-                format!(
-                    "invalid types for comparison: {} {} {}",
-                    $lhs.icelang_type(),
-                    $kind,
-                    $rhs.icelang_type(),
+            return Err(NonLinearControlFlow::RuntimeError(
+                RuntimeError::new_type_error(
+                    node.pos().clone(),
+                    $state.scope_display_name().to_string(),
+                    format!(
+                        "invalid types for comparison: {} {} {}",
+                        $lhs.icelang_type(),
+                        $kind,
+                        $rhs.icelang_type(),
+                    ),
                 ),
             ))
         };

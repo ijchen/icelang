@@ -7,7 +7,10 @@ use crate::{
     value::Value,
 };
 
-use super::core::interpret_expression;
+use super::{
+    core::interpret_expression,
+    runtime_result::{NonLinearControlFlow, RuntimeResult},
+};
 
 /// Interprets an AstNodeDotMemberAccess
 ///
@@ -16,7 +19,7 @@ use super::core::interpret_expression;
 pub fn interpret_dot_member_access<'source>(
     node: &AstNodeDotMemberAccess<'source>,
     state: &mut RuntimeState<'source>,
-) -> Result<Value, RuntimeError<'source>> {
+) -> RuntimeResult<'source, Value> {
     // TODO Can we avoid the to_string() here? If the lookup fails, we don't
     // need the mutable borrow anymore... I think?
     let scope_display_name = state.scope_display_name().to_string();
@@ -26,17 +29,21 @@ pub fn interpret_dot_member_access<'source>(
             let key = Value::String(node.member().into());
             match dict.borrow().get(&key) {
                 Some(value) => Ok(value.clone()),
-                None => Err(RuntimeError::new_invalid_member_access_error(
-                    node.pos().clone(),
-                    scope_display_name,
-                    format!("key \"{}\" does not exist", node.member()),
+                None => Err(NonLinearControlFlow::RuntimeError(
+                    RuntimeError::new_invalid_member_access_error(
+                        node.pos().clone(),
+                        scope_display_name,
+                        format!("key \"{}\" does not exist", node.member()),
+                    ),
                 )),
             }
         }
-        root => Err(RuntimeError::new_invalid_member_access_error(
-            node.pos().clone(),
-            scope_display_name,
-            format!("cannot index value of type {}", root.icelang_type()),
+        root => Err(NonLinearControlFlow::RuntimeError(
+            RuntimeError::new_invalid_member_access_error(
+                node.pos().clone(),
+                scope_display_name,
+                format!("cannot index value of type {}", root.icelang_type()),
+            ),
         )),
     }
 }
@@ -48,7 +55,7 @@ pub fn interpret_dot_member_access<'source>(
 pub fn interpret_computed_member_access<'source>(
     node: &AstNodeComputedMemberAccess<'source>,
     state: &mut RuntimeState<'source>,
-) -> Result<Value, RuntimeError<'source>> {
+) -> RuntimeResult<'source, Value> {
     // TODO Can we avoid the to_string() here? If the lookup fails, we don't
     // need the mutable borrow anymore... I think?
     let scope_display_name = state.scope_display_name().to_string();
@@ -60,13 +67,15 @@ pub fn interpret_computed_member_access<'source>(
             let index: usize = match member {
                 Value::Int(index) => {
                     if index.is_negative() {
-                        return Err(RuntimeError::new_invalid_member_access_error(
-                            node.pos().clone(),
-                            scope_display_name,
-                            format!(
-                                "index out of bounds (index {}, length {})",
-                                index,
-                                list.len(),
+                        return Err(NonLinearControlFlow::RuntimeError(
+                            RuntimeError::new_invalid_member_access_error(
+                                node.pos().clone(),
+                                scope_display_name,
+                                format!(
+                                    "index out of bounds (index {}, length {})",
+                                    index,
+                                    list.len(),
+                                ),
                             ),
                         ));
                     }
@@ -77,12 +86,14 @@ pub fn interpret_computed_member_access<'source>(
                 }
                 Value::Byte(byte) => byte as usize,
                 member => {
-                    return Err(RuntimeError::new_invalid_member_access_error(
-                        node.pos().clone(),
-                        scope_display_name,
-                        format!(
-                            "cannot index a list with a value of type {}",
-                            member.icelang_type()
+                    return Err(NonLinearControlFlow::RuntimeError(
+                        RuntimeError::new_invalid_member_access_error(
+                            node.pos().clone(),
+                            scope_display_name,
+                            format!(
+                                "cannot index a list with a value of type {}",
+                                member.icelang_type()
+                            ),
                         ),
                     ));
                 }
@@ -90,13 +101,15 @@ pub fn interpret_computed_member_access<'source>(
 
             // Ensure the index is in-bounds
             if index >= list.len() {
-                return Err(RuntimeError::new_invalid_member_access_error(
-                    node.pos().clone(),
-                    scope_display_name,
-                    format!(
-                        "index out of bounds (index {}, length {})",
-                        index,
-                        list.len(),
+                return Err(NonLinearControlFlow::RuntimeError(
+                    RuntimeError::new_invalid_member_access_error(
+                        node.pos().clone(),
+                        scope_display_name,
+                        format!(
+                            "index out of bounds (index {}, length {})",
+                            index,
+                            list.len(),
+                        ),
                     ),
                 ));
             }
@@ -105,18 +118,22 @@ pub fn interpret_computed_member_access<'source>(
         }
         Value::Dict(dict) => match dict.borrow().get(&member) {
             Some(value) => Ok(value.clone()),
-            None => Err(RuntimeError::new_invalid_member_access_error(
-                node.pos().clone(),
-                scope_display_name,
-                format!("key {} does not exist", member.icelang_debug()),
+            None => Err(NonLinearControlFlow::RuntimeError(
+                RuntimeError::new_invalid_member_access_error(
+                    node.pos().clone(),
+                    scope_display_name,
+                    format!("key {} does not exist", member.icelang_debug()),
+                ),
             )),
         },
         Value::String(_) => todo!(),
         root => {
-            return Err(RuntimeError::new_invalid_member_access_error(
-                node.pos().clone(),
-                scope_display_name,
-                format!("cannot index value of type {}", root.icelang_type()),
+            return Err(NonLinearControlFlow::RuntimeError(
+                RuntimeError::new_invalid_member_access_error(
+                    node.pos().clone(),
+                    scope_display_name,
+                    format!("cannot index value of type {}", root.icelang_type()),
+                ),
             ));
         }
     }

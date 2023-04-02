@@ -1,5 +1,5 @@
 use crate::{
-    error::runtime_error::RuntimeError, runtime_state::RuntimeState, source_range::SourceRange,
+    interpreter::RuntimeResult, runtime_state::RuntimeState, source_range::SourceRange,
     value::Value,
 };
 
@@ -33,7 +33,7 @@ impl StdLibFunction {
         arguments: Vec<Value>,
         pos: &SourceRange<'source>,
         state: &mut RuntimeState<'source>,
-    ) -> Result<Value, RuntimeError<'source>> {
+    ) -> RuntimeResult<'source, Value> {
         let return_value = match self {
             StdLibFunction::Print => isl_print(arguments, pos, state),
             StdLibFunction::Println => isl_println(arguments, pos, state),

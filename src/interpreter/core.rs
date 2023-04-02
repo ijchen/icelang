@@ -7,7 +7,9 @@ use super::{
     },
     functions::{interpret_function_call, interpret_function_declaration},
     inline_conditionals::interpret_inline_conditional,
+    jump_statement::JumpStatement,
     member_access::{interpret_computed_member_access, interpret_dot_member_access},
+    runtime_result::RuntimeResult,
     unary_operations::interpret_unary_operation,
     variables::{interpret_variable_access, interpret_variable_declaration},
     *,
@@ -27,7 +29,7 @@ use crate::{
 pub fn interpret_expression<'source>(
     expression: &AstNode<'source>,
     state: &mut RuntimeState<'source>,
-) -> Result<Value, RuntimeError<'source>> {
+) -> RuntimeResult<'source, Value> {
     match expression {
         AstNode::VariableAccess(node) => interpret_variable_access(node, state),
         AstNode::Literal(node) => Ok(interpret_literal(node)),
@@ -54,7 +56,7 @@ pub fn interpret_expression<'source>(
 pub fn interpret_statement<'source>(
     statement: &AstNode<'source>,
     state: &mut RuntimeState<'source>,
-) -> Result<(), RuntimeError<'source>> {
+) -> RuntimeResult<'source, ()> {
     match statement {
         AstNode::FunctionDeclaration(function_declaration) => {
             interpret_function_declaration(function_declaration, state)
@@ -82,7 +84,24 @@ pub fn interpret_statement<'source>(
 
             Ok(())
         }
-        AstNode::JumpStatement(_) => todo!(),
+        AstNode::JumpStatement(node) => {
+            let body = match node.body() {
+                Some(body) => {
+                    match interpret_expression(body, state) {
+                        Ok(value) => Some(value),
+                        // TODO what even is this situation
+                        Err(NonLinearControlFlow::JumpStatement(_)) => todo!(),
+                        Err(NonLinearControlFlow::RuntimeError(err)) => {
+                            return Err(NonLinearControlFlow::RuntimeError(err));
+                        }
+                    }
+                }
+                None => None,
+            };
+            let jump_statement = JumpStatement::new(node.jump_kind(), body, node.pos().clone());
+
+            Err(NonLinearControlFlow::JumpStatement(jump_statement))
+        }
         AstNode::SimpleLoop(node) => interpret_simple_loop(node, state),
         AstNode::WhileLoop(node) => interpret_while_loop(node, state),
         AstNode::ForLoop(node) => interpret_for_loop(node, state),
@@ -102,7 +121,11 @@ pub fn interpret_with_runtime_state<'source>(
     state.update_most_recent_value(Value::Null);
 
     for statement in &ast.statements {
-        interpret_statement(statement, state)?;
+        match interpret_statement(statement, state) {
+            Ok(()) => {}
+            Err(NonLinearControlFlow::JumpStatement(_)) => todo!(),
+            Err(NonLinearControlFlow::RuntimeError(err)) => return Err(err),
+        }
     }
 
     Ok(())

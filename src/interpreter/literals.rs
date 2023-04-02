@@ -1,10 +1,9 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use super::*;
+use super::{runtime_result::RuntimeResult, *};
 
 use crate::{
     ast::{AstNodeDictLiteral, AstNodeFormattedStringLiteral, AstNodeListLiteral, AstNodeLiteral},
-    error::runtime_error::RuntimeError,
     runtime_state::RuntimeState,
     value::Value,
 };
@@ -16,7 +15,7 @@ use crate::{
 pub fn interpret_literal_list<'source>(
     node: &AstNodeListLiteral<'source>,
     state: &mut RuntimeState<'source>,
-) -> Result<Value, RuntimeError<'source>> {
+) -> RuntimeResult<'source, Value> {
     let mut list = Vec::with_capacity(node.elements().len());
 
     for element_node in node.elements() {
@@ -33,7 +32,7 @@ pub fn interpret_literal_list<'source>(
 pub fn interpret_literal_dict<'source>(
     node: &AstNodeDictLiteral<'source>,
     state: &mut RuntimeState<'source>,
-) -> Result<Value, RuntimeError<'source>> {
+) -> RuntimeResult<'source, Value> {
     let mut dict = HashMap::with_capacity(node.entries().len());
 
     for (key_node, value_node) in node.entries() {
@@ -52,7 +51,7 @@ pub fn interpret_literal_dict<'source>(
 pub fn interpret_formatted_string_literal<'source>(
     node: &AstNodeFormattedStringLiteral<'source>,
     state: &mut RuntimeState<'source>,
-) -> Result<Value, RuntimeError<'source>> {
+) -> RuntimeResult<'source, Value> {
     let mut buffer = String::new();
 
     for (string_part, replacement_field) in

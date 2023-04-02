@@ -1,7 +1,10 @@
 use crate::{
     ast::{AstNodeUnaryOperation, UnaryOperationKind},
     error::runtime_error::RuntimeError,
-    interpreter::core::interpret_expression,
+    interpreter::{
+        core::interpret_expression,
+        runtime_result::{NonLinearControlFlow, RuntimeResult},
+    },
     runtime_state::RuntimeState,
     value::Value,
 };
@@ -20,7 +23,7 @@ macro_rules! impl_simple_unary_op {
         fn $func_name<'source>(
             $node: &AstNodeUnaryOperation<'source>,
             $state: &mut RuntimeState<'source>,
-        ) -> Result<Value, RuntimeError<'source>> {
+        ) -> RuntimeResult<'source, Value> {
             assert!($node.operation() == UnaryOperationKind::$op_kind);
 
             let operand = interpret_expression($node.operand(), $state)?;
@@ -29,7 +32,7 @@ macro_rules! impl_simple_unary_op {
                 $(
                     Value::$operand_type($operand) => $result,
                 )+
-                $operand => Err(RuntimeError::new_type_error(
+                $operand => Err(NonLinearControlFlow::RuntimeError(RuntimeError::new_type_error(
                     $node.pos().clone(),
                     $state.scope_display_name().to_string(),
                     format!(
@@ -37,7 +40,7 @@ macro_rules! impl_simple_unary_op {
                         $node.operation(),
                         $operand.icelang_type(),
                     ),
-                )),
+                ))),
             }
         }
     };
@@ -67,7 +70,7 @@ impl_simple_unary_op!(interpret_negation, node, state, operand, Negation, {
 pub fn interpret_unary_operation<'source>(
     node: &AstNodeUnaryOperation<'source>,
     state: &mut RuntimeState<'source>,
-) -> Result<Value, RuntimeError<'source>> {
+) -> RuntimeResult<'source, Value> {
     match node.operation() {
         UnaryOperationKind::Not => interpret_not(node, state),
         UnaryOperationKind::Identity => interpret_identity(node, state),

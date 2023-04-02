@@ -3,7 +3,10 @@ use crate::{
     value::Value,
 };
 
-use super::core::interpret_expression;
+use super::{
+    core::interpret_expression,
+    runtime_result::{NonLinearControlFlow, RuntimeResult},
+};
 
 /// Interprets an expression AstNodeInlineConditional
 ///
@@ -12,7 +15,7 @@ use super::core::interpret_expression;
 pub fn interpret_inline_conditional<'source>(
     node: &AstNodeInlineConditional<'source>,
     state: &mut RuntimeState<'source>,
-) -> Result<Value, RuntimeError<'source>> {
+) -> RuntimeResult<'source, Value> {
     let condition = interpret_expression(node.condition(), state)?;
 
     if let Value::Bool(condition) = condition {
@@ -25,10 +28,12 @@ pub fn interpret_inline_conditional<'source>(
             state,
         )
     } else {
-        Err(RuntimeError::new_type_error(
-            node.condition().pos().clone(),
-            state.scope_display_name().to_string(),
-            "expected bool in inline conditional".to_string(),
+        Err(NonLinearControlFlow::RuntimeError(
+            RuntimeError::new_type_error(
+                node.condition().pos().clone(),
+                state.scope_display_name().to_string(),
+                "expected bool in inline conditional".to_string(),
+            ),
         ))
     }
 }

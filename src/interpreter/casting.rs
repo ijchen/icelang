@@ -1,7 +1,10 @@
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
 
-use super::*;
+use super::{
+    runtime_result::{NonLinearControlFlow, RuntimeResult},
+    *,
+};
 use crate::{
     ast::AstNodeTypeCast, error::runtime_error::RuntimeError, icelang_type::IcelangType,
     runtime_state::RuntimeState, value::Value,
@@ -14,7 +17,7 @@ use crate::{
 pub fn interpret_type_cast<'source>(
     node: &AstNodeTypeCast<'source>,
     state: &mut RuntimeState<'source>,
-) -> Result<Value, RuntimeError<'source>> {
+) -> RuntimeResult<'source, Value> {
     let value = interpret_expression(node.body(), state)?;
 
     match (&value, node.new_type()) {
@@ -38,10 +41,12 @@ pub fn interpret_type_cast<'source>(
         (Value::String(_), IcelangType::Int) => todo!(),
         (Value::String(_), IcelangType::Byte) => todo!(),
         (Value::String(_), IcelangType::Float) => todo!(),
-        (value, new_type) => Err(RuntimeError::new_type_error(
-            node.pos().clone(),
-            state.scope_display_name().to_string(),
-            format!("cannot cast from {} to {}", value.icelang_type(), new_type),
+        (value, new_type) => Err(NonLinearControlFlow::RuntimeError(
+            RuntimeError::new_type_error(
+                node.pos().clone(),
+                state.scope_display_name().to_string(),
+                format!("cannot cast from {} to {}", value.icelang_type(), new_type),
+            ),
         )),
     }
 }

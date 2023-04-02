@@ -7,14 +7,18 @@ use crate::{
     value::Value,
 };
 
-use super::{core::interpret_expression, operations::addition};
+use super::{
+    core::interpret_expression,
+    operations::addition,
+    runtime_result::{NonLinearControlFlow, RuntimeResult},
+};
 
 /// Assigns a value to an lvalue node
 pub fn assign_to_lvalue<'source>(
     lvalue: &AstNode<'source>,
     value: Value,
     state: &mut RuntimeState<'source>,
-) -> Result<(), RuntimeError<'source>> {
+) -> RuntimeResult<'source, ()> {
     // TODO Can we avoid the to_string() here? If the lookup fails, we don't
     // need the mutable borrow anymore... I think?
     let scope_display_name = state.scope_display_name().to_string();
@@ -22,10 +26,12 @@ pub fn assign_to_lvalue<'source>(
         AstNode::VariableAccess(node) => match state.lookup_variable_mut(node.ident()) {
             Some(lvalue) => *lvalue = value,
             None => {
-                return Err(RuntimeError::new_undefined_reference_error(
-                    node.pos().clone(),
-                    scope_display_name,
-                    node.ident().to_string(),
+                return Err(NonLinearControlFlow::RuntimeError(
+                    RuntimeError::new_undefined_reference_error(
+                        node.pos().clone(),
+                        scope_display_name,
+                        node.ident().to_string(),
+                    ),
                 ))
             }
         },
@@ -37,10 +43,12 @@ pub fn assign_to_lvalue<'source>(
                     dict.borrow_mut().insert(key, value);
                 }
                 root => {
-                    return Err(RuntimeError::new_invalid_member_access_error(
-                        node.pos().clone(),
-                        scope_display_name,
-                        format!("cannot index value of type {}", root.icelang_type()),
+                    return Err(NonLinearControlFlow::RuntimeError(
+                        RuntimeError::new_invalid_member_access_error(
+                            node.pos().clone(),
+                            scope_display_name,
+                            format!("cannot index value of type {}", root.icelang_type()),
+                        ),
                     ))
                 }
             }
@@ -54,13 +62,15 @@ pub fn assign_to_lvalue<'source>(
                     let index: usize = match member {
                         Value::Int(index) => {
                             if index.is_negative() {
-                                return Err(RuntimeError::new_invalid_member_access_error(
-                                    node.pos().clone(),
-                                    scope_display_name,
-                                    format!(
-                                        "index out of bounds (index {}, length {})",
-                                        index,
-                                        list.len(),
+                                return Err(NonLinearControlFlow::RuntimeError(
+                                    RuntimeError::new_invalid_member_access_error(
+                                        node.pos().clone(),
+                                        scope_display_name,
+                                        format!(
+                                            "index out of bounds (index {}, length {})",
+                                            index,
+                                            list.len(),
+                                        ),
                                     ),
                                 ));
                             }
@@ -71,12 +81,14 @@ pub fn assign_to_lvalue<'source>(
                         }
                         Value::Byte(byte) => byte as usize,
                         member => {
-                            return Err(RuntimeError::new_invalid_member_access_error(
-                                node.pos().clone(),
-                                scope_display_name,
-                                format!(
-                                    "cannot index a list with a value of type {}",
-                                    member.icelang_type()
+                            return Err(NonLinearControlFlow::RuntimeError(
+                                RuntimeError::new_invalid_member_access_error(
+                                    node.pos().clone(),
+                                    scope_display_name,
+                                    format!(
+                                        "cannot index a list with a value of type {}",
+                                        member.icelang_type()
+                                    ),
                                 ),
                             ));
                         }
@@ -84,13 +96,15 @@ pub fn assign_to_lvalue<'source>(
 
                     // Ensure the index is in-bounds
                     if index >= list.len() {
-                        return Err(RuntimeError::new_invalid_member_access_error(
-                            node.pos().clone(),
-                            scope_display_name,
-                            format!(
-                                "index out of bounds (index {}, length {})",
-                                index,
-                                list.len(),
+                        return Err(NonLinearControlFlow::RuntimeError(
+                            RuntimeError::new_invalid_member_access_error(
+                                node.pos().clone(),
+                                scope_display_name,
+                                format!(
+                                    "index out of bounds (index {}, length {})",
+                                    index,
+                                    list.len(),
+                                ),
                             ),
                         ));
                     }
@@ -101,10 +115,12 @@ pub fn assign_to_lvalue<'source>(
                     dict.borrow_mut().insert(member, value);
                 }
                 root => {
-                    return Err(RuntimeError::new_invalid_member_access_error(
-                        node.pos().clone(),
-                        scope_display_name,
-                        format!("cannot index value of type {}", root.icelang_type()),
+                    return Err(NonLinearControlFlow::RuntimeError(
+                        RuntimeError::new_invalid_member_access_error(
+                            node.pos().clone(),
+                            scope_display_name,
+                            format!("cannot index value of type {}", root.icelang_type()),
+                        ),
                     ));
                 }
             }
@@ -122,7 +138,7 @@ pub fn assign_to_lvalue<'source>(
 pub fn interpret_assignment<'source>(
     assignment: &AstNodeAssignment<'source>,
     state: &mut RuntimeState<'source>,
-) -> Result<Value, RuntimeError<'source>> {
+) -> RuntimeResult<'source, Value> {
     match assignment.assignment_kind() {
         AssignmentKind::Normal => {
             let value = interpret_expression(assignment.rhs(), state)?;

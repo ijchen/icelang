@@ -7,6 +7,7 @@ use crate::{
             addition, bitwise_and, bitwise_or, bitwise_xor, division, exponentiation, modulo,
             multiplication, shift_left, shift_right, subtraction, OperationError,
         },
+        runtime_result::{NonLinearControlFlow, RuntimeResult},
     },
     runtime_state::RuntimeState,
     value::Value,
@@ -21,23 +22,25 @@ macro_rules! impl_bin_op {
         fn $func_name<'source>(
             node: &AstNodeBinaryOperation<'source>,
             state: &mut RuntimeState<'source>,
-        ) -> Result<Value, RuntimeError<'source>> {
+        ) -> RuntimeResult<'source, Value> {
             assert!(node.operation() == BinaryOperationKind::$operation_kind);
 
             let lhs = interpret_expression(node.lhs(), state)?;
             let rhs = interpret_expression(node.rhs(), state)?;
 
-            $operation_func_name(lhs, rhs).map_err(|op_err| match op_err {
-                OperationError::Type { why } => RuntimeError::new_type_error(
-                    node.pos().clone(),
-                    state.scope_display_name().to_string(),
-                    why,
-                ),
-                OperationError::Mathematical { why } => RuntimeError::new_mathematical_error(
-                    node.pos().clone(),
-                    state.scope_display_name().to_string(),
-                    why,
-                ),
+            $operation_func_name(lhs, rhs).map_err(|op_err| {
+                NonLinearControlFlow::RuntimeError(match op_err {
+                    OperationError::Type { why } => RuntimeError::new_type_error(
+                        node.pos().clone(),
+                        state.scope_display_name().to_string(),
+                        why,
+                    ),
+                    OperationError::Mathematical { why } => RuntimeError::new_mathematical_error(
+                        node.pos().clone(),
+                        state.scope_display_name().to_string(),
+                        why,
+                    ),
+                })
             })
         }
     };
@@ -46,12 +49,12 @@ macro_rules! impl_bin_op {
 fn interpret_logical_or<'source>(
     node: &AstNodeBinaryOperation<'source>,
     state: &mut RuntimeState<'source>,
-) -> Result<Value, RuntimeError<'source>> {
+) -> RuntimeResult<'source, Value> {
     assert!(node.operation() == BinaryOperationKind::LogicalOr);
 
     let lhs = interpret_expression(node.lhs(), state)?;
     let Value::Bool(lhs_value) = lhs else {
-        return Err(RuntimeError::new_type_error(
+        return Err(NonLinearControlFlow::RuntimeError(RuntimeError::new_type_error(
             node.pos().clone(),
             state.scope_display_name().to_string(),
             format!(
@@ -59,7 +62,7 @@ fn interpret_logical_or<'source>(
                 lhs.icelang_type(),
                 BinaryOperationKind::LogicalOr
             ),
-        ));
+        )));
     };
 
     if lhs_value {
@@ -68,7 +71,7 @@ fn interpret_logical_or<'source>(
 
     let rhs = interpret_expression(node.rhs(), state)?;
     let Value::Bool(rhs_value) = rhs else {
-        return Err(RuntimeError::new_type_error(
+        return Err(NonLinearControlFlow::RuntimeError(RuntimeError::new_type_error(
             node.pos().clone(),
             state.scope_display_name().to_string(),
             format!(
@@ -77,7 +80,7 @@ fn interpret_logical_or<'source>(
                 BinaryOperationKind::LogicalOr,
                 rhs.icelang_type(),
             ),
-        ));
+        )));
     };
 
     Ok(Value::Bool(rhs_value))
@@ -86,12 +89,12 @@ fn interpret_logical_or<'source>(
 fn interpret_logical_and<'source>(
     node: &AstNodeBinaryOperation<'source>,
     state: &mut RuntimeState<'source>,
-) -> Result<Value, RuntimeError<'source>> {
+) -> RuntimeResult<'source, Value> {
     assert!(node.operation() == BinaryOperationKind::LogicalAnd);
 
     let lhs = interpret_expression(node.lhs(), state)?;
     let Value::Bool(lhs_value) = lhs else {
-        return Err(RuntimeError::new_type_error(
+        return Err(NonLinearControlFlow::RuntimeError(RuntimeError::new_type_error(
             node.pos().clone(),
             state.scope_display_name().to_string(),
             format!(
@@ -99,7 +102,7 @@ fn interpret_logical_and<'source>(
                 lhs.icelang_type(),
                 BinaryOperationKind::LogicalAnd
             ),
-        ));
+        )));
     };
 
     if !lhs_value {
@@ -108,7 +111,7 @@ fn interpret_logical_and<'source>(
 
     let rhs = interpret_expression(node.rhs(), state)?;
     let Value::Bool(rhs_value) = rhs else {
-        return Err(RuntimeError::new_type_error(
+        return Err(NonLinearControlFlow::RuntimeError(RuntimeError::new_type_error(
             node.pos().clone(),
             state.scope_display_name().to_string(),
             format!(
@@ -117,7 +120,7 @@ fn interpret_logical_and<'source>(
                 BinaryOperationKind::LogicalOr,
                 rhs.icelang_type(),
             ),
-        ));
+        )));
     };
 
     Ok(Value::Bool(rhs_value))
@@ -142,7 +145,7 @@ impl_bin_op!(interpret_exponentiation, exponentiation, Exponentiation);
 pub fn interpret_binary_operation<'source>(
     node: &AstNodeBinaryOperation<'source>,
     state: &mut RuntimeState<'source>,
-) -> Result<Value, RuntimeError<'source>> {
+) -> RuntimeResult<'source, Value> {
     match node.operation() {
         BinaryOperationKind::LogicalOr => interpret_logical_or(node, state),
         BinaryOperationKind::LogicalAnd => interpret_logical_and(node, state),

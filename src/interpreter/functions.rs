@@ -10,13 +10,16 @@ use crate::{
     value::Value,
 };
 
-use super::core::interpret_statement;
+use super::{
+    core::interpret_statement,
+    runtime_result::{NonLinearControlFlow, RuntimeResult},
+};
 
 /// Interprets an AstNodeFunctionDeclaration
 pub fn interpret_function_declaration<'source>(
     function_declaration: &AstNodeFunctionDeclaration<'source>,
     state: &mut RuntimeState<'source>,
-) -> Result<(), RuntimeError<'source>> {
+) -> RuntimeResult<'source, ()> {
     let identifier = function_declaration.name().to_string();
     let parameters = function_declaration.parameters().clone();
     let body = function_declaration.body().clone();
@@ -31,10 +34,12 @@ pub fn interpret_function_declaration<'source>(
                 .get_polyadic_overload(parameters.len())
                 .is_some(),
         } {
-            return Err(RuntimeError::new_identifier_already_declared_error(
-                pos,
-                state.scope_display_name().to_string(),
-                identifier,
+            return Err(NonLinearControlFlow::RuntimeError(
+                RuntimeError::new_identifier_already_declared_error(
+                    pos,
+                    state.scope_display_name().to_string(),
+                    identifier,
+                ),
             ));
         }
     }
@@ -44,10 +49,12 @@ pub fn interpret_function_declaration<'source>(
         for (i, (parameter_1_name, parameter_1_pos)) in parameters.iter().enumerate() {
             for (parameter_2_name, _) in parameters.iter().take(i) {
                 if parameter_1_name == parameter_2_name {
-                    return Err(RuntimeError::new_identifier_already_declared_error(
-                        parameter_1_pos.clone(),
-                        state.scope_display_name().to_string(),
-                        parameter_1_name.to_string(),
+                    return Err(NonLinearControlFlow::RuntimeError(
+                        RuntimeError::new_identifier_already_declared_error(
+                            parameter_1_pos.clone(),
+                            state.scope_display_name().to_string(),
+                            parameter_1_name.to_string(),
+                        ),
                     ));
                 }
             }
@@ -63,10 +70,10 @@ pub fn interpret_function_declaration<'source>(
 pub fn interpret_function_call<'source>(
     function_call_node: &AstNodeFunctionCall<'source>,
     state: &mut RuntimeState<'source>,
-) -> Result<Value, RuntimeError<'source>> {
+) -> RuntimeResult<'source, Value> {
     // TODO do this cleanly
     let AstNode::VariableAccess(ident_node) = function_call_node.root() else {
-        return Err(RuntimeError::new_called_non_function_error(function_call_node.pos().clone(), state.scope_display_name().to_string()));
+        return Err(NonLinearControlFlow::RuntimeError(RuntimeError::new_called_non_function_error(function_call_node.pos().clone(), state.scope_display_name().to_string())));
     };
     let function_name = ident_node.ident();
 
@@ -93,23 +100,23 @@ pub fn interpret_function_call<'source>(
     }
 
     let Some(function_group) = state.lookup_function(function_name) else {
-        return Err(RuntimeError::new_undefined_reference_error(
+        return Err(NonLinearControlFlow::RuntimeError(RuntimeError::new_undefined_reference_error(
             function_call_node.pos().clone(),
             state.scope_display_name().to_string(),
             function_name.to_string(),
-        ));
+        )));
     };
 
     let function = function_group
         .get_polyadic_overload(function_call_node.arguments().len())
         .or_else(|| function_group.get_variadic_overload())
         .ok_or_else(|| {
-            RuntimeError::new_invalid_overload_error(
+            NonLinearControlFlow::RuntimeError(RuntimeError::new_invalid_overload_error(
                 function_call_node.pos().clone(),
                 state.scope_display_name().to_string(),
                 function_name.to_string(),
                 function_call_node.arguments().len(),
-            )
+            ))
         })?
         // TODO look into ways to avoid this clone - FWIW, I don't think it is
         // avoidable. It is right now (once declared, a function overload can't
@@ -151,27 +158,44 @@ pub fn interpret_function_call<'source>(
         if let AstNode::JumpStatement(node) = statement {
             if node.jump_kind() == JumpStatementKind::Return {
                 if let Some(body) = node.body() {
-                    return_value = interpret_expression(body, state).map_err(|mut err| {
-                        state.pop_stack_frame();
-                        err.stack_trace_mut().add_bottom(
-                            state.scope_display_name().to_string(),
-                            function_call_node.pos().clone(),
-                        );
-                        err
-                    })?;
-                    break;
+                    return_value = match interpret_expression(body, state) {
+                        Ok(value) => value,
+                        // TODO what even is this situation
+                        Err(NonLinearControlFlow::JumpStatement(_)) => todo!(),
+                        Err(NonLinearControlFlow::RuntimeError(mut err)) => {
+                            state.pop_stack_frame();
+                            err.stack_trace_mut().add_bottom(
+                                state.scope_display_name().to_string(),
+                                function_call_node.pos().clone(),
+                            );
+                            return Err(NonLinearControlFlow::RuntimeError(err));
+                        }
+                    };
                 }
+                break;
             }
         }
 
-        interpret_statement(statement, state).map_err(|mut err| {
-            state.pop_stack_frame();
-            err.stack_trace_mut().add_bottom(
-                state.scope_display_name().to_string(),
-                function_call_node.pos().clone(),
-            );
-            err
-        })?;
+        match interpret_statement(statement, state) {
+            Ok(()) => {}
+            Err(NonLinearControlFlow::JumpStatement(jump_statement)) => match jump_statement.kind()
+            {
+                JumpStatementKind::Break => todo!(),
+                JumpStatementKind::Continue => todo!(),
+                JumpStatementKind::Return => {
+                    return_value = jump_statement.into_value().unwrap_or(Value::Null);
+                    break;
+                }
+            },
+            Err(NonLinearControlFlow::RuntimeError(mut err)) => {
+                state.pop_stack_frame();
+                err.stack_trace_mut().add_bottom(
+                    state.scope_display_name().to_string(),
+                    function_call_node.pos().clone(),
+                );
+                return Err(NonLinearControlFlow::RuntimeError(err));
+            }
+        }
     }
 
     // Pop the stack frame
