@@ -71,9 +71,13 @@ pub fn interpret_function_call<'source>(
     function_call_node: &AstNodeFunctionCall<'source>,
     state: &mut RuntimeState<'source>,
 ) -> RuntimeResult<'source, Value> {
-    // TODO do this cleanly
     let AstNode::VariableAccess(ident_node) = function_call_node.root() else {
-        return Err(NonLinearControlFlow::RuntimeError(RuntimeError::new_called_non_function_error(function_call_node.pos().clone(), state.scope_display_name().to_string())));
+        return Err(NonLinearControlFlow::RuntimeError(
+            RuntimeError::new_called_non_function_error(
+                function_call_node.pos().clone(),
+                state.scope_display_name().to_string()
+            )
+        ));
     };
     let function_name = ident_node.ident();
 
@@ -155,36 +159,27 @@ pub fn interpret_function_call<'source>(
     }
 
     for statement in function.body() {
-        if let AstNode::JumpStatement(node) = statement {
-            if node.jump_kind() == JumpStatementKind::Return {
-                if let Some(body) = node.body() {
-                    return_value = match interpret_expression(body, state) {
-                        Ok(value) => value,
-                        // TODO what even is this situation
-                        Err(NonLinearControlFlow::JumpStatement(_)) => todo!(),
-                        Err(NonLinearControlFlow::RuntimeError(mut err)) => {
-                            state.pop_stack_frame();
-                            err.stack_trace_mut().add_bottom(
-                                state.scope_display_name().to_string(),
-                                function_call_node.pos().clone(),
-                            );
-                            return Err(NonLinearControlFlow::RuntimeError(err));
-                        }
-                    };
-                }
-                break;
-            }
-        }
-
         match interpret_statement(statement, state) {
             Ok(()) => {}
             Err(NonLinearControlFlow::JumpStatement(jump_statement)) => match jump_statement.kind()
             {
-                JumpStatementKind::Break => todo!(),
-                JumpStatementKind::Continue => todo!(),
                 JumpStatementKind::Return => {
                     return_value = jump_statement.into_value().unwrap_or(Value::Null);
                     break;
+                }
+                jump_kind => {
+                    let mut err = RuntimeError::new_invalid_jump_statement_error(
+                        jump_statement.pos().clone(),
+                        state.scope_display_name().to_string(),
+                        jump_kind,
+                        "a function".to_string(),
+                    );
+                    state.pop_stack_frame();
+                    err.stack_trace_mut().add_bottom(
+                        state.scope_display_name().to_string(),
+                        function_call_node.pos().clone(),
+                    );
+                    return Err(NonLinearControlFlow::RuntimeError(err));
                 }
             },
             Err(NonLinearControlFlow::RuntimeError(mut err)) => {

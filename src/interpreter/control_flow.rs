@@ -2,8 +2,8 @@ use num_traits::Signed;
 
 use crate::{
     ast::{
-        AstNode, AstNodeForLoop, AstNodeIfElseStatement, AstNodeMatchStatement, AstNodeSimpleLoop,
-        AstNodeWhileLoop,
+        AstNodeForLoop, AstNodeIfElseStatement, AstNodeMatchStatement, AstNodeSimpleLoop,
+        AstNodeWhileLoop, JumpStatementKind,
     },
     error::runtime_error::RuntimeError,
     runtime_state::RuntimeState,
@@ -22,8 +22,11 @@ pub fn interpret_simple_loop<'source>(
 ) -> RuntimeResult<'source, ()> {
     match simple_loop.condition() {
         Some(condition) => match interpret_expression(condition, state)? {
+            // TODO DRY this up (and all the loop bodies in general - there's a
+            // lot of repeated code)
             Value::Int(iterations) => {
                 // TODO what should even happen here?
+                // Hi from future me: this should *definitely* be a RuntimeError
                 if iterations.is_negative() {
                     todo!();
                 }
@@ -33,15 +36,23 @@ pub fn interpret_simple_loop<'source>(
                     state.push_scope();
 
                     for statement in simple_loop.body() {
-                        if let AstNode::JumpStatement(statement) = statement {
-                            match statement.jump_kind() {
-                                crate::ast::JumpStatementKind::Break => break 'icelang_loop,
-                                crate::ast::JumpStatementKind::Continue => break,
-                                crate::ast::JumpStatementKind::Return => todo!(),
+                        match interpret_statement(statement, state) {
+                            Ok(()) => {}
+                            Err(NonLinearControlFlow::JumpStatement(jump_statement)) => {
+                                match jump_statement.kind() {
+                                    JumpStatementKind::Break => break 'icelang_loop,
+                                    JumpStatementKind::Continue => break,
+                                    JumpStatementKind::Return => {
+                                        return Err(NonLinearControlFlow::JumpStatement(
+                                            jump_statement,
+                                        ));
+                                    }
+                                }
+                            }
+                            Err(NonLinearControlFlow::RuntimeError(err)) => {
+                                return Err(NonLinearControlFlow::RuntimeError(err))
                             }
                         }
-
-                        interpret_statement(statement, state)?;
                     }
 
                     state.pop_scope();
@@ -53,15 +64,23 @@ pub fn interpret_simple_loop<'source>(
                     state.push_scope();
 
                     for statement in simple_loop.body() {
-                        if let AstNode::JumpStatement(statement) = statement {
-                            match statement.jump_kind() {
-                                crate::ast::JumpStatementKind::Break => break 'icelang_loop,
-                                crate::ast::JumpStatementKind::Continue => break,
-                                crate::ast::JumpStatementKind::Return => todo!(),
+                        match interpret_statement(statement, state) {
+                            Ok(()) => {}
+                            Err(NonLinearControlFlow::JumpStatement(jump_statement)) => {
+                                match jump_statement.kind() {
+                                    JumpStatementKind::Break => break 'icelang_loop,
+                                    JumpStatementKind::Continue => break,
+                                    JumpStatementKind::Return => {
+                                        return Err(NonLinearControlFlow::JumpStatement(
+                                            jump_statement,
+                                        ));
+                                    }
+                                }
+                            }
+                            Err(NonLinearControlFlow::RuntimeError(err)) => {
+                                return Err(NonLinearControlFlow::RuntimeError(err))
                             }
                         }
-
-                        interpret_statement(statement, state)?;
                     }
 
                     state.pop_scope();
@@ -73,15 +92,21 @@ pub fn interpret_simple_loop<'source>(
             state.push_scope();
 
             for statement in simple_loop.body() {
-                if let AstNode::JumpStatement(statement) = statement {
-                    match statement.jump_kind() {
-                        crate::ast::JumpStatementKind::Break => break 'icelang_loop,
-                        crate::ast::JumpStatementKind::Continue => break,
-                        crate::ast::JumpStatementKind::Return => todo!(),
+                match interpret_statement(statement, state) {
+                    Ok(()) => {}
+                    Err(NonLinearControlFlow::JumpStatement(jump_statement)) => {
+                        match jump_statement.kind() {
+                            JumpStatementKind::Break => break 'icelang_loop,
+                            JumpStatementKind::Continue => break,
+                            JumpStatementKind::Return => {
+                                return Err(NonLinearControlFlow::JumpStatement(jump_statement));
+                            }
+                        }
+                    }
+                    Err(NonLinearControlFlow::RuntimeError(err)) => {
+                        return Err(NonLinearControlFlow::RuntimeError(err))
                     }
                 }
-
-                interpret_statement(statement, state)?;
             }
 
             state.pop_scope();
@@ -106,15 +131,23 @@ pub fn interpret_while_loop<'source>(
                 state.push_scope();
 
                 for statement in while_loop.body() {
-                    if let AstNode::JumpStatement(statement) = statement {
-                        match statement.jump_kind() {
-                            crate::ast::JumpStatementKind::Break => break 'icelang_loop,
-                            crate::ast::JumpStatementKind::Continue => break,
-                            crate::ast::JumpStatementKind::Return => todo!(),
+                    match interpret_statement(statement, state) {
+                        Ok(()) => {}
+                        Err(NonLinearControlFlow::JumpStatement(jump_statement)) => {
+                            match jump_statement.kind() {
+                                JumpStatementKind::Break => break 'icelang_loop,
+                                JumpStatementKind::Continue => break,
+                                JumpStatementKind::Return => {
+                                    return Err(NonLinearControlFlow::JumpStatement(
+                                        jump_statement,
+                                    ));
+                                }
+                            }
+                        }
+                        Err(NonLinearControlFlow::RuntimeError(err)) => {
+                            return Err(NonLinearControlFlow::RuntimeError(err))
                         }
                     }
-
-                    interpret_statement(statement, state)?;
                 }
 
                 state.pop_scope();
@@ -144,15 +177,21 @@ pub fn interpret_for_loop<'source>(
         state.declare_variable(for_loop.ident().to_string(), value);
 
         for statement in for_loop.body() {
-            if let AstNode::JumpStatement(statement) = statement {
-                match statement.jump_kind() {
-                    crate::ast::JumpStatementKind::Break => break 'icelang_loop,
-                    crate::ast::JumpStatementKind::Continue => break,
-                    crate::ast::JumpStatementKind::Return => todo!(),
+            match interpret_statement(statement, state) {
+                Ok(()) => {}
+                Err(NonLinearControlFlow::JumpStatement(jump_statement)) => {
+                    match jump_statement.kind() {
+                        JumpStatementKind::Break => break 'icelang_loop,
+                        JumpStatementKind::Continue => break,
+                        JumpStatementKind::Return => {
+                            return Err(NonLinearControlFlow::JumpStatement(jump_statement));
+                        }
+                    }
+                }
+                Err(NonLinearControlFlow::RuntimeError(err)) => {
+                    return Err(NonLinearControlFlow::RuntimeError(err))
                 }
             }
-
-            interpret_statement(statement, state)?;
         }
 
         state.pop_scope();

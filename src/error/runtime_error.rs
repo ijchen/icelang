@@ -3,7 +3,7 @@
 
 use std::{error::Error, fmt::Display};
 
-use crate::source_range::SourceRange;
+use crate::{ast::JumpStatementKind, source_range::SourceRange};
 
 use super::*;
 
@@ -105,6 +105,21 @@ pub enum RuntimeError<'source> {
 
         /// An explanation of why the member access was invalid
         why: String,
+    },
+
+    /// Attempted to use a jump statement in an invalid context
+    InvalidJumpStatement {
+        /// The position of the error
+        pos: SourceRange<'source>,
+
+        /// The stack trace for the error
+        stack_trace: StackTrace<'source>,
+
+        /// The kind of the jump statement
+        jump_kind: JumpStatementKind,
+
+        /// The context which was invalid to jump from
+        context: String,
     },
 }
 
@@ -211,6 +226,23 @@ impl<'source> RuntimeError<'source> {
         }
     }
 
+    /// Constructs a new InvalidJumpStatement RuntimeError
+    pub fn new_invalid_jump_statement_error(
+        pos: SourceRange<'source>,
+        scope_display_name: String,
+        jump_kind: JumpStatementKind,
+        context: String,
+    ) -> Self {
+        let mut stack_trace = StackTrace::new();
+        stack_trace.add_bottom(scope_display_name, pos.clone());
+        Self::InvalidJumpStatement {
+            pos,
+            stack_trace,
+            jump_kind,
+            context,
+        }
+    }
+
     /// Returns the StackTrace corresponding to this error
     pub fn stack_trace(&self) -> &StackTrace<'source> {
         match self {
@@ -253,6 +285,12 @@ impl<'source> RuntimeError<'source> {
                 pos: _,
                 stack_trace,
                 why: _,
+            } => stack_trace,
+            Self::InvalidJumpStatement {
+                pos: _,
+                stack_trace,
+                jump_kind: _,
+                context: _,
             } => stack_trace,
         }
     }
@@ -300,6 +338,12 @@ impl<'source> RuntimeError<'source> {
                 stack_trace,
                 why: _,
             } => stack_trace,
+            Self::InvalidJumpStatement {
+                pos: _,
+                stack_trace,
+                jump_kind: _,
+                context: _,
+            } => stack_trace,
         }
     }
 
@@ -345,6 +389,12 @@ impl<'source> RuntimeError<'source> {
                 pos,
                 stack_trace: _,
                 why: _,
+            } => pos,
+            Self::InvalidJumpStatement {
+                pos,
+                stack_trace: _,
+                jump_kind: _,
+                context: _,
             } => pos,
         }
     }
@@ -399,6 +449,12 @@ impl Display for RuntimeError<'_> {
                 stack_trace: _,
                 why,
             } => why.to_string(),
+            Self::InvalidJumpStatement {
+                pos: _,
+                stack_trace: _,
+                jump_kind,
+                context,
+            } => format!("cannot {jump_kind} from {context}"),
         };
 
         error_formatting::write_error(

@@ -86,16 +86,22 @@ pub fn interpret_statement<'source>(
         }
         AstNode::JumpStatement(node) => {
             let body = match node.body() {
-                Some(body) => {
-                    match interpret_expression(body, state) {
-                        Ok(value) => Some(value),
-                        // TODO what even is this situation
-                        Err(NonLinearControlFlow::JumpStatement(_)) => todo!(),
-                        Err(NonLinearControlFlow::RuntimeError(err)) => {
-                            return Err(NonLinearControlFlow::RuntimeError(err));
-                        }
+                Some(body) => match interpret_expression(body, state) {
+                    Ok(value) => Some(value),
+                    Err(NonLinearControlFlow::JumpStatement(jump_statement)) => {
+                        return Err(NonLinearControlFlow::RuntimeError(
+                            RuntimeError::new_invalid_jump_statement_error(
+                                jump_statement.pos().clone(),
+                                state.scope_display_name().to_string(),
+                                jump_statement.kind(),
+                                "the body of another jump statement".to_string(),
+                            ),
+                        ))
                     }
-                }
+                    Err(NonLinearControlFlow::RuntimeError(err)) => {
+                        return Err(NonLinearControlFlow::RuntimeError(err));
+                    }
+                },
                 None => None,
             };
             let jump_statement = JumpStatement::new(node.jump_kind(), body, node.pos().clone());
@@ -123,7 +129,14 @@ pub fn interpret_with_runtime_state<'source>(
     for statement in &ast.statements {
         match interpret_statement(statement, state) {
             Ok(()) => {}
-            Err(NonLinearControlFlow::JumpStatement(_)) => todo!(),
+            Err(NonLinearControlFlow::JumpStatement(jump_statement)) => {
+                return Err(RuntimeError::new_invalid_jump_statement_error(
+                    jump_statement.pos().clone(),
+                    state.scope_display_name().to_string(),
+                    jump_statement.kind(),
+                    "the global scope".to_string(),
+                ))
+            }
             Err(NonLinearControlFlow::RuntimeError(err)) => return Err(err),
         }
     }
