@@ -1,7 +1,7 @@
-// A brainfuck interpreter, written in ice
-// https://en.wikipedia.org/wiki/Brainfuck
+// A brainf*** interpreter, written in ice
+// https://en.wikipedia.org/wiki/Brainf***
 
-// Executes a brainfuck program
+// Executes a brainf*** program
 fn execute(program) {
     // Initialize the program state
     let data = [];
@@ -133,22 +133,22 @@ fn execute(program) {
 };
 
 fn main() {
-    // Ask the user for a brainfuck source file
-    print("Enter the path to a brainfuck source file: ");
+    // Ask the user for a brainf*** source file
+    print("Enter the path to a brainf*** source file: ");
     let file_path = input();
     if file_path == null {
         println("Failed to read file path from stdin");
         return;
     };
 
-    // Read the brainfuck source file into a string
+    // Read the brainf*** source file into a string
     let code = read_file(file_path);
     if code == null {
         println(f"Failed to read file: {file_path}");
         return;
     };
 
-    // Interpret the brainfuck code
+    // Interpret the brainf*** code
     execute(code);
 };
 main();
