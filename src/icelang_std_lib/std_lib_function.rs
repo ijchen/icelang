@@ -6,6 +6,7 @@ use crate::{
 use super::*;
 
 pub enum StdLibFunction {
+    // I/O
     Args,
     Print,
     Println,
@@ -16,6 +17,16 @@ pub enum StdLibFunction {
     ReadFileBin,
     WriteFile,
     WriteFileBin,
+
+    // Collections
+    Len,
+    Push,
+    Pop,
+    PushStart,
+    PopStart,
+    ContainsKey,
+    RemoveEntry,
+    Keys,
 }
 
 impl StdLibFunction {
@@ -23,6 +34,7 @@ impl StdLibFunction {
     /// exists
     pub fn from_identifier(identifier: &str) -> Option<Self> {
         match identifier {
+            // I/O
             "args" => Some(Self::Args),
             "print" => Some(Self::Print),
             "println" => Some(Self::Println),
@@ -33,6 +45,17 @@ impl StdLibFunction {
             "read_file_bin" => Some(Self::ReadFileBin),
             "write_file" => Some(Self::WriteFile),
             "write_file_bin" => Some(Self::WriteFileBin),
+
+            // Collections
+            "len" => Some(Self::Len),
+            "push" => Some(Self::Push),
+            "pop" => Some(Self::Pop),
+            "push_start" => Some(Self::PushStart),
+            "pop_start" => Some(Self::PopStart),
+            "contains_key" => Some(Self::ContainsKey),
+            "remove_entry" => Some(Self::RemoveEntry),
+            "keys" => Some(Self::Keys),
+
             _ => None,
         }
     }
@@ -46,6 +69,7 @@ impl StdLibFunction {
         &mut RuntimeState<'source>,
     ) -> RuntimeResult<'source, Value> {
         match self {
+            // I/O
             Self::Args => isl_args,
             Self::Print => isl_print,
             Self::Println => isl_println,
@@ -56,6 +80,16 @@ impl StdLibFunction {
             Self::ReadFileBin => isl_read_file_bin,
             Self::WriteFile => isl_write_file,
             Self::WriteFileBin => isl_write_file_bin,
+
+            // Collections
+            Self::Len => isl_len,
+            Self::Push => isl_push,
+            Self::Pop => isl_pop,
+            Self::PushStart => isl_push_start,
+            Self::PopStart => isl_pop_start,
+            Self::ContainsKey => isl_contains_key,
+            Self::RemoveEntry => isl_remove_entry,
+            Self::Keys => isl_keys,
         }
     }
 }
