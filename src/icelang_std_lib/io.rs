@@ -253,7 +253,7 @@ pub fn isl_read_file_bin<'source>(
 
             match std::fs::read(path.as_ref()) {
                 Ok(contents) => Ok(Value::List(Rc::new(RefCell::new(
-                    contents.into_iter().map(|byte| Value::Byte(byte)).collect(),
+                    contents.into_iter().map(Value::Byte).collect(),
                 )))),
                 Err(_err) => {
                     // TODO someday, let's give the programmer more info on what
