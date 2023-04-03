@@ -126,7 +126,61 @@ pub fn interpret_computed_member_access<'source>(
                 ),
             )),
         },
-        Value::String(_) => todo!(),
+        Value::String(string) => {
+            let index: usize = match member {
+                Value::Int(index) => {
+                    if index.is_negative() {
+                        return Err(NonLinearControlFlow::RuntimeError(
+                            RuntimeError::new_invalid_member_access_error(
+                                node.pos().clone(),
+                                scope_display_name,
+                                format!(
+                                    "index out of bounds (index {}, length {})",
+                                    index,
+                                    string.len(),
+                                ),
+                            ),
+                        ));
+                    }
+                    match index.to_usize() {
+                        Some(index) => index,
+                        None => todo!(),
+                    }
+                }
+                Value::Byte(byte) => byte as usize,
+                member => {
+                    return Err(NonLinearControlFlow::RuntimeError(
+                        RuntimeError::new_invalid_member_access_error(
+                            node.pos().clone(),
+                            scope_display_name,
+                            format!(
+                                "cannot index a list with a value of type {}",
+                                member.icelang_type()
+                            ),
+                        ),
+                    ));
+                }
+            };
+
+            // Ensure the index is in-bounds
+            if index >= string.len() {
+                return Err(NonLinearControlFlow::RuntimeError(
+                    RuntimeError::new_invalid_member_access_error(
+                        node.pos().clone(),
+                        scope_display_name,
+                        format!(
+                            "index out of bounds (index {}, length {})",
+                            index,
+                            string.len(),
+                        ),
+                    ),
+                ));
+            }
+
+            Ok(Value::String(
+                string.chars().nth(index).unwrap().to_string().into(),
+            ))
+        }
         root => {
             return Err(NonLinearControlFlow::RuntimeError(
                 RuntimeError::new_invalid_member_access_error(
