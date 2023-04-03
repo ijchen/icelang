@@ -121,6 +121,18 @@ pub enum RuntimeError<'source> {
         /// The context which was invalid to jump from
         context: String,
     },
+
+    /// An assertion failed
+    Assertion {
+        /// The position of the error
+        pos: SourceRange<'source>,
+
+        /// The stack trace for the error
+        stack_trace: StackTrace<'source>,
+
+        /// An explanation of what went wrong
+        why: String,
+    },
 }
 
 impl<'source> RuntimeError<'source> {
@@ -184,6 +196,21 @@ impl<'source> RuntimeError<'source> {
         }
     }
 
+    /// Constructs a new ResourceUnavailable RuntimeError
+    pub fn new_resource_unavailable_error(
+        pos: SourceRange<'source>,
+        scope_display_name: String,
+        why: String,
+    ) -> Self {
+        let mut stack_trace = StackTrace::new();
+        stack_trace.add_bottom(scope_display_name, pos.clone());
+        Self::ResourceUnavailable {
+            pos,
+            stack_trace,
+            why,
+        }
+    }
+
     /// Constructs a new InvalidOverload RuntimeError
     pub fn new_invalid_overload_error(
         pos: SourceRange<'source>,
@@ -243,6 +270,21 @@ impl<'source> RuntimeError<'source> {
         }
     }
 
+    /// Constructs a new Assertion RuntimeError
+    pub fn new_assertion_error(
+        pos: SourceRange<'source>,
+        scope_display_name: String,
+        why: String,
+    ) -> Self {
+        let mut stack_trace = StackTrace::new();
+        stack_trace.add_bottom(scope_display_name, pos.clone());
+        Self::Assertion {
+            pos,
+            stack_trace,
+            why,
+        }
+    }
+
     /// Returns the StackTrace corresponding to this error
     pub fn stack_trace(&self) -> &StackTrace<'source> {
         match self {
@@ -291,6 +333,11 @@ impl<'source> RuntimeError<'source> {
                 stack_trace,
                 jump_kind: _,
                 context: _,
+            } => stack_trace,
+            Self::Assertion {
+                pos: _,
+                stack_trace,
+                why: _,
             } => stack_trace,
         }
     }
@@ -344,6 +391,11 @@ impl<'source> RuntimeError<'source> {
                 jump_kind: _,
                 context: _,
             } => stack_trace,
+            Self::Assertion {
+                pos: _,
+                stack_trace,
+                why: _,
+            } => stack_trace,
         }
     }
 
@@ -395,6 +447,11 @@ impl<'source> RuntimeError<'source> {
                 stack_trace: _,
                 jump_kind: _,
                 context: _,
+            } => pos,
+            Self::Assertion {
+                pos,
+                stack_trace: _,
+                why: _,
             } => pos,
         }
     }
@@ -455,6 +512,11 @@ impl Display for RuntimeError<'_> {
                 jump_kind,
                 context,
             } => format!("cannot {jump_kind} from {context}"),
+            Self::Assertion {
+                pos: _,
+                stack_trace: _,
+                why,
+            } => why.to_string(),
         };
 
         error_formatting::write_error(

@@ -6,7 +6,11 @@ pub struct Args {
     /// The path to a text file containing icelang code
     pub file_path: Option<String>,
 
-    // Whether or not to show additional debug information
+    /// Whether or not to show additional debug information
     #[clap(short, long)]
     pub debug_info: bool,
+
+    /// Any additional command-line arguments for the icelang program
+    #[clap()]
+    icelang_program_args: Vec<String>,
 }

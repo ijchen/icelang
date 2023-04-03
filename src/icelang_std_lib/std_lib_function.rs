@@ -6,11 +6,16 @@ use crate::{
 use super::*;
 
 pub enum StdLibFunction {
+    Args,
     Print,
     Println,
     Eprint,
     Eprintln,
     Input,
+    ReadFile,
+    ReadFileBin,
+    WriteFile,
+    WriteFileBin,
 }
 
 impl StdLibFunction {
@@ -18,30 +23,39 @@ impl StdLibFunction {
     /// exists
     pub fn from_identifier(identifier: &str) -> Option<Self> {
         match identifier {
+            "args" => Some(Self::Args),
             "print" => Some(Self::Print),
             "println" => Some(Self::Println),
             "eprint" => Some(Self::Eprint),
             "eprintln" => Some(Self::Eprintln),
             "input" => Some(Self::Input),
+            "read_file" => Some(Self::ReadFile),
+            "read_file_bin" => Some(Self::ReadFileBin),
+            "write_file" => Some(Self::WriteFile),
+            "write_file_bin" => Some(Self::WriteFileBin),
             _ => None,
         }
     }
 
-    /// Calls a StdLibFunction with the given arguments and RuntimeState
-    pub fn call<'source>(
+    /// Gets the Rust function corresponding to the icelang stdlib function
+    pub fn as_fn_pointer(
         &self,
-        arguments: Vec<Value>,
-        pos: &SourceRange<'source>,
-        state: &mut RuntimeState<'source>,
+    ) -> for<'source> fn(
+        Vec<Value>,
+        &SourceRange<'source>,
+        &mut RuntimeState<'source>,
     ) -> RuntimeResult<'source, Value> {
-        let return_value = match self {
-            StdLibFunction::Print => isl_print(arguments, pos, state),
-            StdLibFunction::Println => isl_println(arguments, pos, state),
-            StdLibFunction::Eprint => isl_eprint(arguments, pos, state),
-            StdLibFunction::Eprintln => isl_eprintln(arguments, pos, state),
-            StdLibFunction::Input => isl_input(arguments, pos, state),
-        }?;
-
-        Ok(return_value)
+        match self {
+            Self::Args => isl_args,
+            Self::Print => isl_print,
+            Self::Println => isl_println,
+            Self::Eprint => isl_eprint,
+            Self::Eprintln => isl_eprintln,
+            Self::Input => isl_input,
+            Self::ReadFile => isl_read_file,
+            Self::ReadFileBin => isl_read_file_bin,
+            Self::WriteFile => isl_write_file,
+            Self::WriteFileBin => isl_write_file_bin,
+        }
     }
 }

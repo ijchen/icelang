@@ -1185,7 +1185,9 @@ TODO
 # Built-in functions
 ## Input/Output
 ### args
-The `args` function returns a list containing all the command line arguments to the program (each as a string)
+The `args` function returns a list containing all the command line arguments to
+the program (each as a string). This doesn't include the icelang interpreter
+executable path, but does include the file path of the icelang source code.
 
 Function prototypes:
 - `args() -> list[string]` (core)

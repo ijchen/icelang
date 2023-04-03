@@ -95,7 +95,8 @@ pub fn interpret_function_call<'source>(
         state.push_stack_frame(format!("{function_name}(...)"));
 
         // Call the function
-        let return_value = std_lib_function.call(arguments, function_call_node.pos(), state);
+        let return_value =
+            std_lib_function.as_fn_pointer()(arguments, function_call_node.pos(), state);
 
         // Pop the stack frame
         state.pop_stack_frame();

@@ -213,8 +213,8 @@ pub fn interpret_if_else_statement<'source>(
             return Err(NonLinearControlFlow::RuntimeError(RuntimeError::new_type_error(
                 condition.pos().clone(),
                 state.scope_display_name().to_string(),
-                "expected bool in condition".to_string())
-            ));
+                format!("expected bool, got value of type {}", condition_value.icelang_type())
+            )));
         };
 
         if condition_value {

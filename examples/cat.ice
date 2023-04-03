@@ -1,3 +1,5 @@
+// Repeatedly echos the contents of STDIN to STDOUT
+
 loop {
     let message = input();
 
