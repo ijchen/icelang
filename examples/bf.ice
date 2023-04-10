@@ -38,7 +38,7 @@ fn execute(program) {
                 if stdin_buff != null && len(stdin_buff) == 0 {
                     let next_line = input();
                     if next_line == null {
-                        stdin = null;
+                        stdin_buff = null;
                     }
                     else {
                         for character in next_line {
