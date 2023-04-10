@@ -1,15 +1,15 @@
 use num_traits::{Signed, ToPrimitive};
 
 use crate::{
-    ast::{AssignmentKind, AstNode, AstNodeAssignment},
+    ast::{AssignmentKind, AstNode, AstNodeAssignment, BinaryOperationKind},
     error::runtime_error::RuntimeError,
+    interpreter::operations,
     runtime_state::RuntimeState,
     value::Value,
 };
 
 use super::{
     core::interpret_expression,
-    operations::addition,
     runtime_result::{NonLinearControlFlow, RuntimeResult},
 };
 
@@ -139,6 +139,24 @@ pub fn interpret_assignment<'source>(
     assignment: &AstNodeAssignment<'source>,
     state: &mut RuntimeState<'source>,
 ) -> RuntimeResult<'source, Value> {
+    macro_rules! augmented_assignment {
+        ($operation: expr) => {{
+            let lhs = interpret_expression(assignment.lhs(), state)?;
+            let rhs = interpret_expression(assignment.rhs(), state)?;
+
+            let value = $operation(lhs, rhs).or_else(|err| {
+                Err(NonLinearControlFlow::RuntimeError(err.into_runtime_error(
+                    assignment.pos().clone(),
+                    state.scope_display_name().to_string(),
+                )))
+            })?;
+
+            assign_to_lvalue(assignment.lhs(), value.clone(), state)?;
+
+            Ok(value)
+        }};
+    }
+
     match assignment.assignment_kind() {
         AssignmentKind::Normal => {
             let value = interpret_expression(assignment.rhs(), state)?;
@@ -147,29 +165,94 @@ pub fn interpret_assignment<'source>(
 
             Ok(value)
         }
-        AssignmentKind::Plus => {
+        AssignmentKind::Plus => augmented_assignment!(operations::addition),
+        AssignmentKind::Minus => augmented_assignment!(operations::subtraction),
+        AssignmentKind::Times => augmented_assignment!(operations::multiplication),
+        AssignmentKind::Div => augmented_assignment!(operations::division),
+        AssignmentKind::Mod => augmented_assignment!(operations::modulo),
+        AssignmentKind::Exp => augmented_assignment!(operations::exponentiation),
+        AssignmentKind::Shl => augmented_assignment!(operations::shift_left),
+        AssignmentKind::Shr => augmented_assignment!(operations::shift_right),
+        AssignmentKind::BitAnd => augmented_assignment!(operations::bitwise_and),
+        AssignmentKind::BitXor => augmented_assignment!(operations::bitwise_xor),
+        AssignmentKind::BitOr => augmented_assignment!(operations::bitwise_or),
+        AssignmentKind::LogAnd => {
             let lhs = interpret_expression(assignment.lhs(), state)?;
-            let rhs = interpret_expression(assignment.rhs(), state)?;
 
-            let Ok(value) = addition(lhs, rhs) else {
-                todo!();
+            // Short-circuit if the lhs isn't a bool
+            let Value::Bool(lhs_value) = lhs else {
+                return Err(NonLinearControlFlow::RuntimeError(RuntimeError::new_type_error(
+                    assignment.pos().clone(),
+                    state.scope_display_name().to_string(),
+                    format!(
+                        "invalid types for binary operation: {} {} ...",
+                        lhs.icelang_type(),
+                        BinaryOperationKind::LogicalAnd
+                    ),
+                )));
             };
 
-            assign_to_lvalue(assignment.lhs(), value.clone(), state)?;
+            // Short-circuit if the lhs is false
+            #[allow(clippy::bool_comparison)] // I like being explicit here
+            if lhs_value == false {
+                return Ok(Value::Bool(false));
+            }
 
-            Ok(value)
+            let rhs = interpret_expression(assignment.rhs(), state)?;
+            let Value::Bool(rhs_value) = rhs else {
+                return Err(NonLinearControlFlow::RuntimeError(RuntimeError::new_type_error(
+                    assignment.pos().clone(),
+                    state.scope_display_name().to_string(),
+                    format!(
+                        "invalid types for binary operation: {} {} {}",
+                        lhs.icelang_type(),
+                        BinaryOperationKind::LogicalAnd,
+                        rhs.icelang_type(),
+                    ),
+                )));
+            };
+
+            assign_to_lvalue(assignment.lhs(), Value::Bool(rhs_value), state)?;
+            Ok(Value::Bool(rhs_value))
         }
-        AssignmentKind::Minus => todo!(),
-        AssignmentKind::Times => todo!(),
-        AssignmentKind::Div => todo!(),
-        AssignmentKind::Mod => todo!(),
-        AssignmentKind::Exp => todo!(),
-        AssignmentKind::Shl => todo!(),
-        AssignmentKind::Shr => todo!(),
-        AssignmentKind::BitAnd => todo!(),
-        AssignmentKind::BitXor => todo!(),
-        AssignmentKind::BitOr => todo!(),
-        AssignmentKind::LogAnd => todo!(),
-        AssignmentKind::LogOr => todo!(),
+        AssignmentKind::LogOr => {
+            let lhs = interpret_expression(assignment.lhs(), state)?;
+
+            // Short-circuit if the lhs isn't a bool
+            let Value::Bool(lhs_value) = lhs else {
+                return Err(NonLinearControlFlow::RuntimeError(RuntimeError::new_type_error(
+                    assignment.pos().clone(),
+                    state.scope_display_name().to_string(),
+                    format!(
+                        "invalid types for binary operation: {} {} ...",
+                        lhs.icelang_type(),
+                        BinaryOperationKind::LogicalOr
+                    ),
+                )));
+            };
+
+            // Short-circuit if the lhs is true
+            #[allow(clippy::bool_comparison)] // I like being explicit here
+            if lhs_value == true {
+                return Ok(Value::Bool(true));
+            }
+
+            let rhs = interpret_expression(assignment.rhs(), state)?;
+            let Value::Bool(rhs_value) = rhs else {
+                return Err(NonLinearControlFlow::RuntimeError(RuntimeError::new_type_error(
+                    assignment.pos().clone(),
+                    state.scope_display_name().to_string(),
+                    format!(
+                        "invalid types for binary operation: {} {} {}",
+                        lhs.icelang_type(),
+                        BinaryOperationKind::LogicalOr,
+                        rhs.icelang_type(),
+                    ),
+                )));
+            };
+
+            assign_to_lvalue(assignment.lhs(), Value::Bool(rhs_value), state)?;
+            Ok(Value::Bool(rhs_value))
+        }
     }
 }

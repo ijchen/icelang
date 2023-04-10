@@ -1,8 +1,14 @@
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Zero};
 
-use crate::value::Value;
+use crate::{
+    ast::BinaryOperationKind, error::runtime_error::RuntimeError, source_range::SourceRange,
+    value::Value,
+};
 
+// We can't just use RuntimeError here because that requires other runtime
+// information, like a source position and stack trace, that we may not
+// necessarily have (operations can theoretically be done absent a "runtime")
 pub enum OperationError {
     /// A value was an invalid type
     Type {
@@ -17,12 +23,32 @@ pub enum OperationError {
     },
 }
 
+impl OperationError {
+    /// Constructs a RuntimeError from an OperationError and whatever additional
+    /// information is necessary to construct a RuntimeError
+    #[allow(clippy::needless_lifetimes)] // I like being explicit here
+    pub fn into_runtime_error<'source>(
+        self,
+        pos: SourceRange<'source>,
+        scope_display_name: String,
+    ) -> RuntimeError<'source> {
+        match self {
+            OperationError::Type { why } => {
+                RuntimeError::new_type_error(pos, scope_display_name, why)
+            }
+            OperationError::Mathematical { why } => {
+                RuntimeError::new_mathematical_error(pos, scope_display_name, why)
+            }
+        }
+    }
+}
+
 macro_rules! impl_simple_bin_op {
     (
         $func_name: ident,
         $lhs: ident,
         $rhs: ident,
-        $operation: literal,
+        $operation: ident,
         {$(
             $lhs_type: ident,
             $rhs_type: ident => $result: expr
@@ -41,7 +67,7 @@ macro_rules! impl_simple_bin_op {
                         why: format!(
                             "invalid types for binary operation: {} {} {}",
                             $lhs.icelang_type(),
-                            $operation,
+                            BinaryOperationKind::$operation,
                             $rhs.icelang_type(),
                         )
                     }
@@ -51,22 +77,22 @@ macro_rules! impl_simple_bin_op {
     };
 }
 
-impl_simple_bin_op!(bitwise_xor, lhs, rhs, "BitwiseXor", {
+impl_simple_bin_op!(bitwise_xor, lhs, rhs, BitwiseXor, {
     Int, Int => Ok(Value::Int(lhs ^ rhs)),
     Byte, Byte => Ok(Value::Byte(lhs ^ rhs)),
 });
 
-impl_simple_bin_op!(bitwise_or, lhs, rhs, "BitwiseXor", {
+impl_simple_bin_op!(bitwise_or, lhs, rhs, BitwiseXor, {
     Int, Int => Ok(Value::Int(lhs | rhs)),
     Byte, Byte => Ok(Value::Byte(lhs | rhs)),
 });
 
-impl_simple_bin_op!(bitwise_and, lhs, rhs, "BitwiseAnd", {
+impl_simple_bin_op!(bitwise_and, lhs, rhs, BitwiseAnd, {
     Int, Int => Ok(Value::Int(lhs & rhs)),
     Byte, Byte => Ok(Value::Byte(lhs & rhs)),
 });
 
-impl_simple_bin_op!(shift_left, lhs, rhs, "ShiftLeft", {
+impl_simple_bin_op!(shift_left, lhs, rhs, ShiftLeft, {
     Int, Int => {
         let mut rhs = rhs;
         let mut lhs = lhs;
@@ -87,7 +113,7 @@ impl_simple_bin_op!(shift_left, lhs, rhs, "ShiftLeft", {
     },
 });
 
-impl_simple_bin_op!(shift_right, lhs, rhs, "ShiftRight", {
+impl_simple_bin_op!(shift_right, lhs, rhs, ShiftRight, {
     Int, Int => {
         let mut rhs = rhs;
         let mut lhs = lhs;
@@ -108,7 +134,7 @@ impl_simple_bin_op!(shift_right, lhs, rhs, "ShiftRight", {
     },
 });
 
-impl_simple_bin_op!(addition, lhs, rhs, "Addition", {
+impl_simple_bin_op!(addition, lhs, rhs, Addition, {
     Int, Int => Ok(Value::Int(lhs + rhs)),
     Byte, Byte => Ok(Value::Byte(lhs.wrapping_add(rhs))),
     Float, Float => Ok(Value::Float(lhs + rhs)),
@@ -117,13 +143,13 @@ impl_simple_bin_op!(addition, lhs, rhs, "Addition", {
     },
 });
 
-impl_simple_bin_op!(subtraction, lhs, rhs, "Subtraction", {
+impl_simple_bin_op!(subtraction, lhs, rhs, Subtraction, {
     Int, Int => Ok(Value::Int(lhs - rhs)),
     Byte, Byte => Ok(Value::Byte(lhs.wrapping_sub(rhs))),
     Float, Float => Ok(Value::Float(lhs - rhs)),
 });
 
-impl_simple_bin_op!(multiplication, lhs, rhs, "Multiplication", {
+impl_simple_bin_op!(multiplication, lhs, rhs, Multiplication, {
     Int, Int => Ok(Value::Int(lhs * rhs)),
     Byte, Byte => Ok(Value::Byte(lhs.wrapping_mul(rhs))),
     Float, Float => Ok(Value::Float(lhs * rhs)),
@@ -138,7 +164,7 @@ impl_simple_bin_op!(multiplication, lhs, rhs, "Multiplication", {
     },
 });
 
-impl_simple_bin_op!(division, lhs, rhs, "Division", {
+impl_simple_bin_op!(division, lhs, rhs, Division, {
     Int, Int => if rhs.is_zero() {
         Err(OperationError::Mathematical{
             why: "division by zero".to_string()
@@ -156,7 +182,7 @@ impl_simple_bin_op!(division, lhs, rhs, "Division", {
     Float, Float => Ok(Value::Float(lhs / rhs)),
 });
 
-impl_simple_bin_op!(modulo, lhs, rhs, "Modulo", {
+impl_simple_bin_op!(modulo, lhs, rhs, Modulo, {
     Int, Int => if rhs.is_zero() {
         Err(OperationError::Mathematical{
             why: "modulo by zero".to_string()
@@ -174,7 +200,7 @@ impl_simple_bin_op!(modulo, lhs, rhs, "Modulo", {
     Float, Float => Ok(Value::Float(((lhs % rhs) + rhs) % rhs)),
 });
 
-impl_simple_bin_op!(exponentiation, lhs, rhs, "Exponentiation", {
+impl_simple_bin_op!(exponentiation, lhs, rhs, Exponentiation, {
     Int, Int => {
         let mut rhs = rhs;
         let mut result = BigInt::from(1u8);

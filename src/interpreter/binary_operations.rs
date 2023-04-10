@@ -5,7 +5,7 @@ use crate::{
         core::interpret_expression,
         operations::{
             addition, bitwise_and, bitwise_or, bitwise_xor, division, exponentiation, modulo,
-            multiplication, shift_left, shift_right, subtraction, OperationError,
+            multiplication, shift_left, shift_right, subtraction,
         },
         runtime_result::{NonLinearControlFlow, RuntimeResult},
     },
@@ -29,18 +29,12 @@ macro_rules! impl_bin_op {
             let rhs = interpret_expression(node.rhs(), state)?;
 
             $operation_func_name(lhs, rhs).map_err(|op_err| {
-                NonLinearControlFlow::RuntimeError(match op_err {
-                    OperationError::Type { why } => RuntimeError::new_type_error(
+                NonLinearControlFlow::RuntimeError(
+                    op_err.into_runtime_error(
                         node.pos().clone(),
                         state.scope_display_name().to_string(),
-                        why,
                     ),
-                    OperationError::Mathematical { why } => RuntimeError::new_mathematical_error(
-                        node.pos().clone(),
-                        state.scope_display_name().to_string(),
-                        why,
-                    ),
-                })
+                )
             })
         }
     };
@@ -53,6 +47,8 @@ fn interpret_logical_or<'source>(
     assert!(node.operation() == BinaryOperationKind::LogicalOr);
 
     let lhs = interpret_expression(node.lhs(), state)?;
+
+    // Short-circuit if the lhs isn't a bool
     let Value::Bool(lhs_value) = lhs else {
         return Err(NonLinearControlFlow::RuntimeError(RuntimeError::new_type_error(
             node.pos().clone(),
@@ -65,7 +61,9 @@ fn interpret_logical_or<'source>(
         )));
     };
 
-    if lhs_value {
+    // Short-circuit if the lhs is true
+    #[allow(clippy::bool_comparison)] // I like being explicit here
+    if lhs_value == true {
         return Ok(Value::Bool(true));
     }
 
@@ -93,6 +91,8 @@ fn interpret_logical_and<'source>(
     assert!(node.operation() == BinaryOperationKind::LogicalAnd);
 
     let lhs = interpret_expression(node.lhs(), state)?;
+
+    // Short-circuit if the lhs isn't a bool
     let Value::Bool(lhs_value) = lhs else {
         return Err(NonLinearControlFlow::RuntimeError(RuntimeError::new_type_error(
             node.pos().clone(),
@@ -105,7 +105,9 @@ fn interpret_logical_and<'source>(
         )));
     };
 
-    if !lhs_value {
+    // Short-circuit if the lhs is false
+    #[allow(clippy::bool_comparison)] // I like being explicit here
+    if lhs_value == false {
         return Ok(Value::Bool(false));
     }
 
@@ -117,7 +119,7 @@ fn interpret_logical_and<'source>(
             format!(
                 "invalid types for binary operation: {} {} {}",
                 lhs.icelang_type(),
-                BinaryOperationKind::LogicalOr,
+                BinaryOperationKind::LogicalAnd,
                 rhs.icelang_type(),
             ),
         )));
