@@ -164,12 +164,31 @@ pub fn interpret_for_loop<'source>(
     for_loop: &AstNodeForLoop<'source>,
     state: &mut RuntimeState<'source>,
 ) -> RuntimeResult<'source, ()> {
-    let Value::List(iterable) = interpret_expression(for_loop.iterable(), state)? else {
-        todo!();
+    let iterable: Vec<Value> = match interpret_expression(for_loop.iterable(), state)? {
+        // Iterating through a string visits each character
+        Value::String(string) => string
+            .chars()
+            .map(|c| Value::String(c.to_string().into()))
+            .collect(),
+
+        // If we're iterating over a list, take a snapshot of the list as it is
+        // at the start of the loop - mutations of the iterated list shouldn't
+        // be reflected in the for loop's iterations
+        Value::List(list) => list.borrow().clone(),
+
+        value => {
+            return Err(NonLinearControlFlow::RuntimeError(
+                RuntimeError::new_type_error(
+                    for_loop.pos().clone(),
+                    state.scope_display_name().to_string(),
+                    format!(
+                        "expected string or list, got value of type {}",
+                        value.icelang_type()
+                    ),
+                ),
+            ))
+        }
     };
-    // Take a snapshot of the list as it is at the start of the loop - mutations
-    // of the iterated list shouldn't be reflected in the for loop's iterations
-    let iterable: Vec<Value> = iterable.borrow().clone();
 
     'icelang_loop: for value in iterable {
         state.push_scope();
