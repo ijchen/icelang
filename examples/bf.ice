@@ -1,4 +1,4 @@
-// A brainf*** interpreter, written in ice
+// A brainf*** interpreter, written in icelang
 // https://en.wikipedia.org/wiki/Brainf***
 
 // Executes a brainf*** program
@@ -88,36 +88,35 @@ fn execute(program) {
                 };
             },
             "]" => {
-                match pop(bracket_stack) {
-                    null => {
-                        println();
-                        println("Something went wrong: unbalanced brackets");
-                        return;
-                    },
-                    start_bracket_ptr => {
-                        // This was the first ever bug in an icelang program :)
-                        // I intended to jump back to the start bracket, and
-                        // skipped the zero check because I assumed if the
-                        // current byte is zero, it's okay to just jump back to
-                        // the "[" and we'll just see the zero then and skip
-                        // forward again past this "]"... problem is, I forgot
-                        // about that assumption when I was considering where to
-                        // jump back to. I knew the instruction_ptr would be
-                        // incremented at the end of this iteration of the loop,
-                        // so I figured we'll just jump back to the matching "["
-                        // and the incrementing will bring us to the first
-                        // instruction at the start of the "[]" loop... perfect!
-                        // ...except now both ends of the "[]" loop are assuming
-                        // the other end did the zero check, and it's never
-                        // happening. Oops!
-                        instruction_ptr = start_bracket_ptr;
+                let start_bracket_ptr = pop(bracket_stack);
 
-                        // Let's add a continue to skip incrementing the
-                        // instruction_ptr (that way, we'll jump back exactly to
-                        // the "[" and not the next instruction after it)
-                        continue;
-                    },
+                if start_bracket_ptr == null {
+                    println();
+                    println("Something went wrong: unbalanced brackets");
+                    return;
                 };
+
+                // This was the first ever bug in an icelang program :)
+                // I intended to jump back to the start bracket, and
+                // skipped the zero check because I assumed if the
+                // current byte is zero, it's okay to just jump back to
+                // the "[" and we'll just see the zero then and skip
+                // forward again past this "]"... problem is, I forgot
+                // about that assumption when I was considering where to
+                // jump back to. I knew the instruction_ptr would be
+                // incremented at the end of this iteration of the loop,
+                // so I figured we'll just jump back to the matching "["
+                // and the incrementing will bring us to the first
+                // instruction at the start of the "[]" loop... perfect!
+                // ...except now both ends of the "[]" loop are assuming
+                // the other end did the zero check, and it's never
+                // happening. Oops!
+                instruction_ptr = start_bracket_ptr;
+
+                // Let's add a continue to skip incrementing the
+                // instruction_ptr (that way, we'll jump back exactly to
+                // the "[" and not the next instruction after it)
+                continue;
             },
         };
 
@@ -133,12 +132,19 @@ fn execute(program) {
 };
 
 fn main() {
-    // Ask the user for a brainf*** source file
-    print("Enter the path to a brainf*** source file: ");
-    let file_path = input();
-    if file_path == null {
-        println("Failed to read file path from stdin");
-        return;
+    // Get the file path to the brainf*** source file from the user
+    let file_path;
+    let program_args = args();
+    if len(program_args) > 1 {
+        file_path = program_args[1];
+    }
+    else {
+        print("Enter the path to a brainf*** source file: ");
+        file_path = input();
+        if file_path == null {
+            println("Failed to read file path from stdin");
+            return;
+        };
     };
 
     // Read the brainf*** source file into a string
