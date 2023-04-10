@@ -3,7 +3,10 @@ use crate::{
     value::Value,
 };
 
-use super::*;
+use super::{
+    string::{isl_from_codepoint, isl_to_codepoint},
+    *,
+};
 
 pub enum StdLibFunction {
     // I/O
@@ -27,6 +30,10 @@ pub enum StdLibFunction {
     ContainsKey,
     RemoveEntry,
     Keys,
+
+    // String
+    FromCodepoint,
+    ToCodepoint,
 }
 
 impl StdLibFunction {
@@ -55,6 +62,10 @@ impl StdLibFunction {
             "contains_key" => Some(Self::ContainsKey),
             "remove_entry" => Some(Self::RemoveEntry),
             "keys" => Some(Self::Keys),
+
+            // String
+            "from_codepoint" => Some(Self::FromCodepoint),
+            "to_codepoint" => Some(Self::ToCodepoint),
 
             _ => None,
         }
@@ -90,6 +101,10 @@ impl StdLibFunction {
             Self::ContainsKey => isl_contains_key,
             Self::RemoveEntry => isl_remove_entry,
             Self::Keys => isl_keys,
+
+            // String
+            Self::FromCodepoint => isl_from_codepoint,
+            Self::ToCodepoint => isl_to_codepoint,
         }
     }
 }
