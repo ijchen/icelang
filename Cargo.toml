@@ -15,8 +15,7 @@ publish = false
 clap = { version = "4.2.1", features = ["derive"] }
 rustyline = "11.0.0"
 typed-arena = "2.0.2"
-# clearscreen = "2.0.0" # TODO update once they update their nom dependency
-clearscreen = { git = "https://github.com/watchexec/clearscreen.git", rev = "7507d59" }
+clearscreen = "2.0.1"
 static_assertions = "1.1.0"
 enum-iterator = "1.4.0"
 ordered-float = "3.6.0"
