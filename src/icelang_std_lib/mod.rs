@@ -1,6 +1,7 @@
 mod collections;
 mod icelang_fmt;
 mod io;
+mod misc;
 mod std_lib_function;
 mod string;
 mod time;
