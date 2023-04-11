@@ -5,6 +5,7 @@ use crate::{
 
 use super::{
     string::{isl_from_codepoint, isl_to_codepoint},
+    time::{isl_now, isl_sleep},
     *,
 };
 
@@ -34,6 +35,10 @@ pub enum StdLibFunction {
     // String
     FromCodepoint,
     ToCodepoint,
+
+    // Time
+    Now,
+    Sleep,
 }
 
 impl StdLibFunction {
@@ -66,6 +71,10 @@ impl StdLibFunction {
             // String
             "from_codepoint" => Some(Self::FromCodepoint),
             "to_codepoint" => Some(Self::ToCodepoint),
+
+            // Time
+            "now" => Some(Self::Now),
+            "sleep" => Some(Self::Sleep),
 
             _ => None,
         }
@@ -105,6 +114,10 @@ impl StdLibFunction {
             // String
             Self::FromCodepoint => isl_from_codepoint,
             Self::ToCodepoint => isl_to_codepoint,
+
+            // Time
+            Self::Now => isl_now,
+            Self::Sleep => isl_sleep,
         }
     }
 }

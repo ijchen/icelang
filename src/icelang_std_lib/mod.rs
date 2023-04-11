@@ -3,6 +3,7 @@ mod icelang_fmt;
 mod io;
 mod std_lib_function;
 mod string;
+mod time;
 
 pub use collections::*;
 pub use icelang_fmt::{IcelangFmt, IcelangFmtArgs};
