@@ -95,7 +95,7 @@ pub fn isl_eprint<'source>(
     match arguments.len() {
         1 => {
             eprint!("{}", arguments[0].icelang_display());
-            if std::io::stdout().flush().is_err() {
+            if std::io::stderr().flush().is_err() {
                 todo!();
             }
 
