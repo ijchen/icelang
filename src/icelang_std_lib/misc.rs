@@ -2,6 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive, Zero};
+use rand::Rng;
 
 use crate::{
     error::runtime_error::RuntimeError,
@@ -192,4 +193,23 @@ pub fn isl_range<'source>(
     }
 
     Ok(Value::List(Rc::new(RefCell::new(values))))
+}
+
+/// The `rand` icelang standard library function
+pub fn isl_rand<'source>(
+    arguments: Vec<Value>,
+    pos: &SourceRange<'source>,
+    state: &mut RuntimeState<'source>,
+) -> RuntimeResult<'source, Value> {
+    match arguments.len() {
+        0 => Ok(Value::Float(state.rng_mut().gen())),
+        argument_count => Err(NonLinearControlFlow::RuntimeError(
+            RuntimeError::new_invalid_overload_error(
+                pos.clone(),
+                state.scope_display_name().to_string(),
+                "rand".to_string(),
+                argument_count,
+            ),
+        )),
+    }
 }

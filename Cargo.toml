@@ -21,6 +21,7 @@ enum-iterator = "1.4.0"
 ordered-float = "3.6.0"
 num-bigint = "0.4.3"
 num-traits = "0.2.15"
+rand = "0.8.5"
 
 [dev-dependencies]
 rand = "0.8.5"

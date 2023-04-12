@@ -1,7 +1,9 @@
 //! Contains code related to `RuntimeState`s, which represent the entire state
 //! of an icelang program during execution.
 
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
+
+use rand::RngCore;
 
 use crate::{
     ast::AstNode,
@@ -12,11 +14,28 @@ use crate::{
     value::Value,
 };
 
+/// A `rand::RngCore` that can also be cloned
+pub trait CloneableRng: RngCore {
+    /// Clones the CloneableRng
+    fn clone(&self) -> Box<dyn CloneableRng>;
+}
+impl<T: RngCore + Clone + 'static> CloneableRng for T {
+    fn clone(&self) -> Box<dyn CloneableRng> {
+        Box::new(self.clone())
+    }
+}
+impl Clone for Box<dyn CloneableRng> {
+    fn clone(&self) -> Self {
+        CloneableRng::clone(self)
+    }
+}
+
 /// Represents the entire state of an icelang program during execution
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct RuntimeState<'source> {
     most_recent_value: Value,
     call_stack: CallStack<'source>,
+    rng: Box<dyn CloneableRng>,
 }
 
 impl<'source> RuntimeState<'source> {
@@ -25,7 +44,13 @@ impl<'source> RuntimeState<'source> {
         Self {
             most_recent_value: Value::Null,
             call_stack: CallStack::new("<global>".to_string()),
+            rng: Box::new(rand::thread_rng()),
         }
+    }
+
+    /// Gets a mutable reference to the random number generator
+    pub fn rng_mut(&mut self) -> &mut dyn CloneableRng {
+        &mut self.rng
     }
 
     /// Returns the display name of the current scope
@@ -135,6 +160,23 @@ impl<'source> RuntimeState<'source> {
 impl<'source> Default for RuntimeState<'source> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<'source> Debug for RuntimeState<'source> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        struct DebugAsIs(&'static str);
+        impl Debug for DebugAsIs {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", self.0)
+            }
+        }
+
+        f.debug_struct("RuntimeState")
+            .field("most_recent_value", &self.most_recent_value)
+            .field("call_stack", &self.call_stack)
+            .field("rng", &DebugAsIs("<random number generator>"))
+            .finish()
     }
 }
 
