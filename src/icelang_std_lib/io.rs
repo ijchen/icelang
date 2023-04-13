@@ -1,4 +1,8 @@
-use std::{cell::RefCell, io::Write, rc::Rc};
+use std::{
+    cell::RefCell,
+    io::{Read, Write},
+    rc::Rc,
+};
 
 use crate::{
     error::runtime_error::RuntimeError,
@@ -140,6 +144,62 @@ pub fn isl_eprintln<'source>(
     }
 }
 
+pub fn isl_print_bin<'source>(
+    arguments: Vec<Value>,
+    pos: &SourceRange<'source>,
+    state: &mut RuntimeState<'source>,
+) -> RuntimeResult<'source, Value> {
+    match arguments.len() {
+        1 => {
+            let list = match &arguments[0] {
+                Value::List(bytes) => bytes,
+                _ => return Err(NonLinearControlFlow::RuntimeError(
+                    RuntimeError::new_assertion_error(
+                        pos.clone(),
+                        state.scope_display_name().to_string(),
+                        format!(
+                            "`print_bin(...)` expects a list as it's first argument, but got a value of type {}",
+                            arguments[0].icelang_type()
+                        )
+                    )
+                )),
+            };
+
+            let bytes: Vec<u8> = list
+                .borrow()
+                .iter()
+                .enumerate()
+                .map(|(i, value)| {
+                    match value {
+                        Value::Byte(byte) => Ok(*byte),
+                        value => Err(format!("`print_bin(...)` expects a list containing only bytes, but index {i} in the list was a value of type {}", value.icelang_type())),
+                    }
+                })
+                .collect::<Result<_, _>>()
+                .map_err(|msg| NonLinearControlFlow::RuntimeError(
+                    RuntimeError::new_assertion_error(
+                        pos.clone(),
+                        state.scope_display_name().to_string(),
+                        msg,
+                    )
+                ))?;
+
+            match std::io::stdout().write_all(&bytes) {
+                Ok(()) => Ok(Value::Null),
+                Err(_) => todo!(),
+            }
+        }
+        argument_count => Err(NonLinearControlFlow::RuntimeError(
+            RuntimeError::new_invalid_overload_error(
+                pos.clone(),
+                state.scope_display_name().to_string(),
+                "print_bin".to_string(),
+                argument_count,
+            ),
+        )),
+    }
+}
+
 /// The `input` icelang standard library function
 pub fn isl_input<'source>(
     arguments: Vec<Value>,
@@ -159,6 +219,33 @@ pub fn isl_input<'source>(
                 pos.clone(),
                 state.scope_display_name().to_string(),
                 "input".to_string(),
+                argument_count,
+            ),
+        )),
+    }
+}
+
+/// The `input_bin` icelang standard library function
+pub fn isl_input_bin<'source>(
+    arguments: Vec<Value>,
+    pos: &SourceRange<'source>,
+    state: &mut RuntimeState<'source>,
+) -> RuntimeResult<'source, Value> {
+    match arguments.len() {
+        0 => {
+            let mut buf: Vec<u8> = Vec::new();
+            match std::io::stdin().read_to_end(&mut buf) {
+                Ok(_) => Ok(Value::List(Rc::new(RefCell::new(
+                    buf.into_iter().map(Value::Byte).collect(),
+                )))),
+                Err(_) => Ok(Value::Null),
+            }
+        }
+        argument_count => Err(NonLinearControlFlow::RuntimeError(
+            RuntimeError::new_invalid_overload_error(
+                pos.clone(),
+                state.scope_display_name().to_string(),
+                "input_bin".to_string(),
                 argument_count,
             ),
         )),
