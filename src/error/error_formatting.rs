@@ -22,6 +22,8 @@ impl Display for IcelangErrorKind {
 #[derive(Clone, Debug)]
 /// A stack trace for icelang error messages
 pub struct StackTrace<'source> {
+    // TODO Eventually allow this to not include a SourceRange for interpreter
+    // built-ins, and update isl functions to use that
     sources: VecDeque<(String, SourceRange<'source>)>,
 }
 

@@ -95,8 +95,36 @@ pub fn interpret_function_call<'source>(
         state.push_stack_frame(format!("{function_name}(...)"));
 
         // Call the function
-        let return_value =
-            std_lib_function.as_fn_pointer()(arguments, function_call_node.pos(), state);
+        let callable = std_lib_function.as_fn_pointer();
+        let return_value = match callable(arguments, function_call_node.pos(), state) {
+            Ok(value) => Ok(value),
+            Err(NonLinearControlFlow::JumpStatement(jump_statement)) => match jump_statement.kind()
+            {
+                JumpStatementKind::Return => Ok(jump_statement.into_value().unwrap_or(Value::Null)),
+                jump_kind => {
+                    let mut err = RuntimeError::new_invalid_jump_statement_error(
+                        jump_statement.pos().clone(),
+                        state.scope_display_name().to_string(),
+                        jump_kind,
+                        "a function".to_string(),
+                    );
+                    state.pop_stack_frame();
+                    err.stack_trace_mut().add_bottom(
+                        state.scope_display_name().to_string(),
+                        function_call_node.pos().clone(),
+                    );
+                    return Err(NonLinearControlFlow::RuntimeError(err));
+                }
+            },
+            Err(NonLinearControlFlow::RuntimeError(mut err)) => {
+                state.pop_stack_frame();
+                err.stack_trace_mut().add_bottom(
+                    state.scope_display_name().to_string(),
+                    function_call_node.pos().clone(),
+                );
+                return Err(NonLinearControlFlow::RuntimeError(err));
+            }
+        };
 
         // Pop the stack frame
         state.pop_stack_frame();
