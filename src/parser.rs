@@ -924,7 +924,10 @@ fn parse_atomic<'source>(
             Ok(AstNodeLiteral::new(
                 token.raw().to_string(),
                 token.icelang_type(),
-                token.value().clone(),
+                // This, I'm *pretty* sure, would be perfectly fine as a shallow
+                // copy, but this really shouldn't ever matter and this is less
+                // error-prone. Can come back to this later if necessary
+                token.value().deep_copy(),
                 token.pos().clone(),
             )
             .into())

@@ -31,7 +31,6 @@ impl Clone for Box<dyn CloneableRng> {
 }
 
 /// Represents the entire state of an icelang program during execution
-#[derive(Clone)]
 pub struct RuntimeState<'source> {
     most_recent_value: Value,
     call_stack: CallStack<'source>,
@@ -154,6 +153,16 @@ impl<'source> RuntimeState<'source> {
         assert!(self.call_stack.lookup_variable(identifier).is_some());
 
         self.call_stack.reassign_variable(identifier, value)
+    }
+}
+
+impl<'source> Clone for RuntimeState<'source> {
+    fn clone(&self) -> Self {
+        Self {
+            most_recent_value: self.most_recent_value.deep_copy(),
+            call_stack: self.call_stack.clone(),
+            rng: Clone::clone(&self.rng),
+        }
     }
 }
 

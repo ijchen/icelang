@@ -260,7 +260,7 @@ pub fn isl_read_file<'source>(
 ) -> RuntimeResult<'source, Value> {
     match arguments.len() {
         1 => {
-            let Value::String(path) = arguments[0].clone() else {
+            let Value::String(path) = &arguments[0] else {
                 return Err(NonLinearControlFlow::RuntimeError(
                     RuntimeError::new_assertion_error(
                         pos.clone(),
@@ -325,7 +325,7 @@ pub fn isl_read_file_bin<'source>(
 ) -> RuntimeResult<'source, Value> {
     match arguments.len() {
         1 => {
-            let Value::String(path) = arguments[0].clone() else {
+            let Value::String(path) = &arguments[0] else {
                 return Err(NonLinearControlFlow::RuntimeError(
                     RuntimeError::new_assertion_error(
                         pos.clone(),
@@ -389,7 +389,7 @@ pub fn isl_write_file<'source>(
 ) -> RuntimeResult<'source, Value> {
     match arguments.len() {
         2 => {
-            let Value::String(path) = arguments[0].clone() else {
+            let Value::String(path) = &arguments[0] else {
                 return Err(NonLinearControlFlow::RuntimeError(
                     RuntimeError::new_assertion_error(
                         pos.clone(),
@@ -401,7 +401,7 @@ pub fn isl_write_file<'source>(
                     )
                 ));
             };
-            let Value::String(contents) = arguments[1].clone() else {
+            let Value::String(contents) = &arguments[1] else {
                 return Err(NonLinearControlFlow::RuntimeError(
                     RuntimeError::new_assertion_error(
                         pos.clone(),
@@ -442,7 +442,7 @@ pub fn isl_write_file_bin<'source>(
 ) -> RuntimeResult<'source, Value> {
     match arguments.len() {
         2 => {
-            let Value::String(path) = arguments[0].clone() else {
+            let Value::String(path) = &arguments[0] else {
                 return Err(NonLinearControlFlow::RuntimeError(
                     RuntimeError::new_assertion_error(
                         pos.clone(),
@@ -454,7 +454,7 @@ pub fn isl_write_file_bin<'source>(
                     )
                 ));
             };
-            let Value::List(contents) = arguments[1].clone() else {
+            let Value::List(contents) = &arguments[1] else {
                 return Err(NonLinearControlFlow::RuntimeError(
                     RuntimeError::new_assertion_error(
                         pos.clone(),

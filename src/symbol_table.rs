@@ -9,7 +9,7 @@ use crate::{
 
 /// A table keeping track of variables and functions in some current icelang
 /// scope
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct SymbolTable<'source> {
     functions: HashMap<String, FunctionGroup<'source>>,
     variables: HashMap<String, Value>,
@@ -86,6 +86,19 @@ impl<'source> SymbolTable<'source> {
         assert!(self.lookup_variable(identifier).is_some());
 
         *self.variables.get_mut(identifier).unwrap() = new_value;
+    }
+}
+
+impl Clone for SymbolTable<'_> {
+    fn clone(&self) -> Self {
+        Self {
+            functions: self.functions.clone(),
+            variables: self
+                .variables
+                .iter()
+                .map(|(k, v)| (k.clone(), v.deep_copy()))
+                .collect(),
+        }
     }
 }
 

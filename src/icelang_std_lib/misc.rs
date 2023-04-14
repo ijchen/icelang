@@ -44,6 +44,25 @@ pub fn isl_typeof<'source>(
     }
 }
 
+/// The `copy` icelang standard library function
+pub fn isl_copy<'source>(
+    arguments: Vec<Value>,
+    pos: &SourceRange<'source>,
+    state: &mut RuntimeState<'source>,
+) -> RuntimeResult<'source, Value> {
+    match arguments.len() {
+        1 => Ok(arguments[0].deep_copy()),
+        argument_count => Err(NonLinearControlFlow::RuntimeError(
+            RuntimeError::new_invalid_overload_error(
+                pos.clone(),
+                state.scope_display_name().to_string(),
+                "copy".to_string(),
+                argument_count,
+            ),
+        )),
+    }
+}
+
 /// The `range` icelang standard library function
 pub fn isl_range<'source>(
     arguments: Vec<Value>,

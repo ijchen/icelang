@@ -70,5 +70,5 @@ pub fn interpret_formatted_string_literal<'source>(
 /// # Panics
 /// - If the literal is invalid
 pub fn interpret_literal(node: &AstNodeLiteral) -> Value {
-    node.value().clone()
+    node.value().deep_copy()
 }

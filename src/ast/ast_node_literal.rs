@@ -6,7 +6,7 @@ use super::*;
 use ast_node_format::format_as_node;
 
 /// A literal AST node
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AstNodeLiteral<'source> {
     raw: String,
     icelang_type: IcelangType,
@@ -54,6 +54,17 @@ impl<'source> AstNodeLiteral<'source> {
     /// variable access
     pub fn pos_mut(&mut self) -> &mut SourceRange<'source> {
         &mut self.pos
+    }
+}
+
+impl Clone for AstNodeLiteral<'_> {
+    fn clone(&self) -> Self {
+        Self {
+            raw: self.raw.clone(),
+            icelang_type: self.icelang_type,
+            value: self.value.deep_copy(),
+            pos: self.pos.clone(),
+        }
     }
 }
 

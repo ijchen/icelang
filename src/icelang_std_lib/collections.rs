@@ -58,7 +58,7 @@ pub fn isl_push<'source>(
         2 => {
             match &arguments[0] {
                 Value::List(list) => {
-                    list.borrow_mut().push(arguments[1].clone());
+                    list.borrow_mut().push(arguments[1].reference_copy());
                     Ok(Value::Null)
                 },
                 _ => Err(NonLinearControlFlow::RuntimeError(
@@ -130,7 +130,7 @@ pub fn isl_push_start<'source>(
             match &arguments[0] {
                 Value::List(list) => {
                     // TODO switch to a VecDeque and use `.push_start(...)`
-                    list.borrow_mut().insert(0, arguments[1].clone());
+                    list.borrow_mut().insert(0, arguments[1].reference_copy());
                     Ok(Value::Null)
                 },
                 _ => Err(NonLinearControlFlow::RuntimeError(
@@ -284,7 +284,7 @@ pub fn isl_keys<'source>(
                 Value::Dict(dict) => {
                     let dict = dict.borrow();
 
-                    Ok(Value::List(Rc::new(RefCell::new(dict.keys().cloned().collect()))))
+                    Ok(Value::List(Rc::new(RefCell::new(dict.keys().map(Value::reference_copy).collect()))))
                 },
                 _ => Err(NonLinearControlFlow::RuntimeError(
                     RuntimeError::new_assertion_error(

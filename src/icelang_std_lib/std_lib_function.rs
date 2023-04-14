@@ -4,7 +4,7 @@ use crate::{
 };
 
 use super::{
-    misc::{isl_rand, isl_range, isl_typeof},
+    misc::{isl_copy, isl_rand, isl_range, isl_typeof},
     string::{isl_from_codepoint, isl_to_codepoint},
     time::{isl_now, isl_sleep},
     *,
@@ -45,6 +45,7 @@ pub enum StdLibFunction {
 
     // Miscellaneous
     Typeof,
+    Copy,
     Range,
     Rand,
 }
@@ -88,6 +89,7 @@ impl StdLibFunction {
 
             // Miscellaneous
             "typeof" => Some(Self::Typeof),
+            "copy" => Some(Self::Copy),
             "range" => Some(Self::Range),
             "rand" => Some(Self::Rand),
 
@@ -138,6 +140,7 @@ impl StdLibFunction {
 
             // Miscellaneous
             Self::Typeof => isl_typeof,
+            Self::Copy => isl_copy,
             Self::Range => isl_range,
             Self::Rand => isl_rand,
         }

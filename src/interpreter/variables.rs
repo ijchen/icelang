@@ -43,7 +43,7 @@ pub fn interpret_variable_access<'source>(
     state: &mut RuntimeState,
 ) -> RuntimeResult<'source, Value> {
     match state.lookup_variable(variable_access.ident()) {
-        Some(value) => Ok(value.clone()),
+        Some(value) => Ok(value.reference_copy()),
         None => Err(NonLinearControlFlow::RuntimeError(
             RuntimeError::new_undefined_reference_error(
                 variable_access.pos().clone(),

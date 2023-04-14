@@ -28,7 +28,7 @@ pub fn interpret_dot_member_access<'source>(
         Value::Dict(dict) => {
             let key = Value::String(node.member().into());
             match dict.borrow().get(&key) {
-                Some(value) => Ok(value.clone()),
+                Some(value) => Ok(value.reference_copy()),
                 None => Err(NonLinearControlFlow::RuntimeError(
                     RuntimeError::new_invalid_member_access_error(
                         node.pos().clone(),
@@ -114,10 +114,10 @@ pub fn interpret_computed_member_access<'source>(
                 ));
             }
 
-            Ok(list[index].clone())
+            Ok(list[index].reference_copy())
         }
         Value::Dict(dict) => match dict.borrow().get(&member) {
-            Some(value) => Ok(value.clone()),
+            Some(value) => Ok(value.reference_copy()),
             None => Err(NonLinearControlFlow::RuntimeError(
                 RuntimeError::new_invalid_member_access_error(
                     node.pos().clone(),

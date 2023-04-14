@@ -11,7 +11,7 @@ use crate::{
 };
 
 /// Represents an icelang runtime value
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum Value {
     /// An int value
     Int(BigInt),
@@ -39,6 +39,84 @@ pub enum Value {
 }
 
 impl Value {
+    /// Performs a reference copy of the value. This means that the two values
+    /// are copied by-reference, and (for the non-copy types) changes to the
+    /// original will be reflected in the copy, and vice-versa
+    pub fn reference_copy(&self) -> Value {
+        match self {
+            Value::Int(value) => Value::Int(value.clone()),
+            Value::Byte(value) => Value::Byte(*value),
+            Value::Float(value) => Value::Float(*value),
+            Value::Bool(value) => Value::Bool(*value),
+            Value::String(value) => Value::String(value.clone()),
+            Value::List(value) => Value::List(value.clone()),
+            Value::Dict(value) => Value::Dict(value.clone()),
+            Value::Null => Value::Null,
+        }
+    }
+
+    /// Performs a shallow copy of the value. This means that the value is
+    /// copied, and changes to the original will not be reflected in the copy
+    /// (and vice-versa). However, since this is a shallow copy, changes to any
+    /// of the values *stored inside* the original will be reflected in the
+    /// copy, and vice-versa. This only matters for types that contain other
+    /// values, like `list`s or `dict`s
+    pub fn shallow_copy(&self) -> Value {
+        match self {
+            Value::Int(value) => Value::Int(value.clone()),
+            Value::Byte(value) => Value::Byte(*value),
+            Value::Float(value) => Value::Float(*value),
+            Value::Bool(value) => Value::Bool(*value),
+            Value::String(value) => Value::String(value.clone()),
+            Value::List(value) => Value::List(Rc::new(RefCell::new(
+                value
+                    .borrow()
+                    .iter()
+                    .map(|value| value.reference_copy())
+                    .collect(),
+            ))),
+            Value::Dict(value) => Value::Dict(Rc::new(RefCell::new(
+                value
+                    .borrow()
+                    .iter()
+                    .map(|(k, v)| (k.reference_copy(), v.reference_copy()))
+                    .collect(),
+            ))),
+            Value::Null => Value::Null,
+        }
+    }
+
+    /// Performs a deep copy of the value. This means that the value is copied,
+    /// and changes to the original will not be reflected in the copy (and
+    /// vice-versa). Additionally, since this is a deep copy, changes to any
+    /// of the values stored inside the original will **not** be reflected in
+    /// the copy, and vice-versa. This only matters for types that contain other
+    /// values, like `list`s or `dict`s
+    pub fn deep_copy(&self) -> Value {
+        match self {
+            Value::Int(value) => Value::Int(value.clone()),
+            Value::Byte(value) => Value::Byte(*value),
+            Value::Float(value) => Value::Float(*value),
+            Value::Bool(value) => Value::Bool(*value),
+            Value::String(value) => Value::String(value.clone()),
+            Value::List(value) => Value::List(Rc::new(RefCell::new(
+                value
+                    .borrow()
+                    .iter()
+                    .map(|value| value.deep_copy())
+                    .collect(),
+            ))),
+            Value::Dict(value) => Value::Dict(Rc::new(RefCell::new(
+                value
+                    .borrow()
+                    .iter()
+                    .map(|(k, v)| (k.deep_copy(), v.deep_copy()))
+                    .collect(),
+            ))),
+            Value::Null => Value::Null,
+        }
+    }
+
     /// Gets the icelang type of the value
     pub fn icelang_type(&self) -> IcelangType {
         match self {

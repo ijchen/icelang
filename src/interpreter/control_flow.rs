@@ -174,7 +174,7 @@ pub fn interpret_for_loop<'source>(
         // If we're iterating over a list, take a snapshot of the list as it is
         // at the start of the loop - mutations of the iterated list shouldn't
         // be reflected in the for loop's iterations
-        Value::List(list) => list.borrow().clone(),
+        Value::List(list) => list.borrow().iter().map(Value::reference_copy).collect(),
 
         value => {
             return Err(NonLinearControlFlow::RuntimeError(

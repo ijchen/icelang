@@ -151,7 +151,7 @@ pub fn interpret_assignment<'source>(
                 )))
             })?;
 
-            assign_to_lvalue(assignment.lhs(), value.clone(), state)?;
+            assign_to_lvalue(assignment.lhs(), value.reference_copy(), state)?;
 
             Ok(value)
         }};
@@ -161,7 +161,7 @@ pub fn interpret_assignment<'source>(
         AssignmentKind::Normal => {
             let value = interpret_expression(assignment.rhs(), state)?;
 
-            assign_to_lvalue(assignment.lhs(), value.clone(), state)?;
+            assign_to_lvalue(assignment.lhs(), value.reference_copy(), state)?;
 
             Ok(value)
         }

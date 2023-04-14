@@ -1,6 +1,6 @@
 use crate::{ast::JumpStatementKind, source_range::SourceRange, value::Value};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct JumpStatement<'source> {
     kind: JumpStatementKind,
     value: Option<Value>,
@@ -27,5 +27,15 @@ impl<'source> JumpStatement<'source> {
     /// Gets the position in the source code of the jump statement
     pub fn pos(&self) -> &SourceRange<'source> {
         &self.pos
+    }
+}
+
+impl Clone for JumpStatement<'_> {
+    fn clone(&self) -> Self {
+        Self {
+            kind: self.kind,
+            value: self.value.as_ref().map(Value::deep_copy),
+            pos: self.pos.clone(),
+        }
     }
 }
