@@ -1,4 +1,5 @@
 mod collections;
+mod error;
 mod icelang_fmt;
 mod io;
 mod misc;

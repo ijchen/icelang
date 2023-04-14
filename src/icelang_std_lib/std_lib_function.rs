@@ -4,6 +4,7 @@ use crate::{
 };
 
 use super::{
+    error::{isl_assert, isl_error, isl_todo, isl_unimplemented, isl_unreachable},
     misc::{isl_copy, isl_rand, isl_range, isl_typeof},
     string::{isl_from_codepoint, isl_to_codepoint},
     time::{isl_now, isl_sleep},
@@ -42,6 +43,13 @@ pub enum StdLibFunction {
     // Time
     Now,
     Sleep,
+
+    // Error
+    Error,
+    Assert,
+    Todo,
+    Unimplemented,
+    Unreachable,
 
     // Miscellaneous
     Typeof,
@@ -86,6 +94,13 @@ impl StdLibFunction {
             // Time
             "now" => Some(Self::Now),
             "sleep" => Some(Self::Sleep),
+
+            // Error
+            "error" => Some(Self::Error),
+            "assert" => Some(Self::Assert),
+            "todo" => Some(Self::Todo),
+            "unimplemented" => Some(Self::Unimplemented),
+            "unreachable" => Some(Self::Unreachable),
 
             // Miscellaneous
             "typeof" => Some(Self::Typeof),
@@ -137,6 +152,13 @@ impl StdLibFunction {
             // Time
             Self::Now => isl_now,
             Self::Sleep => isl_sleep,
+
+            // Error
+            Self::Error => isl_error,
+            Self::Assert => isl_assert,
+            Self::Todo => isl_todo,
+            Self::Unimplemented => isl_unimplemented,
+            Self::Unreachable => isl_unreachable,
 
             // Miscellaneous
             Self::Typeof => isl_typeof,
