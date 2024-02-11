@@ -132,7 +132,7 @@ Some examples of things which are *not* valid `int`s include: `3.14`, `Infinity`
 `NaN`
 
 ## `byte`
-A `byte` is a single byte (8-bit value) interpreted as an unsigned integer in
+A `byte` is a single octet (8-bit value) interpreted as an unsigned integer in
 the range 0 to 255 (both ends inclusive)
 
 Operations on `byte`s in icelang are
@@ -547,6 +547,7 @@ Here are some examples of using escape sequences in `string` literals:
 "What's your name?\nMy name is Isaac.";
 
 // This string contains a *single* backslash (escaped as \\)
+// It will read: A forward slash is /, and a backslash is \
 "A forward slash is /, and a backslash is \\";
 
 // This string uses ASCII and Unicode escape sequences
@@ -812,7 +813,10 @@ The `int` value will be converted to the nearest representable `float`. Values
 greater than the maximum finite `float` value or less than the minimum finite
 `float` value are converted to positive and negative `Infinity` respectively.
 
-The behavior In the event of a "tie" (when the )
+The behavior In the event of a "tie" (when the value of the `int` is exactly
+between the two nearest representable `float` values) is unspecified, except
+that the resulting `float` is guaranteed to be one of those two nearest `float`
+values.
 
 #### `byte` to `int` (infallible)
 The `byte` value will be converted to the same numerical value as an `int`.

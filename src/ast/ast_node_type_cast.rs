@@ -9,7 +9,7 @@ use ast_node_format::format_as_node;
 #[derive(Debug, Clone)]
 pub struct AstNodeTypeCast<'source> {
     body: Box<AstNode<'source>>,
-    new_type: IcelangType,
+    destination_type: IcelangType,
     pos: SourceRange<'source>,
 }
 
@@ -18,7 +18,7 @@ impl<'source> AstNodeTypeCast<'source> {
     pub fn new(body: AstNode<'source>, new_type: IcelangType, pos: SourceRange<'source>) -> Self {
         Self {
             body: Box::new(body),
-            new_type,
+            destination_type: new_type,
             pos,
         }
     }
@@ -28,9 +28,9 @@ impl<'source> AstNodeTypeCast<'source> {
         &self.body
     }
 
-    /// Returns the new icelang type to cast to
-    pub fn new_type(&self) -> IcelangType {
-        self.new_type
+    /// Returns the destination icelang type of the cast
+    pub fn destination_type(&self) -> IcelangType {
+        self.destination_type
     }
 
     /// Returns the position in the source code of this type cast
@@ -47,7 +47,7 @@ impl<'source> AstNodeTypeCast<'source> {
 
 impl PartialEq for AstNodeTypeCast<'_> {
     fn eq(&self, other: &Self) -> bool {
-        self.body == other.body && self.new_type == other.new_type
+        self.body == other.body && self.destination_type == other.destination_type
     }
 }
 impl Eq for AstNodeTypeCast<'_> {}
@@ -58,7 +58,7 @@ impl Display for AstNodeTypeCast<'_> {
             f,
             "{}",
             format_as_node(
-                &format!("[Type Cast] to {}", self.new_type),
+                &format!("[Type Cast] to {}", self.destination_type),
                 vec![self.body.to_string()]
             )
         )
