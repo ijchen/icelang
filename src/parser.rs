@@ -396,7 +396,7 @@ fn parse_if_else_statement<'source>(
 
     // Parse any else-if statements
     loop {
-        match (token_stream.get(0), token_stream.get(1)) {
+        match (token_stream.front(), token_stream.get(1)) {
             (Some(Token::Keyword(token_else)), Some(Token::Keyword(token_if)))
                 if token_else.keyword() == Keyword::Else && token_if.keyword() == Keyword::If =>
             {

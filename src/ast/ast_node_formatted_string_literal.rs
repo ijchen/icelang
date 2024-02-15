@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Display, Write};
 
 use crate::source_range::SourceRange;
 
@@ -71,12 +71,15 @@ impl Display for AstNodeFormattedStringLiteral<'_> {
             "{}",
             format_as_node(
                 &format!(
-                    "[Formatted String Literal] {}...{}{}",
+                    "[Formatted String Literal] {}{}{}",
                     self.start.0,
                     self.continuations
                         .iter()
-                        .map(|(s, _)| format!("{s}..."))
-                        .collect::<String>(),
+                        .fold("...".to_string(), |mut accumulator, (s, _)| {
+                            write!(accumulator, "{s}...").unwrap();
+
+                            accumulator
+                        }),
                     self.end
                 ),
                 vec![self.start.1.to_string()]

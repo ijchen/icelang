@@ -54,7 +54,7 @@ macro_rules! impl_simple_bin_op {
             $rhs_type: ident => $result: expr
         ),+$(,)?}
     ) => {
-        pub fn $func_name<'source>(
+        pub fn $func_name(
             $lhs: Value,
             $rhs: Value,
         ) -> Result<Value, OperationError> {
