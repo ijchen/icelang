@@ -15,18 +15,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --all-targets --verbose
   
   tests:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - name: Run tests
-      run: cargo test --verbose --release
+      run: cargo test --verbose
   
   clippy_check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Run Clippy
-        run: cargo clippy --all-targets --all-features -- -Dwarnings
+        run: cargo clippy --all-targets -- -Dwarnings
