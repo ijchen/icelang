@@ -54,67 +54,6 @@ loop 10 {
 };
 ```
 
-# To-do
-
-icelang is still in development, and has a number of incomplete or missing
-features:
-- [x] Make a cool logo
-- [ ] Guidebook
-  - [ ] Language features
-    - [ ] Program structure
-      - [ ] General program structure
-      - [ ] Keywords
-      - [ ] Operators
-      - [ ] Separators
-      - [ ] Identifiers
-      - [ ] Values and types
-    - [ ] Control flow
-      - [ ] If/else statements
-      - [ ] Loops
-        - [ ] Simple loops
-        - [ ] `while` loops
-        - [ ] `for` loops
-      - [ ] Match statements
-      - [ ] Jump statements
-        - [ ] `break`
-        - [ ] `continue`
-        - [ ] `return`
-    - [ ] Declarations
-      - [ ] Variable declarations
-      - [ ] Function declarations
-    - [ ] Expressions
-      - [x] Literals
-      - [ ] Variable access
-      - [ ] Operations
-  - [ ] Standard library features
-- [ ] Implementation
-  - [ ] ice (binary)
-    - [ ] REPL
-    - [ ] File interpreter
-  - [ ] lexer
-    - [ ] TODO expand
-  - [ ] parser
-    - [ ] TODO expand
-  - [ ] interpreter
-    - [ ] TODO expand
-- [ ] Testing
-  - [ ] Unit tests
-    - [ ] General unit tests
-    - [ ] Property-based tests (where applicable)
-  - [ ] Integration tests
-    - [ ] General integration tests
-    - [ ] Fuzzing (where applicable)
-- [ ] Flesh out examples
-- [ ] Future considerations
-  - [ ] Format string literal replacement field format specifiers
-  - [ ] First-class function support
-  - [ ] User-defined types
-  - [ ] Compilation, JIT-compilation, transpilation, and static code analysis
-  - [ ] Preprocessor and macros
-  - [ ] Namespaces and including
-  - [ ] Nullish-coalescing operator (JavaScript's `??`), null-propagation
-  (Rust's `?`), optional chaining (JavaScript's `.?`)
-
 # License
 
 Licensed under either of
