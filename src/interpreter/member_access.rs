@@ -181,14 +181,12 @@ pub fn interpret_computed_member_access<'source>(
                 string.chars().nth(index).unwrap().to_string().into(),
             ))
         }
-        root => {
-            return Err(NonLinearControlFlow::RuntimeError(
-                RuntimeError::new_invalid_member_access_error(
-                    node.pos().clone(),
-                    scope_display_name,
-                    format!("cannot index value of type {}", root.icelang_type()),
-                ),
-            ));
-        }
+        root => Err(NonLinearControlFlow::RuntimeError(
+            RuntimeError::new_invalid_member_access_error(
+                node.pos().clone(),
+                scope_display_name,
+                format!("cannot index value of type {}", root.icelang_type()),
+            ),
+        )),
     }
 }

@@ -16,7 +16,7 @@ impl<'source> TokenLiteral<'source> {
     ///
     /// # Panics
     /// - If the icelang type provided isn't the same as the icelang type of the
-    /// value
+    ///   value
     pub fn new(
         raw: String,
         icelang_type: IcelangType,

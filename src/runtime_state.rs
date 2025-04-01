@@ -156,7 +156,7 @@ impl<'source> RuntimeState<'source> {
     }
 }
 
-impl<'source> Clone for RuntimeState<'source> {
+impl Clone for RuntimeState<'_> {
     fn clone(&self) -> Self {
         Self {
             most_recent_value: self.most_recent_value.deep_copy(),
@@ -166,13 +166,13 @@ impl<'source> Clone for RuntimeState<'source> {
     }
 }
 
-impl<'source> Default for RuntimeState<'source> {
+impl Default for RuntimeState<'_> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'source> Debug for RuntimeState<'source> {
+impl Debug for RuntimeState<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         struct DebugAsIs(&'static str);
         impl Debug for DebugAsIs {
@@ -189,7 +189,7 @@ impl<'source> Debug for RuntimeState<'source> {
     }
 }
 
-impl<'source> Display for RuntimeState<'source> {
+impl Display for RuntimeState<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Most recent value: ")?;
         let fmt_args = IcelangFmtArgs { debug: true };

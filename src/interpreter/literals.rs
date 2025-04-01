@@ -33,6 +33,10 @@ pub fn interpret_literal_dict<'source>(
     node: &AstNodeDictLiteral<'source>,
     state: &mut RuntimeState<'source>,
 ) -> RuntimeResult<'source, Value> {
+    #[expect(
+        clippy::mutable_key_type,
+        reason = "current intended behavior is to allow mutable keys - likely needs design work to determine how to handle correctly"
+    )]
     let mut dict = HashMap::with_capacity(node.entries().len());
 
     for (key_node, value_node) in node.entries() {

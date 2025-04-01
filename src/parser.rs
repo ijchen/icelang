@@ -122,18 +122,14 @@ fn parse_function_declaration_parameters<'source>(
         }
 
         // Invalid arguments
-        Some(token) => {
-            return Err(ParseError::new_unexpected_token(
-                "expected parameter list in function declaration".to_string(),
-                token.pos().clone(),
-            ));
-        }
-        None => {
-            return Err(ParseError::new_unexpected_eof(
-                "incomplete function declaration".to_string(),
-                start_pos.extended_to_end(),
-            ));
-        }
+        Some(token) => Err(ParseError::new_unexpected_token(
+            "expected parameter list in function declaration".to_string(),
+            token.pos().clone(),
+        )),
+        None => Err(ParseError::new_unexpected_eof(
+            "incomplete function declaration".to_string(),
+            start_pos.extended_to_end(),
+        )),
     }
 }
 

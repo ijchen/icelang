@@ -20,7 +20,7 @@ pub enum FunctionParameters<'source> {
     },
 }
 
-impl<'source> FunctionParameters<'source> {
+impl FunctionParameters<'_> {
     /// Returns whether or not the arity is variadic
     pub fn is_variadic(&self) -> bool {
         match self {
